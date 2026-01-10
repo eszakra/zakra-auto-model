@@ -274,7 +274,10 @@ const App: React.FC = () => {
         {/* COL 1: LIBRARY */}
         <section className="flex flex-col h-full bg-black/50 overflow-y-auto">
           <div className="p-3 border-b border-zakra-border bg-zinc-900/20 sticky top-0 backdrop-blur-sm z-10 flex justify-between items-center">
-            <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">PASO 1: TUS MODELOS</h2>
+            <h2 className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${selectedModel ? 'bg-green-500 text-black' : 'bg-white text-black'}`}>1</span>
+              <span className="text-white">SELECCIONA TU MODELO</span>
+            </h2>
             <button onClick={fetchModelos} className="text-zinc-600 hover:text-white"><RefreshCcw size={12} /></button>
           </div>
 
@@ -334,9 +337,21 @@ const App: React.FC = () => {
         </section>
 
         {/* COL 2: REFERENCE & ANALYSIS */}
-        <section className="flex flex-col h-full bg-black/50 overflow-y-auto">
+        <section className={`flex flex-col h-full bg-black/50 overflow-y-auto relative ${!selectedModel ? 'pointer-events-none' : ''}`}>
+          {/* LOCK OVERLAY when no model selected */}
+          {!selectedModel && (
+            <div className="absolute inset-0 bg-black/70 z-30 flex items-center justify-center backdrop-blur-sm">
+              <div className="text-center">
+                <div className="text-4xl text-zinc-600 mb-2">🔒</div>
+                <span className="text-[10px] text-zinc-500 uppercase tracking-widest">PRIMERO SELECCIONA UN MODELO</span>
+              </div>
+            </div>
+          )}
           <div className="p-3 border-b border-zakra-border bg-zinc-900/20 sticky top-0 backdrop-blur-sm z-10">
-            <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">PASO 2: SUBIR REFERENCIA</h2>
+            <h2 className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${selectedModel ? 'bg-green-500 text-black' : 'bg-zinc-700 text-zinc-400'}`}>2</span>
+              <span className={selectedModel ? 'text-white' : 'text-zinc-600'}>SUBIR REFERENCIA Y ANALIZAR</span>
+            </h2>
           </div>
 
           <div className="p-4 flex flex-col gap-6">
@@ -385,9 +400,22 @@ const App: React.FC = () => {
         </section>
 
         {/* COL 3: OUTPUT */}
-        <section className="flex flex-col h-full bg-black/50 relative">
+        <section className={`flex flex-col h-full bg-black/50 relative ${!generatedPayload ? 'pointer-events-none' : ''}`}>
+          {/* LOCK OVERLAY when no payload generated */}
+          {!generatedPayload && (
+            <div className="absolute inset-0 bg-black/70 z-30 flex items-center justify-center backdrop-blur-sm">
+              <div className="text-center">
+                <div className="text-4xl text-zinc-600 mb-2">🔒</div>
+                <span className="text-[10px] text-zinc-500 uppercase tracking-widest block">EJECUTA EL ANÁLISIS PRIMERO</span>
+                <span className="text-[8px] text-zinc-600 block mt-1">(Paso 2)</span>
+              </div>
+            </div>
+          )}
           <div className="p-3 border-b border-zakra-border bg-zinc-900/20 sticky top-0 backdrop-blur-sm z-10">
-            <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">PASO 3: RESULTADO FINAL</h2>
+            <h2 className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${generatedPayload ? 'bg-green-500 text-black' : 'bg-zinc-700 text-zinc-400'}`}>3</span>
+              <span className={generatedPayload ? 'text-white' : 'text-zinc-600'}>RESULTADO FINAL</span>
+            </h2>
           </div>
 
           <div className="flex-grow p-4 flex flex-col overflow-auto">
