@@ -89,10 +89,10 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
                 <div className="space-y-4">
                     <div className="flex flex-col gap-1">
                         <label className="text-[10px] text-zinc-500 uppercase">NOMBRE_CLAVE</label>
-                        <input value={nombre} onChange={e => setNombre(e.target.value)} className="bg-zinc-900 border border-zinc-700 p-2 text-xs text-white outline-none focus:border-white" placeholder="Ej: Aisah" />
+                        <input value={nombre} onChange={e => setNombre(e.target.value)} className="bg-zinc-900 border border-zinc-700 p-2 text-xs text-white outline-none focus:border-white" placeholder="Ej: Aisah, Sofia, Luna, Emma" />
                     </div>
                     <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-zinc-500 uppercase">IMAGEN DEL MODELO</label>
+                        <label className="text-[10px] text-zinc-500 uppercase">IMAGEN DE LA MODELO</label>
                         <div
                             className="border border-dashed border-zinc-700 bg-zinc-900 p-4 flex flex-col items-center justify-center cursor-pointer hover:border-zinc-500 transition-colors"
                             onClick={() => document.getElementById('model-upload')?.click()}
