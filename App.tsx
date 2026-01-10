@@ -4,7 +4,7 @@ import { constructPayload, generateIndustrialImage } from './services/geminiServ
 import { AppState, ModeloBase, QueueItem } from './types';
 import ModelModal from './components/ModelModal';
 import HistoryModal from './components/HistoryModal';
-import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers, ScanSearch } from 'lucide-react';
+import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers, ScanSearch, X } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -129,14 +129,25 @@ const App: React.FC = () => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // 1. Immediate Reset
+    // If we already have a queue, APPEND to it
+    if (queue.length > 0) {
+      const newItems: QueueItem[] = Array.from(files).map((file: File) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        status: 'PENDING'
+      }));
+      setQueue(prev => [...prev, ...newItems]);
+      e.target.value = '';
+      return;
+    }
+
+    // Fresh upload - reset state
     setGeneratedPayload(null);
     setGeneratedImage(null);
     setAppState(AppState.IDLE);
     setRefImage(null);
-    setQueue([]);
 
-    // 2. Process Files
     if (files.length === 1) {
       // SINGLE MODE
       const file = files[0];
@@ -150,15 +161,68 @@ const App: React.FC = () => {
       const newQueue: QueueItem[] = Array.from(files).map((file: File) => ({
         id: Math.random().toString(36).substr(2, 9),
         file,
-        previewUrl: URL.createObjectURL(file), // Provide URL immediately
+        previewUrl: URL.createObjectURL(file),
         status: 'PENDING'
       }));
       setQueue(newQueue);
     }
 
-    // Reset input
     e.target.value = '';
   };
+
+  // Remove item from queue
+  const removeQueueItem = (itemId: string) => {
+    setQueue(prev => prev.filter(q => q.id !== itemId));
+    if (selectedQueueId === itemId) setSelectedQueueId(null);
+  };
+
+  // Drag and Drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    // Append if queue exists, else same logic as handleImageUpload
+    if (queue.length > 0) {
+      const newItems: QueueItem[] = Array.from(files).map((file: File) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        status: 'PENDING'
+      }));
+      setQueue(prev => [...prev, ...newItems]);
+      return;
+    }
+
+    setGeneratedPayload(null);
+    setGeneratedImage(null);
+    setAppState(AppState.IDLE);
+    setRefImage(null);
+
+    if (files.length === 1) {
+      const file = files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setRefImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      const newQueue: QueueItem[] = Array.from(files).map((file: File) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        status: 'PENDING'
+      }));
+      setQueue(newQueue);
+    }
+  };
+
 
   // Analyze a single batch item (Step A)
   const analyzeBatchItem = async (itemId: string) => {
@@ -529,6 +593,8 @@ const App: React.FC = () => {
             <div
               className={`${isBatchMode ? 'h-[500px]' : 'aspect-square'} w-full border border-dashed ${refImage || isBatchMode ? 'border-white bg-zinc-900' : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900'} relative flex flex-col items-center justify-center transition-all group overflow-hidden ${!isBatchMode ? 'cursor-pointer' : ''}`}
               onClick={() => !isBatchMode && fileInputRef.current?.click()}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
             >
               <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
 
@@ -538,10 +604,19 @@ const App: React.FC = () => {
                     <div
                       key={q.id}
                       onClick={() => setSelectedQueueId(q.id)}
-                      className={`relative aspect-square border cursor-pointer transition-all ${selectedQueueId === q.id ? 'border-white bg-zinc-800' : 'border-zinc-700 bg-zinc-900 opacity-60 hover:opacity-100'}`}
+                      className={`relative aspect-square border cursor-pointer transition-all group/item ${selectedQueueId === q.id ? 'border-white bg-zinc-800' : 'border-zinc-700 bg-zinc-900 opacity-60 hover:opacity-100'}`}
                     >
                       <img src={q.previewUrl} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 flex items-center justify-center">
+                      {/* Remove Button */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeQueueItem(q.id); }}
+                        className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-30 hover:bg-red-500"
+                        title="Eliminar"
+                      >
+                        <X size={12} className="text-white" />
+                      </button>
+                      {/* Status Overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         {q.status === 'PENDING' && <div className="w-2 h-2 bg-zinc-500 rounded-full" />}
                         {q.status === 'ANALYZING' && <Loader2 className="animate-spin text-orange-500 w-5 h-5" />}
                         {q.status === 'ANALYZED' && (
