@@ -569,8 +569,8 @@ const App: React.FC = () => {
           <div className="p-4 flex flex-col gap-6">
             {/* DROP ZONE */}
             <div
-              className={`aspect-square w-full border border-dashed ${refImage || isBatchMode ? 'border-white bg-zinc-900' : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900'} relative flex flex-col items-center justify-center cursor-pointer transition-all group overflow-hidden`}
-              onClick={() => fileInputRef.current?.click()}
+              className={`aspect-square w-full border border-dashed ${refImage || isBatchMode ? 'border-white bg-zinc-900' : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900'} relative flex flex-col items-center justify-center transition-all group overflow-hidden ${!isBatchMode ? 'cursor-pointer' : ''}`}
+              onClick={() => !isBatchMode && fileInputRef.current?.click()}
             >
               <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
 
@@ -588,7 +588,10 @@ const App: React.FC = () => {
                       </div>
                     </div>
                   ))}
-                  <div className="flex items-center justify-center border border-zinc-700 text-zinc-500 text-xs aspect-square hover:bg-zinc-800 hover:text-white transition-colors">
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="cursor-pointer flex items-center justify-center border border-zinc-700 text-zinc-500 text-xs aspect-square hover:bg-zinc-800 hover:text-white transition-colors"
+                  >
                     <Plus size={16} />
                   </div>
                 </div>
