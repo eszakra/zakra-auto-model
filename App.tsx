@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from './services/supabaseClient';
+import { supabase, uploadBase64Image } from './services/supabaseClient';
 import { constructPayload, generateIndustrialImage } from './services/geminiService';
 import { AppState, ModeloBase } from './types';
 import ModelModal from './components/ModelModal';
-import { RefreshCcw, Plus, AlertCircle, Cpu } from 'lucide-react';
+import HistoryModal from './components/HistoryModal';
+import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar } from 'lucide-react';
 
 const App: React.FC = () => {
   // --- AUTH & CONFIG ---
@@ -22,6 +23,7 @@ const App: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<ModeloBase | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
+  const [showHistory, setShowHistory] = useState(false); // NEW History State
 
   // --- EDIT/DELETE STATE ---
   const [editingModel, setEditingModel] = useState<ModeloBase | null>(null);
@@ -232,9 +234,33 @@ const App: React.FC = () => {
       );
       setGeneratedImage(result);
       setAppState(AppState.COMPLETE);
+
+      // AUTO SAVE TO HISTORY
+      saveToHistory(result, generatedPayload);
+
     } catch (error: any) {
       setAppState(AppState.ERROR);
       setErrorMsg(error.message);
+    }
+  };
+
+  const saveToHistory = async (base64Image: string, payload: any) => {
+    try {
+      if (!selectedModel) return;
+
+      const fileName = `gen_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+      const publicUrl = await uploadBase64Image(base64Image, 'generations', fileName);
+
+      await supabase.from('generation_history').insert({
+        model_name: selectedModel.model_name,
+        image_url: publicUrl,
+        prompt: JSON.stringify(payload),
+        aspect_ratio: selectedAspectRatio,
+        resolution: selectedResolution
+      });
+      console.log('Saved to history');
+    } catch (err) {
+      console.error('Failed to save history:', err);
     }
   };
 
@@ -262,6 +288,13 @@ const App: React.FC = () => {
           <h1 className="text-xs font-bold tracking-[0.2em] text-white">AUTO MODEL BY ZAKRA</h1>
         </div>
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => setShowHistory(true)}
+            className="text-[10px] text-zinc-500 hover:text-white uppercase tracking-widest flex items-center gap-1 transition-colors"
+          >
+            <Calendar size={12} /> HISTORIAL
+          </button>
+
           <button
             onClick={() => { setTempApiKey(customApiKey); setShowSettings(true); }}
             className={`text-[10px] uppercase tracking-widest flex items-center gap-1 ${!customApiKey ? 'text-red-500' : 'text-zinc-500 hover:text-white'}`}
@@ -651,6 +684,11 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* History Modal */}
+      <HistoryModal
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+      />
     </div>
   );
 };
