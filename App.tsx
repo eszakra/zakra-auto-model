@@ -526,7 +526,7 @@ const App: React.FC = () => {
           <div className="p-4 flex flex-col gap-6">
             {/* DROP ZONE */}
             <div
-              className={`aspect-square w-full border border-dashed ${refImage || isBatchMode ? 'border-white bg-zinc-900' : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900'} relative flex flex-col items-center justify-center transition-all group overflow-hidden ${!isBatchMode ? 'cursor-pointer' : ''}`}
+              className={`${isBatchMode ? 'h-[500px]' : 'aspect-square'} w-full border border-dashed ${refImage || isBatchMode ? 'border-white bg-zinc-900' : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900'} relative flex flex-col items-center justify-center transition-all group overflow-hidden ${!isBatchMode ? 'cursor-pointer' : ''}`}
               onClick={() => !isBatchMode && fileInputRef.current?.click()}
             >
               <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
@@ -543,7 +543,12 @@ const App: React.FC = () => {
                       <div className="absolute inset-0 flex items-center justify-center">
                         {q.status === 'PENDING' && <div className="w-2 h-2 bg-zinc-500 rounded-full" />}
                         {q.status === 'ANALYZING' && <Loader2 className="animate-spin text-orange-500 w-5 h-5" />}
-                        {q.status === 'ANALYZED' && <div className="w-3 h-3 bg-orange-500 rounded-full" />}
+                        {q.status === 'ANALYZED' && (
+                          <>
+                            <div className="absolute inset-0 border-2 border-orange-500 pointer-events-none z-10" />
+                            <Play className="animate-pulse text-orange-500 w-8 h-8 z-20" fill="currentColor" />
+                          </>
+                        )}
                         {q.status === 'GENERATING' && <Loader2 className="animate-spin text-green-500 w-5 h-5" />}
                         {q.status === 'COMPLETED' && <CheckCircle2 className="text-green-500 w-5 h-5" />}
                         {q.status === 'ERROR' && <AlertCircle className="text-red-500 w-5 h-5" />}
