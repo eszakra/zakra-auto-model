@@ -649,8 +649,8 @@ const App: React.FC = () => {
             </h2>
           </div>
 
-          <div className="flex-grow flex flex-col min-h-0 overflow-hidden p-4">
-            <div className="flex-grow border border-zinc-800 bg-zinc-950 relative overflow-y-auto flex flex-col">
+          <div className="flex-grow relative min-h-0">
+            <div className="absolute inset-0 border border-zinc-800 bg-zinc-950 overflow-y-auto">
               {/* Grid Pattern */}
               <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
 
