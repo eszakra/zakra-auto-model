@@ -40,7 +40,18 @@ export enum AppState {
   ANALYZING = 'ANALYZING', // For the fake analysis step
   GENERATING = 'GENERATING',
   COMPLETE = 'COMPLETE',
-  ERROR = 'ERROR'
+  ERROR = 'ERROR',
+  BATCH_COMPLETE = 'BATCH_COMPLETE'
+}
+
+export interface QueueItem {
+  id: string;
+  file: File;
+  previewUrl: string;
+  status: 'PENDING' | 'ANALYZING' | 'GENERATING' | 'COMPLETED' | 'ERROR';
+  payload?: any;
+  resultImage?: string;
+  error?: string;
 }
 
 declare global {

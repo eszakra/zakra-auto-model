@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase, uploadBase64Image } from './services/supabaseClient';
 import { constructPayload, generateIndustrialImage } from './services/geminiService';
-import { AppState, ModeloBase } from './types';
+import { AppState, ModeloBase, QueueItem } from './types';
 import ModelModal from './components/ModelModal';
 import HistoryModal from './components/HistoryModal';
-import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar } from 'lucide-react';
+import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers } from 'lucide-react';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 const App: React.FC = () => {
   // --- AUTH & CONFIG ---
@@ -34,6 +36,11 @@ const App: React.FC = () => {
   // --- COL 2: REFERENCE & INPUTS ---
   const [refImage, setRefImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // --- BATCH MODE ---
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const isBatchMode = queue.length > 1;
+
   // NEW: Store the generated payload instead of separate inputs
   const [generatedPayload, setGeneratedPayload] = useState<any | null>(null);
 
@@ -115,21 +122,191 @@ const App: React.FC = () => {
     setLoadingModels(false);
   };
 
-  // --- UPLOAD & AUTO-ANALYSIS LOGIC ---
+  // --- UPLOAD & BATCH LOGIC ---
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // 1. Immediate Reset of previous generation
-      setGeneratedPayload(null);
-      setGeneratedImage(null);
-      setAppState(AppState.IDLE);
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
+    // 1. Immediate Reset
+    setGeneratedPayload(null);
+    setGeneratedImage(null);
+    setAppState(AppState.IDLE);
+    setRefImage(null);
+    setQueue([]);
+
+    // 2. Process Files
+    if (files.length === 1) {
+      // SINGLE MODE
+      const file = files[0];
       const reader = new FileReader();
       reader.onloadend = () => {
         setRefImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+    } else {
+      // BATCH MODE
+      const newQueue: QueueItem[] = Array.from(files).map((file: File) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        file,
+        previewUrl: URL.createObjectURL(file), // Provide URL immediately
+        status: 'PENDING'
+      }));
+      setQueue(newQueue);
     }
+
+    // Reset input
+    e.target.value = '';
+  };
+
+  const startBatch = async () => {
+    if (!selectedModel) {
+      alert("SELECCIONA UN MODELO PRIMERO");
+      return;
+    }
+
+    // Check if any pending
+    const hasPending = queue.some(q => q.status === 'PENDING' || q.status === 'ERROR');
+    if (!hasPending) return;
+
+    // We don't set a global blocking state to allow UI updates, 
+    // but we could set a "BATCH_RUNNING" state if we wanted to lock things.
+    // For now, relies on visual cues on items.
+
+    // We need to work on a copy or reference? 
+    // State updates are async, so we iterate indices or IDs.
+    // NOTE: This loop captures 'queue' at start time. 
+    // Better to just iterate IDs and read current state inside if needed, 
+    // but 'queue' state changes won't be reflected in this closure 'queue'.
+    // However, since we define specific IDs, it's fine.
+
+    const itemIds = queue.map(q => q.id);
+
+    for (const itemId of itemIds) {
+      // Build fresh check since state updates
+      // Actually, we can't easily check fresh state without ref or func update.
+      // Simplified: Just try to process all that were in queue at start.
+      // We will check status inside processBatchItem to avoid re-processing COMPLETED.
+      await processBatchItem(itemId);
+    }
+  };
+
+  const processBatchItem = async (itemId: string) => {
+    // 0. Check Status (via functional update to be safe, or just trust flow)
+    // We'll trust flow but we need to get the ITEM details.
+    // We can't use 'queue' state here directly if it's stale.
+    // We'll use a functional update pattern to get the item, but we need the item DATA for processing.
+    // Hack: we'll use the 'queue' from closure? No, stale.
+    // Re-architect: Use a useRef for queue? Or just pass item data?
+    // Let's assume queue state is updated fast enough or use a getter.
+    // Actually, in a for-loop with await, the component might re-render.
+    // The 'queue' variable in 'startBatch' (closure) is constant.
+    // 'processBatchItem' closes over 'queue' if defined outside? state 'queue' is constantly new.
+    // We need the LATEST queue to find the item.
+
+    // SOLUTION: Pass the item object from startBatch?
+    // But startBatch has stale queue.
+    // Better: Helper to get item.
+
+    let currentItem: QueueItem | undefined;
+    setQueue(prev => {
+      currentItem = prev.find(q => q.id === itemId);
+      if (currentItem && currentItem.status === 'PENDING') {
+        return prev.map(q => q.id === itemId ? { ...q, status: 'ANALYZING' } : q);
+      }
+      return prev;
+    });
+
+    // Wait for state ? No.
+    // We need the file. 'currentItem' above is captured synchronously in the updater?
+    // Yes, but let's grab it more explicitly.
+    // Actually, 'queue' in the component scope might be updated if we put 'processBatchItem' in a useEffect or use a ref.
+    // To keep it simple: We'll pass the FILE object from startBatch if possible? 
+    // No, cleaner is to use a ref to track queue for logic, OR just trust that we iterate IDs and finding them is enough.
+    // But we need the 'file' blob.
+
+    // Let's use a function to get the current item from the latest state inside the setter, 
+    // but we can't await inside the setter.
+
+    // Workaround: We'll iterate the queue from startBatch (stale), grab the file (which is constant), 
+    // and only update status in state.
+    // Correct. The 'file' doesn't change.
+  };
+
+  // Re-write processBatchItem correctly:
+  const processBatchItemReal = async (item: QueueItem) => {
+    // 1. Set Analyzing
+    setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'ANALYZING' } : q));
+
+    try {
+      if (!selectedModel) throw new Error("No model selected");
+
+      // Analysis
+      const currentKey = getCurrentApiKey();
+      const base64Ref = await fileToBase64(item.file);
+      const { generateUnifiedPayload, generateIndustrialImage } = await import('./services/geminiService');
+      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, base64Ref);
+
+      // Set Generating
+      setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'GENERATING', payload } : q));
+
+      // Generation
+      const resultBase64 = await generateIndustrialImage(
+        currentKey,
+        payload,
+        selectedModel.image_url,
+        selectedResolution === 'AUTO' ? undefined : selectedResolution,
+        selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio
+      );
+
+      // Save
+      const fileName = `batch_${Date.now()}_${item.id}.png`;
+      const publicUrl = await uploadBase64Image(resultBase64, 'generations', fileName);
+      await supabase.from('generation_history').insert({
+        model_name: selectedModel.model_name,
+        image_url: publicUrl,
+        prompt: JSON.stringify(payload),
+        aspect_ratio: selectedAspectRatio,
+        resolution: selectedResolution
+      });
+
+      // Complete
+      setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'COMPLETED', resultImage: resultBase64 } : q));
+
+    } catch (e: any) {
+      console.error(e);
+      setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'ERROR', error: e.message } : q));
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Rewrite startBatch to use the Real processor
+  const startBatchReal = async () => {
+    if (!selectedModel) { alert("MODELO?"); return; }
+
+    const pendingItems = queue.filter(q => q.status === 'PENDING');
+    for (const item of pendingItems) {
+      await processBatchItemReal(item);
+    }
+  };
+
+  const handleDownloadBatchZip = async () => {
+    const zip = new JSZip();
+    const completedItems = queue.filter(q => q.status === 'COMPLETED' && q.resultImage);
+    if (completedItems.length === 0) return;
+    completedItems.forEach((item, index) => {
+      const imgData = item.resultImage!.split(',')[1];
+      zip.file(`zakra_batch_${index + 1}.png`, imgData, { base64: true });
+    });
+    const content = await zip.generateAsync({ type: 'blob' });
+    saveAs(content, `zakra_batch_${Date.now()}.zip`);
   };
 
   // --- EDIT MODEL ---
@@ -392,42 +569,69 @@ const App: React.FC = () => {
           <div className="p-4 flex flex-col gap-6">
             {/* DROP ZONE */}
             <div
-              className={`aspect-square w-full border border-dashed ${refImage ? 'border-white bg-zinc-900' : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900'} relative flex flex-col items-center justify-center cursor-pointer transition-all group`}
+              className={`aspect-square w-full border border-dashed ${refImage || isBatchMode ? 'border-white bg-zinc-900' : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900'} relative flex flex-col items-center justify-center cursor-pointer transition-all group overflow-hidden`}
               onClick={() => fileInputRef.current?.click()}
             >
-              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
 
-              {refImage ? (
+              {isBatchMode ? (
+                <div className="w-full h-full p-2 grid grid-cols-3 gap-2 overflow-y-auto content-start scrollbar-thin scrollbar-thumb-zinc-700">
+                  {queue.map(q => (
+                    <div key={q.id} className="relative aspect-square bg-zinc-800 border border-zinc-700">
+                      <img src={q.previewUrl} className="w-full h-full object-cover opacity-60" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        {q.status === 'PENDING' && <div className="w-2 h-2 bg-zinc-500 rounded-full" />}
+                        {q.status === 'ANALYZING' && <Loader2 className="animate-spin text-orange-500 w-5 h-5" />}
+                        {q.status === 'GENERATING' && <Loader2 className="animate-spin text-green-500 w-5 h-5" />}
+                        {q.status === 'COMPLETED' && <CheckCircle2 className="text-green-500 w-5 h-5" />}
+                        {q.status === 'ERROR' && <AlertCircle className="text-red-500 w-5 h-5" />}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-center border border-zinc-700 text-zinc-500 text-xs aspect-square hover:bg-zinc-800 hover:text-white transition-colors">
+                    <Plus size={16} />
+                  </div>
+                </div>
+              ) : refImage ? (
                 <img src={refImage} alt="Reference" className="h-full w-full object-contain p-2" />
               ) : (
                 <div className="text-center p-4">
                   <div className="text-4xl text-zinc-700 font-light mb-2 group-hover:text-white transition-colors">+</div>
-                  <span className="text-[9px] text-zinc-500 group-hover:text-white uppercase tracking-widest block">SUBIR REFERENCIA</span>
+                  <span className="text-[9px] text-zinc-500 group-hover:text-white uppercase tracking-widest block">SUBIR REFERENCIA(S)</span>
                 </div>
               )}
             </div>
 
             {/* ANALYSIS TRIGGER AND OUTPUT */}
             <div className="flex flex-col gap-2">
-              {/* ANALYSIS BUTTON */}
-              <button
-                onClick={runAutoAnalysis}
-                disabled={!selectedModel || !refImage || appState === AppState.ANALYZING}
-                className={`w-full py-3 text-[10px] font-bold uppercase border transition-all
-                              ${(!selectedModel || !refImage) ? 'border-zinc-800 text-zinc-700' :
-                    appState === AppState.ANALYZING ? 'border-orange-500 text-orange-500 animate-pulse' : 'border-zinc-500 text-zinc-300 hover:border-white hover:text-white'}`}
-              >
-                {appState === AppState.ANALYZING ? '[ ANALIZANDO... ]' : '[ EJECUTAR ANALISIS DE FUSIÓN ]'}
-              </button>
+              {/* ANALYSIS BUTTON - Hide in Batch Mode */}
+              {!isBatchMode && (
+                <button
+                  onClick={runAutoAnalysis}
+                  disabled={!selectedModel || !refImage || appState === AppState.ANALYZING}
+                  className={`w-full py-3 text-[10px] font-bold uppercase border transition-all
+                                ${(!selectedModel || !refImage) ? 'border-zinc-800 text-zinc-700' :
+                      appState === AppState.ANALYZING ? 'border-orange-500 text-orange-500 animate-pulse' : 'border-zinc-500 text-zinc-300 hover:border-white hover:text-white'}`}
+                >
+                  {appState === AppState.ANALYZING ? '[ ANALIZANDO... ]' : '[ EJECUTAR ANALISIS DE FUSIÓN ]'}
+                </button>
+              )}
+
+              {isBatchMode && (
+                <div className="w-full py-3 text-[10px] font-bold uppercase border border-zinc-800 text-zinc-500 text-center">
+                    // MODO LOTE ACTIVO: {queue.length} IMÁGENES
+                </div>
+              )}
 
               {/* JSON DISPLAY */}
               <div className="flex flex-col gap-1 h-64">
                 <label className="text-[9px] text-zinc-500 uppercase flex justify-between">
-                  <span>PAYLOAD GENERADO</span>
+                  <span>PAYLOAD GENERADO {isBatchMode && "(LOTE)"}</span>
                 </label>
                 <div className="w-full bg-zinc-950 border border-zinc-800 p-3 text-[9px] font-mono text-zinc-400 overflow-auto h-full whitespace-pre-wrap leading-tight">
-                  {generatedPayload ? JSON.stringify(generatedPayload, null, 2) :
-                    (appState === AppState.ANALYZING ? "..." : "// ESPERANDO ANALISIS...")}
+                  {isBatchMode ? `// COLA DE PROCESAMIENTO:\n${JSON.stringify(queue.map(q => ({ id: q.id, status: q.status })), null, 2)}` :
+                    generatedPayload ? JSON.stringify(generatedPayload, null, 2) :
+                      (appState === AppState.ANALYZING ? "..." : "// ESPERANDO ANALISIS...")}
                 </div>
               </div>
             </div>
@@ -435,9 +639,9 @@ const App: React.FC = () => {
         </section>
 
         {/* COL 3: OUTPUT */}
-        <section className={`flex flex-col h-full bg-black/50 relative ${!generatedPayload ? 'pointer-events-none' : ''}`}>
+        <section className={`flex flex-col h-full bg-black/50 relative ${!generatedPayload && !isBatchMode ? 'pointer-events-none' : ''}`}>
           {/* LOCK OVERLAY when no payload generated */}
-          {!generatedPayload && (
+          {!generatedPayload && !isBatchMode && (
             <div className="absolute inset-0 bg-black/80 z-30 backdrop-blur-md" />
           )}
           <div className="p-3 border-b border-zakra-border bg-zinc-900/20 sticky top-0 backdrop-blur-sm z-10">
@@ -452,32 +656,82 @@ const App: React.FC = () => {
               {/* Grid Pattern */}
               <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
 
-              {generatedImage ? (
-                <img src={generatedImage} alt="Result" className="relative z-10 max-w-full object-contain shadow-2xl" style={{ maxHeight: '60vh' }} />
-              ) : (
-                <div className="text-center z-10">
-                  {appState === AppState.GENERATING ? (
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-2 h-2 bg-white animate-ping"></div>
-                      <span className="text-[10px] uppercase tracking-widest text-white">PROCESANDO SECUENCIA...</span>
+              {isBatchMode ? (
+                // BATCH RESULT GRID
+                <div className="w-full h-full p-4 grid grid-cols-2 gap-4 content-start overflow-y-auto relative z-10">
+                  {queue.map(q => (
+                    <div key={q.id} className="flex flex-col gap-1">
+                      <div className="aspect-[4/5] bg-zinc-900 border border-zinc-800 relative">
+                        {q.resultImage ? (
+                          <img src={q.resultImage} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                            {q.status === 'ERROR' ? <AlertCircle className="text-red-900" /> :
+                              q.status === 'COMPLETED' ? <CheckCircle2 className="text-green-900" /> :
+                                <div className="w-2 h-2 bg-zinc-800 rounded-full" />}
+                          </div>
+                        )}
+
+                        {/* Status Overlay */}
+                        <div className="absolute top-2 right-2">
+                          {q.status === 'GENERATING' && <Loader2 className="animate-spin text-green-500 w-4 h-4 shadow-black drop-shadow-md" />}
+                          {q.status === 'ANALYZING' && <Loader2 className="animate-spin text-orange-500 w-4 h-4 shadow-black drop-shadow-md" />}
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center px-1">
+                        <span className={`text-[8px] uppercase font-bold ${q.status === 'COMPLETED' ? 'text-green-500' :
+                          q.status === 'ERROR' ? 'text-red-500' : 'text-zinc-600'
+                          }`}>
+                          {q.status}
+                        </span>
+                        {q.resultImage && (
+                          <a href={q.resultImage} download={`batch_${q.id}.png`} className="text-zinc-500 hover:text-white">
+                            <Download size={10} />
+                          </a>
+                        )}
+                      </div>
                     </div>
-                  ) : appState === AppState.ERROR ? (
-                    <span className="text-xs text-red-500 font-bold uppercase">{errorMsg || "ERROR"}</span>
-                  ) : (
-                    <span className="text-[10px] uppercase tracking-widest text-zinc-600">SIN SEÑAL DE VIDEO</span>
-                  )}
+                  ))}
                 </div>
+              ) : (
+                // SINGLE IMAGE RESULT
+                generatedImage ? (
+                  <img src={generatedImage} alt="Result" className="relative z-10 max-w-full object-contain shadow-2xl" style={{ maxHeight: '60vh' }} />
+                ) : (
+                  <div className="text-center z-10">
+                    {appState === AppState.GENERATING ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-2 h-2 bg-white animate-ping"></div>
+                        <span className="text-[10px] uppercase tracking-widest text-white">PROCESANDO SECUENCIA...</span>
+                      </div>
+                    ) : appState === AppState.ERROR ? (
+                      <span className="text-xs text-red-500 font-bold uppercase">{errorMsg || "ERROR"}</span>
+                    ) : (
+                      <span className="text-[10px] uppercase tracking-widest text-zinc-600">SIN SEÑAL DE VIDEO</span>
+                    )}
+                  </div>
+                )
               )}
             </div>
 
-            {/* DOWNLOAD BUTTON - Only show when image is ready */}
-            {generatedImage && (
+            {/* DOWNLOAD BUTTONS */}
+            {isBatchMode ? (
               <button
-                onClick={handleDownload}
-                className="mt-3 w-full py-2 text-xs font-bold tracking-[0.15em] uppercase border border-green-500 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all"
+                onClick={handleDownloadBatchZip}
+                disabled={!queue.some(q => q.status === 'COMPLETED')}
+                className="mt-3 w-full py-2 text-xs font-bold tracking-[0.15em] uppercase border border-blue-500 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all disabled:opacity-50"
               >
-                [ DESCARGAR IMAGEN ]
+                [ DESCARGAR ZIP LOTE ]
               </button>
+            ) : (
+              generatedImage && (
+                <button
+                  onClick={handleDownload}
+                  className="mt-3 w-full py-2 text-xs font-bold tracking-[0.15em] uppercase border border-green-500 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all"
+                >
+                  [ DESCARGAR IMAGEN ]
+                </button>
+              )
             )}
 
             {/* RESOLUTION & ASPECT RATIO SELECTORS */}
@@ -508,17 +762,31 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <button
-              onClick={handleExecute}
-              disabled={appState === AppState.GENERATING || !generatedPayload}
-              className={`mt-4 w-full py-4 text-xs font-bold tracking-[0.2em] uppercase border transition-all
-                          ${appState === AppState.GENERATING || !generatedPayload
-                  ? 'bg-zinc-900 text-zinc-600 border-zinc-800 cursor-not-allowed'
-                  : 'bg-white text-black border-white hover:bg-zinc-200 active:scale-[0.99]'}`
-              }
-            >
-              {appState === AppState.GENERATING ? '[ EJECUTANDO... ]' : '[ INICIAR SECUENCIA DE GENERADO ]'}
-            </button>
+            {/* EXECUTE BUTTON */}
+            {isBatchMode ? (
+              <button
+                onClick={startBatch}
+                disabled={!queue.some(q => q.status === 'PENDING') && !queue.some(q => q.status === 'ERROR')}
+                className={`mt-4 w-full py-4 text-xs font-bold tracking-[0.2em] uppercase border transition-all
+                        ${!queue.some(q => q.status === 'PENDING')
+                    ? 'bg-zinc-900/50 text-zinc-600 border-zinc-800'
+                    : 'bg-white text-black border-white hover:bg-zinc-200'}`}
+              >
+                [ INICIAR PROCESAMIENTO POR LOTES ]
+              </button>
+            ) : (
+              <button
+                onClick={handleExecute}
+                disabled={appState === AppState.GENERATING || !generatedPayload}
+                className={`mt-4 w-full py-4 text-xs font-bold tracking-[0.2em] uppercase border transition-all
+                              ${appState === AppState.GENERATING || !generatedPayload
+                    ? 'bg-zinc-900 text-zinc-600 border-zinc-800 cursor-not-allowed'
+                    : 'bg-white text-black border-white hover:bg-zinc-200 active:scale-[0.99]'}`
+                }
+              >
+                {appState === AppState.GENERATING ? '[ EJECUTANDO... ]' : '[ INICIAR SECUENCIA DE GENERADO ]'}
+              </button>
+            )}
           </div>
         </section>
 
