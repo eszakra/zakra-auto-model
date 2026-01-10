@@ -82,14 +82,14 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
             <div className="w-full max-w-lg border border-zinc-700 bg-black p-6 shadow-2xl flex flex-col gap-4">
                 <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
-                    <h2 className="text-sm font-bold text-white uppercase">// AGREGAR NUEVO MODELO</h2>
+                    <h2 className="text-sm font-bold text-white uppercase">// AGREGAR NUEVA MODELO</h2>
                     <button onClick={onClose} className="text-xs text-zinc-500 hover:text-white uppercase">[ CERRAR ]</button>
                 </div>
 
                 <div className="space-y-4">
                     <div className="flex flex-col gap-1">
                         <label className="text-[10px] text-zinc-500 uppercase">NOMBRE_CLAVE</label>
-                        <input value={nombre} onChange={e => setNombre(e.target.value)} className="bg-zinc-900 border border-zinc-700 p-2 text-xs text-white outline-none focus:border-white" placeholder="EJ: MODELO_ALPHA_01" />
+                        <input value={nombre} onChange={e => setNombre(e.target.value)} className="bg-zinc-900 border border-zinc-700 p-2 text-xs text-white outline-none focus:border-white" placeholder="Ej: Aisah" />
                     </div>
                     <div className="flex flex-col gap-1">
                         <label className="text-[10px] text-zinc-500 uppercase">IMAGEN DEL MODELO</label>
