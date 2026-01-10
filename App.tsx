@@ -122,8 +122,10 @@ const App: React.FC = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setRefImage(reader.result as string);
-        // Auto trigger analysis if model selected, else user must trigger
+        // Reset previous states ensuring fresh start
         setGeneratedPayload(null);
+        setGeneratedImage(null);
+        setAppState(AppState.IDLE);
       };
       reader.readAsDataURL(file);
     }
