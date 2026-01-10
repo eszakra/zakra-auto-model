@@ -33,7 +33,7 @@ const App: React.FC = () => {
 
   // --- COL 2: REFERENCE & INPUTS ---
   const [refImage, setRefImage] = useState<string | null>(null);
-  const [fileInputRef] = React.useState(useRef<HTMLInputElement>(null)); // Fix ref usage
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // NEW: Store the generated payload instead of separate inputs
   const [generatedPayload, setGeneratedPayload] = useState<any | null>(null);
 
@@ -119,13 +119,14 @@ const App: React.FC = () => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // 1. Immediate Reset of previous generation
+      setGeneratedPayload(null);
+      setGeneratedImage(null);
+      setAppState(AppState.IDLE);
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setRefImage(reader.result as string);
-        // Reset previous states ensuring fresh start
-        setGeneratedPayload(null);
-        setGeneratedImage(null);
-        setAppState(AppState.IDLE);
       };
       reader.readAsDataURL(file);
     }
