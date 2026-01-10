@@ -543,10 +543,10 @@ const App: React.FC = () => {
                       </button>
                       <button
                         onClick={(e) => handleStartDelete(modelo, e)}
-                        className="w-6 h-6 bg-zinc-800 hover:bg-red-600 text-white text-[10px] flex items-center justify-center"
+                        className="w-5 h-5 bg-zinc-900 hover:bg-red-500 text-white flex items-center justify-center transition-colors"
                         title="Eliminar modelo"
                       >
-                        ✕
+                        <X size={12} />
                       </button>
                     </div>
 
@@ -610,10 +610,10 @@ const App: React.FC = () => {
                       {/* Remove Button */}
                       <button
                         onClick={(e) => { e.stopPropagation(); removeQueueItem(q.id); }}
-                        className="absolute top-1 right-1 w-5 h-5 bg-black/70 flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-30 hover:bg-red-500"
+                        className="absolute top-1 right-1 w-5 h-5 bg-zinc-900 hover:bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-all z-30"
                         title="Eliminar"
                       >
-                        <X size={12} className="text-white" />
+                        <X size={12} />
                       </button>
                       {/* Status Overlay */}
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
