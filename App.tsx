@@ -714,7 +714,10 @@ const App: React.FC = () => {
               )
               }
             </div >
+          </div>
 
+          {/* FIXED FOOTER CONTROLS */}
+          <div className="p-4 bg-zinc-950 border-t border-zinc-800 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
             {/* DOWNLOAD BUTTONS */}
             {
               isBatchMode ? (
