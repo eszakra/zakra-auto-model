@@ -649,14 +649,14 @@ const App: React.FC = () => {
             </h2>
           </div>
 
-          <div className="flex-grow p-4 flex flex-col overflow-auto">
-            <div className="flex-grow border border-zinc-800 bg-zinc-950 flex items-center justify-center relative overflow-auto min-h-[300px]">
+          <div className="flex-grow flex flex-col min-h-0 overflow-hidden p-4">
+            <div className="flex-grow border border-zinc-800 bg-zinc-950 relative overflow-y-auto flex flex-col">
               {/* Grid Pattern */}
               <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
 
               {isBatchMode ? (
-                // BATCH RESULT GRID (Dynamic & Clean)
-                <div className="w-full h-full p-4 grid grid-cols-2 lg:grid-cols-3 gap-3 content-start overflow-y-auto relative z-10">
+                // BATCH RESULT GRID
+                <div className="w-full p-4 grid grid-cols-2 lg:grid-cols-3 gap-3 relative z-10">
                   {queue.map(q => (
                     <div key={q.id} className="flex flex-col gap-1 group relative">
                       <div
@@ -695,22 +695,25 @@ const App: React.FC = () => {
 
 
                 // SINGLE IMAGE RESULT
-                generatedImage ? (
-                  <img src={generatedImage} alt="Result" className="relative z-10 max-w-full object-contain shadow-2xl" style={{ maxHeight: '60vh' }} />
-                ) : (
-                  <div className="text-center z-10">
-                    {appState === AppState.GENERATING ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="w-2 h-2 bg-white animate-ping"></div>
-                        <span className="text-[10px] uppercase tracking-widest text-white">PROCESANDO SECUENCIA...</span>
-                      </div>
-                    ) : appState === AppState.ERROR ? (
-                      <span className="text-xs text-red-500 font-bold uppercase">{errorMsg || "ERROR"}</span>
-                    ) : (
-                      <span className="text-[10px] uppercase tracking-widest text-zinc-600">SIN SEÑAL DE VIDEO</span>
-                    )}
-                  </div>
-                )
+                <div className="flex-grow w-full h-full flex items-center justify-center z-10 relative">
+                  {generatedImage ? (
+                    <img src={generatedImage} alt="Result" className="relative z-10 max-w-full max-h-full object-contain shadow-2xl p-4" />
+                  ) : (
+                    <div className="text-center z-10">
+                      {appState === AppState.GENERATING ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-2 h-2 bg-white animate-ping"></div>
+                          <span className="text-[10px] uppercase tracking-widest text-white">PROCESANDO SECUENCIA...</span>
+                        </div>
+                      ) : appState === AppState.ERROR ? (
+                        <span className="text-xs text-red-500 font-bold uppercase">{errorMsg || "ERROR"}</span>
+                      ) : (
+                        <span className="text-[10px] uppercase tracking-widest text-zinc-600">SIN SEÑAL DE VIDEO</span>
+                      )}
+                    </div>
+                  )
+                  }
+                </div>
               )
               }
             </div >
