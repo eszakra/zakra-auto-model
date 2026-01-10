@@ -4,7 +4,7 @@ import { constructPayload, generateIndustrialImage } from './services/geminiServ
 import { AppState, ModeloBase, QueueItem } from './types';
 import ModelModal from './components/ModelModal';
 import HistoryModal from './components/HistoryModal';
-import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers, ScanSearch, X } from 'lucide-react';
+import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers, ScanSearch, X, Check } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -610,14 +610,14 @@ const App: React.FC = () => {
                       {/* Remove Button */}
                       <button
                         onClick={(e) => { e.stopPropagation(); removeQueueItem(q.id); }}
-                        className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-30 hover:bg-red-500"
+                        className="absolute top-1 right-1 w-5 h-5 bg-black/70 flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity z-30 hover:bg-red-500"
                         title="Eliminar"
                       >
                         <X size={12} className="text-white" />
                       </button>
                       {/* Status Overlay */}
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        {q.status === 'PENDING' && <div className="w-2 h-2 bg-zinc-500 rounded-full" />}
+                        {q.status === 'PENDING' && <div className="w-2 h-2 bg-zinc-500" />}
                         {q.status === 'ANALYZING' && <Loader2 className="animate-spin text-orange-500 w-5 h-5" />}
                         {q.status === 'ANALYZED' && (
                           <>
@@ -626,8 +626,8 @@ const App: React.FC = () => {
                           </>
                         )}
                         {q.status === 'GENERATING' && <Loader2 className="animate-spin text-green-500 w-5 h-5" />}
-                        {q.status === 'COMPLETED' && <CheckCircle2 className="text-green-500 w-5 h-5" />}
-                        {q.status === 'ERROR' && <AlertCircle className="text-red-500 w-5 h-5" />}
+                        {q.status === 'COMPLETED' && <div className="w-5 h-5 bg-green-500/20 border border-green-500 flex items-center justify-center"><Check className="text-green-500 w-3 h-3" /></div>}
+                        {q.status === 'ERROR' && <div className="w-5 h-5 bg-red-500/20 border border-red-500 flex items-center justify-center"><X className="text-red-500 w-3 h-3" /></div>}
                       </div>
                     </div>
                   ))}
