@@ -45,7 +45,7 @@ const App: React.FC = () => {
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<string>('1:1');
 
   const RESOLUTIONS = ['AUTO', '1K', '2K', '4K'];
-  const ASPECT_RATIOS = ['AUTO', '1:1', '4:3', '3:4', '16:9', '9:16'];
+  const ASPECT_RATIOS = ['AUTO', '1:1', '4:3', '3:4', '4:5', '16:9', '9:16'];
 
   // Download handler
   const handleDownload = () => {
