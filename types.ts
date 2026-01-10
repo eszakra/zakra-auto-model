@@ -48,7 +48,7 @@ export interface QueueItem {
   id: string;
   file: File;
   previewUrl: string;
-  status: 'PENDING' | 'ANALYZING' | 'GENERATING' | 'COMPLETED' | 'ERROR';
+  status: 'PENDING' | 'ANALYZING' | 'ANALYZED' | 'GENERATING' | 'COMPLETED' | 'ERROR';
   payload?: any;
   resultImage?: string;
   error?: string;

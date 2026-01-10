@@ -40,6 +40,7 @@ const App: React.FC = () => {
   // --- BATCH MODE ---
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const isBatchMode = queue.length > 1;
+  const [selectedQueueId, setSelectedQueueId] = useState<string | null>(null);
 
   // NEW: Store the generated payload instead of separate inputs
   const [generatedPayload, setGeneratedPayload] = useState<any | null>(null);
@@ -158,101 +159,55 @@ const App: React.FC = () => {
     e.target.value = '';
   };
 
-  const startBatch = async () => {
-    if (!selectedModel) {
-      alert("SELECCIONA UN MODELO PRIMERO");
+  // Analyze a single batch item (Step A)
+  const analyzeBatchItem = async (itemId: string) => {
+    setQueue(prev => prev.map(item => item.id === itemId ? { ...item, status: 'ANALYZING' } : item));
+    try {
+      const item = queue.find(q => q.id === itemId);
+      if (!item || !selectedModel) return;
+
+      const currentKey = getCurrentApiKey();
+      const base64Ref = await fileToBase64(item.file);
+      const { generateUnifiedPayload } = await import('./services/geminiService');
+      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, base64Ref);
+
+      setQueue(prev => prev.map(q => q.id === itemId ? { ...q, status: 'ANALYZED', payload } : q));
+    } catch (e: any) {
+      console.error(e);
+      setQueue(prev => prev.map(q => q.id === itemId ? { ...q, status: 'ERROR', error: e.message } : q));
+    }
+  };
+
+  const startBatchGeneration = async () => {
+    if (!selectedModel) { alert("MODELO?"); return; }
+
+    const readyItems = queue.filter(q => q.status === 'ANALYZED');
+    if (readyItems.length === 0) {
+      alert("PRIMERO DEBES ANALIZAR AL MENOS UNA IMAGEN (SELECCIONA Y ANALIZA)");
       return;
     }
 
-    // Check if any pending
-    const hasPending = queue.some(q => q.status === 'PENDING' || q.status === 'ERROR');
-    if (!hasPending) return;
-
-    // We don't set a global blocking state to allow UI updates, 
-    // but we could set a "BATCH_RUNNING" state if we wanted to lock things.
-    // For now, relies on visual cues on items.
-
-    // We need to work on a copy or reference? 
-    // State updates are async, so we iterate indices or IDs.
-    // NOTE: This loop captures 'queue' at start time. 
-    // Better to just iterate IDs and read current state inside if needed, 
-    // but 'queue' state changes won't be reflected in this closure 'queue'.
-    // However, since we define specific IDs, it's fine.
-
-    const itemIds = queue.map(q => q.id);
-
-    for (const itemId of itemIds) {
-      // Build fresh check since state updates
-      // Actually, we can't easily check fresh state without ref or func update.
-      // Simplified: Just try to process all that were in queue at start.
-      // We will check status inside processBatchItem to avoid re-processing COMPLETED.
-      await processBatchItem(itemId);
+    for (const item of readyItems) {
+      await generateBatchItem(item);
     }
   };
 
-  const processBatchItem = async (itemId: string) => {
-    // 0. Check Status (via functional update to be safe, or just trust flow)
-    // We'll trust flow but we need to get the ITEM details.
-    // We can't use 'queue' state here directly if it's stale.
-    // We'll use a functional update pattern to get the item, but we need the item DATA for processing.
-    // Hack: we'll use the 'queue' from closure? No, stale.
-    // Re-architect: Use a useRef for queue? Or just pass item data?
-    // Let's assume queue state is updated fast enough or use a getter.
-    // Actually, in a for-loop with await, the component might re-render.
-    // The 'queue' variable in 'startBatch' (closure) is constant.
-    // 'processBatchItem' closes over 'queue' if defined outside? state 'queue' is constantly new.
-    // We need the LATEST queue to find the item.
-
-    // SOLUTION: Pass the item object from startBatch?
-    // But startBatch has stale queue.
-    // Better: Helper to get item.
-
-    let currentItem: QueueItem | undefined;
-    setQueue(prev => {
-      currentItem = prev.find(q => q.id === itemId);
-      if (currentItem && currentItem.status === 'PENDING') {
-        return prev.map(q => q.id === itemId ? { ...q, status: 'ANALYZING' } : q);
-      }
-      return prev;
-    });
-
-    // Wait for state ? No.
-    // We need the file. 'currentItem' above is captured synchronously in the updater?
-    // Yes, but let's grab it more explicitly.
-    // Actually, 'queue' in the component scope might be updated if we put 'processBatchItem' in a useEffect or use a ref.
-    // To keep it simple: We'll pass the FILE object from startBatch if possible? 
-    // No, cleaner is to use a ref to track queue for logic, OR just trust that we iterate IDs and finding them is enough.
-    // But we need the 'file' blob.
-
-    // Let's use a function to get the current item from the latest state inside the setter, 
-    // but we can't await inside the setter.
-
-    // Workaround: We'll iterate the queue from startBatch (stale), grab the file (which is constant), 
-    // and only update status in state.
-    // Correct. The 'file' doesn't change.
-  };
-
-  // Re-write processBatchItem correctly:
-  const processBatchItemReal = async (item: QueueItem) => {
-    // 1. Set Analyzing
-    setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'ANALYZING' } : q));
+  // Generate image for a single analyzed item (Step B)
+  const generateBatchItem = async (item: QueueItem) => {
+    // 1. Set Generating
+    setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'GENERATING' } : q));
 
     try {
       if (!selectedModel) throw new Error("No model selected");
+      if (!item.payload) throw new Error("No payload found");
 
-      // Analysis
       const currentKey = getCurrentApiKey();
-      const base64Ref = await fileToBase64(item.file);
-      const { generateUnifiedPayload, generateIndustrialImage } = await import('./services/geminiService');
-      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, base64Ref);
-
-      // Set Generating
-      setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'GENERATING', payload } : q));
+      const { generateIndustrialImage } = await import('./services/geminiService');
 
       // Generation
       const resultBase64 = await generateIndustrialImage(
         currentKey,
-        payload,
+        item.payload, // Use stored payload
         selectedModel.image_url,
         selectedResolution === 'AUTO' ? undefined : selectedResolution,
         selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio
@@ -264,7 +219,7 @@ const App: React.FC = () => {
       await supabase.from('generation_history').insert({
         model_name: selectedModel.model_name,
         image_url: publicUrl,
-        prompt: JSON.stringify(payload),
+        prompt: JSON.stringify(item.payload),
         aspect_ratio: selectedAspectRatio,
         resolution: selectedResolution
       });
@@ -285,16 +240,6 @@ const App: React.FC = () => {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-  };
-
-  // Rewrite startBatch to use the Real processor
-  const startBatchReal = async () => {
-    if (!selectedModel) { alert("MODELO?"); return; }
-
-    const pendingItems = queue.filter(q => q.status === 'PENDING');
-    for (const item of pendingItems) {
-      await processBatchItemReal(item);
-    }
   };
 
   const handleDownloadBatchZip = async () => {
@@ -577,11 +522,16 @@ const App: React.FC = () => {
               {isBatchMode ? (
                 <div className="w-full h-full p-2 grid grid-cols-3 gap-2 overflow-y-auto content-start scrollbar-thin scrollbar-thumb-zinc-700">
                   {queue.map(q => (
-                    <div key={q.id} className="relative aspect-square bg-zinc-800 border border-zinc-700">
-                      <img src={q.previewUrl} className="w-full h-full object-cover opacity-60" />
+                    <div
+                      key={q.id}
+                      onClick={() => setSelectedQueueId(q.id)}
+                      className={`relative aspect-square border cursor-pointer transition-all ${selectedQueueId === q.id ? 'border-white bg-zinc-800' : 'border-zinc-700 bg-zinc-900 opacity-60 hover:opacity-100'}`}
+                    >
+                      <img src={q.previewUrl} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 flex items-center justify-center">
                         {q.status === 'PENDING' && <div className="w-2 h-2 bg-zinc-500 rounded-full" />}
                         {q.status === 'ANALYZING' && <Loader2 className="animate-spin text-orange-500 w-5 h-5" />}
+                        {q.status === 'ANALYZED' && <div className="w-3 h-3 bg-orange-500 rounded-full" />}
                         {q.status === 'GENERATING' && <Loader2 className="animate-spin text-green-500 w-5 h-5" />}
                         {q.status === 'COMPLETED' && <CheckCircle2 className="text-green-500 w-5 h-5" />}
                         {q.status === 'ERROR' && <AlertCircle className="text-red-500 w-5 h-5" />}
@@ -607,8 +557,8 @@ const App: React.FC = () => {
 
             {/* ANALYSIS TRIGGER AND OUTPUT */}
             <div className="flex flex-col gap-2">
-              {/* ANALYSIS BUTTON - Hide in Batch Mode */}
-              {!isBatchMode && (
+              {/* ANALYSIS BUTTON - Single Mode OR Batch Selected Item */}
+              {!isBatchMode ? (
                 <button
                   onClick={runAutoAnalysis}
                   disabled={!selectedModel || !refImage || appState === AppState.ANALYZING}
@@ -618,21 +568,41 @@ const App: React.FC = () => {
                 >
                   {appState === AppState.ANALYZING ? '[ ANALIZANDO... ]' : '[ EJECUTAR ANALISIS DE FUSIÓN ]'}
                 </button>
+              ) : (
+                // BATCH ANALYSIS BUTTON
+                <button
+                  onClick={() => selectedQueueId && analyzeBatchItem(selectedQueueId)}
+                  disabled={!selectedQueueId || queue.find(q => q.id === selectedQueueId)?.status !== 'PENDING'}
+                  className={`w-full py-3 text-[10px] font-bold uppercase border transition-all
+                          ${!selectedQueueId ? 'border-zinc-800 text-zinc-700' :
+                      queue.find(q => q.id === selectedQueueId)?.status === 'PENDING' ? 'border-orange-500 text-orange-500 hover:bg-orange-500/10' :
+                        'border-zinc-800 text-zinc-600'}`}
+                >
+                  {queue.find(q => q.id === selectedQueueId)?.status === 'ANALYZING' ? '[ ANALIZANDO ITEM... ]' :
+                    queue.find(q => q.id === selectedQueueId)?.status === 'ANALYZED' ? '[ ITEM YA ANALIZADO ]' :
+                      !selectedQueueId ? '[ SELECCIONA UNA IMAGEN DEL LOTE ]' :
+                        '[ ANALIZAR IMAGEN SELECCIONADA ]'}
+                </button>
               )}
 
               {isBatchMode && (
-                <div className="w-full py-3 text-[10px] font-bold uppercase border border-zinc-800 text-zinc-500 text-center">
-                    // MODO LOTE ACTIVO: {queue.length} IMÁGENES
+                <div className="w-full pb-2 text-[9px] font-bold uppercase text-zinc-500 text-center flex justify-between">
+                  <span>LOTE: {queue.length} IMÁGENES</span>
+                  <span>ANALIZADAS: {queue.filter(q => q.status !== 'PENDING' && q.status !== 'ANALYZING').length} / {queue.length}</span>
                 </div>
               )}
 
               {/* JSON DISPLAY */}
               <div className="flex flex-col gap-1 h-64">
                 <label className="text-[9px] text-zinc-500 uppercase flex justify-between">
-                  <span>PAYLOAD GENERADO {isBatchMode && "(LOTE)"}</span>
+                  <span>PAYLOAD GENERADO {isBatchMode && "(ITEM SELECCIONADO)"}</span>
                 </label>
                 <div className="w-full bg-zinc-950 border border-zinc-800 p-3 text-[9px] font-mono text-zinc-400 overflow-auto h-full whitespace-pre-wrap leading-tight">
-                  {isBatchMode ? `// COLA DE PROCESAMIENTO:\n${JSON.stringify(queue.map(q => ({ id: q.id, status: q.status })), null, 2)}` :
+                  {isBatchMode ? (
+                    selectedQueueId ?
+                      JSON.stringify(queue.find(q => q.id === selectedQueueId)?.payload || { status: queue.find(q => q.id === selectedQueueId)?.status || 'UNKNOWN' }, null, 2)
+                      : "// SELECCIONA UNA IMAGEN PARA VER SU PAYLOAD"
+                  ) :
                     generatedPayload ? JSON.stringify(generatedPayload, null, 2) :
                       (appState === AppState.ANALYZING ? "..." : "// ESPERANDO ANALISIS...")}
                 </div>
@@ -768,14 +738,14 @@ const App: React.FC = () => {
             {/* EXECUTE BUTTON */}
             {isBatchMode ? (
               <button
-                onClick={startBatch}
-                disabled={!queue.some(q => q.status === 'PENDING') && !queue.some(q => q.status === 'ERROR')}
+                onClick={startBatchGeneration}
+                disabled={!queue.some(q => q.status === 'ANALYZED')}
                 className={`mt-4 w-full py-4 text-xs font-bold tracking-[0.2em] uppercase border transition-all
-                        ${!queue.some(q => q.status === 'PENDING')
+                        ${!queue.some(q => q.status === 'ANALYZED')
                     ? 'bg-zinc-900/50 text-zinc-600 border-zinc-800'
                     : 'bg-white text-black border-white hover:bg-zinc-200'}`}
               >
-                [ INICIAR PROCESAMIENTO POR LOTES ]
+                [ GENERAR IMÁGENES ( {queue.filter(q => q.status === 'ANALYZED').length} LISTAS ) ]
               </button>
             ) : (
               <button
