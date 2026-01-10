@@ -1056,19 +1056,19 @@ const App: React.FC = () => {
             className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-4 backdrop-blur-md cursor-zoom-out"
             onClick={() => setLightboxImage(null)}
           >
-            <div className="relative max-w-full max-h-full">
-              <img
-                src={lightboxImage}
-                className="max-h-[90vh] max-w-[90vw] object-contain shadow-2xl border border-zinc-800"
-                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking image? Actually clicking image to close is fine or standard.
-              />
-              <button
-                onClick={() => setLightboxImage(null)}
-                className="absolute -top-12 right-0 text-white hover:text-zinc-300"
-              >
-                [ CERRAR ]
-              </button>
-            </div>
+            {/* Close Button - Fixed to screen corner */}
+            <button
+              onClick={() => setLightboxImage(null)}
+              className="fixed top-6 right-6 text-white hover:text-zinc-300 z-[80] text-sm uppercase tracking-widest"
+            >
+              [ CERRAR ]
+            </button>
+
+            <img
+              src={lightboxImage}
+              className="max-h-[90vh] max-w-[90vw] object-contain shadow-2xl border border-zinc-800"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         )
       }
