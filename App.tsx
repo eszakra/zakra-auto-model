@@ -67,18 +67,23 @@ const App: React.FC = () => {
       const hasKey = await window.aistudio.hasSelectedApiKey();
       setHasAccess(hasKey);
     } else {
-      // Check if we have a stored API key or use the default
+      // Check if we have a stored API key or environment variable (NO hardcoded fallback)
       const storedKey = localStorage.getItem('zakra_api_key');
-      const defaultKey = import.meta.env.VITE_API_KEY || 'AIzaSyC_RlCxb7iEiw5W8IuI6adqjSHRD1wAbVw';
-      setCustomApiKey(storedKey || defaultKey);
-      setHasAccess(!!(storedKey || defaultKey));
+      const envKey = import.meta.env.VITE_API_KEY || '';
+      const activeKey = storedKey || envKey;
+      setCustomApiKey(activeKey);
+      setHasAccess(!!activeKey);
     }
     setLoadingAuth(false);
   };
 
-  // Get current API key (prioritize custom key)
+  // Get current API key (NO hardcoded fallback - user must configure)
   const getCurrentApiKey = () => {
-    return customApiKey || import.meta.env.VITE_API_KEY || 'AIzaSyC_RlCxb7iEiw5W8IuI6adqjSHRD1wAbVw';
+    const key = customApiKey || import.meta.env.VITE_API_KEY || '';
+    if (!key) {
+      setShowSettings(true);
+    }
+    return key;
   };
 
   const handleSaveApiKey = () => {
@@ -251,20 +256,19 @@ const App: React.FC = () => {
   return (
     <div className="h-screen bg-black text-zakra-text font-mono flex flex-col overflow-hidden selection:bg-white selection:text-black">
 
-      {/* HEADER */}
       <header className="h-12 border-b border-zakra-border flex justify-between items-center px-4 bg-black z-50 shrink-0">
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 ${appState === AppState.GENERATING || appState === AppState.ANALYZING ? 'bg-orange-500 animate-pulse' : 'bg-green-500'}`}></div>
+          <div className={`w-2 h-2 ${appState === AppState.GENERATING || appState === AppState.ANALYZING ? 'bg-orange-500 animate-pulse' : customApiKey ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></div>
           <h1 className="text-xs font-bold tracking-[0.2em] text-white">AUTO MODEL BY ZAKRA</h1>
         </div>
         <div className="flex items-center gap-4">
           <button
             onClick={() => { setTempApiKey(customApiKey); setShowSettings(true); }}
-            className="text-[10px] text-zinc-500 hover:text-white uppercase tracking-widest flex items-center gap-1"
+            className={`text-[10px] uppercase tracking-widest flex items-center gap-1 ${!customApiKey ? 'text-red-500' : 'text-zinc-500 hover:text-white'}`}
           >
-            ⚙ AJUSTES
+            ⚙ {!customApiKey ? 'CONFIGURAR API' : 'AJUSTES'}
           </button>
-          <div className="text-[10px] text-zinc-600 uppercase">SISTEMA ONLINE</div>
+          <div className={`text-[10px] uppercase ${customApiKey ? 'text-zinc-600' : 'text-red-500'}`}>{customApiKey ? 'ONLINE' : 'SIN API KEY'}</div>
         </div>
       </header>
 
