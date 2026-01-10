@@ -340,12 +340,7 @@ const App: React.FC = () => {
         <section className={`flex flex-col h-full bg-black/50 overflow-y-auto relative ${!selectedModel ? 'pointer-events-none' : ''}`}>
           {/* LOCK OVERLAY when no model selected */}
           {!selectedModel && (
-            <div className="absolute inset-0 bg-black/70 z-30 flex items-center justify-center backdrop-blur-sm">
-              <div className="text-center">
-                <div className="text-4xl text-zinc-600 mb-2">🔒</div>
-                <span className="text-[10px] text-zinc-500 uppercase tracking-widest">PRIMERO SELECCIONA UN MODELO</span>
-              </div>
-            </div>
+            <div className="absolute inset-0 bg-black/80 z-30 backdrop-blur-md" />
           )}
           <div className="p-3 border-b border-zakra-border bg-zinc-900/20 sticky top-0 backdrop-blur-sm z-10">
             <h2 className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
@@ -403,13 +398,7 @@ const App: React.FC = () => {
         <section className={`flex flex-col h-full bg-black/50 relative ${!generatedPayload ? 'pointer-events-none' : ''}`}>
           {/* LOCK OVERLAY when no payload generated */}
           {!generatedPayload && (
-            <div className="absolute inset-0 bg-black/70 z-30 flex items-center justify-center backdrop-blur-sm">
-              <div className="text-center">
-                <div className="text-4xl text-zinc-600 mb-2">🔒</div>
-                <span className="text-[10px] text-zinc-500 uppercase tracking-widest block">EJECUTA EL ANÁLISIS PRIMERO</span>
-                <span className="text-[8px] text-zinc-600 block mt-1">(Paso 2)</span>
-              </div>
-            </div>
+            <div className="absolute inset-0 bg-black/80 z-30 backdrop-blur-md" />
           )}
           <div className="p-3 border-b border-zakra-border bg-zinc-900/20 sticky top-0 backdrop-blur-sm z-10">
             <h2 className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
