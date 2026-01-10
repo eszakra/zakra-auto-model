@@ -325,7 +325,7 @@ const App: React.FC = () => {
               onClick={() => setShowModal(true)}
               className="w-full py-3 border border-dashed border-zinc-700 hover:border-white hover:text-white text-zinc-500 text-[10px] uppercase flex items-center justify-center gap-2 transition-all"
             >
-              <Plus size={12} /> [ + NUEVO MODELO ]
+              <Plus size={12} /> [ + NUEVA MODELO ]
             </button>
 
             {selectedModel && (
@@ -501,7 +501,7 @@ const App: React.FC = () => {
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
               className="w-full bg-zinc-950 border border-zinc-700 p-3 text-sm text-white mb-4 outline-none focus:border-white"
-              placeholder="Nuevo nombre..."
+              placeholder="Ej: Aisah, Sofia..."
               autoFocus
             />
             <div className="flex gap-2">
