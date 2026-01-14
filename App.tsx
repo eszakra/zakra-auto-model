@@ -45,6 +45,17 @@ const App: React.FC = () => {
 
   // NEW: Store the generated payload instead of separate inputs
   const [generatedPayload, setGeneratedPayload] = useState<any | null>(null);
+  // NEW: Editable payload string
+  const [payloadJsonString, setPayloadJsonString] = useState<string>('');
+
+  // Sync generatedPayload to the editable string
+  useEffect(() => {
+    if (generatedPayload) {
+      setPayloadJsonString(JSON.stringify(generatedPayload, null, 2));
+    } else {
+      setPayloadJsonString('');
+    }
+  }, [generatedPayload]);
 
   // --- COL 3: OUTPUT ---
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -415,8 +426,17 @@ const App: React.FC = () => {
 
   // --- GENERATION LOGIC ---
   const handleExecute = async () => {
-    if (!generatedPayload) {
+    if (!payloadJsonString && !generatedPayload) {
       alert("PRIMERO DEBES REALIZAR EL ANALISIS (PASO 2)");
+      return;
+    }
+
+    // Try to parse the edited payload
+    let finalPayload: any;
+    try {
+      finalPayload = JSON.parse(payloadJsonString);
+    } catch (e) {
+      alert("JSON INVÁLIDO: Por favor corrige el formato del prompt antes de generar.");
       return;
     }
 
@@ -429,7 +449,7 @@ const App: React.FC = () => {
       // Pass base model image, resolution, and aspect ratio to generation
       const result = await generateIndustrialImage(
         currentKey,
-        generatedPayload,
+        finalPayload,
         selectedModel?.image_url || "", // Pass BASE MODEL image
         selectedResolution === 'AUTO' ? undefined : selectedResolution,
         selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio
@@ -438,7 +458,7 @@ const App: React.FC = () => {
       setAppState(AppState.COMPLETE);
 
       // AUTO SAVE TO HISTORY
-      saveToHistory(result, generatedPayload);
+      saveToHistory(result, finalPayload);
 
     } catch (error: any) {
       setAppState(AppState.ERROR);
@@ -697,15 +717,22 @@ const App: React.FC = () => {
                 <label className="text-[9px] text-zinc-500 uppercase flex justify-between">
                   <span>PAYLOAD GENERADO {isBatchMode && "(ITEM SELECCIONADO)"}</span>
                 </label>
-                <div className="w-full bg-zinc-950 border border-zinc-800 p-3 text-[9px] font-mono text-zinc-400 overflow-auto h-full whitespace-pre-wrap leading-tight">
-                  {isBatchMode ? (
-                    selectedQueueId ?
+                {/* JSON EDITOR */}
+                {isBatchMode ? (
+                  <div className="w-full bg-zinc-950 border border-zinc-800 p-3 text-[9px] font-mono text-zinc-400 overflow-auto h-full whitespace-pre-wrap leading-tight">
+                    {selectedQueueId ?
                       JSON.stringify(queue.find(q => q.id === selectedQueueId)?.payload || { status: queue.find(q => q.id === selectedQueueId)?.status || 'UNKNOWN' }, null, 2)
-                      : "// SELECCIONA UNA IMAGEN PARA VER SU PAYLOAD"
-                  ) :
-                    generatedPayload ? JSON.stringify(generatedPayload, null, 2) :
-                      (appState === AppState.ANALYZING ? "..." : "// ESPERANDO ANALISIS...")}
-                </div>
+                      : "// SELECCIONA UNA IMAGEN PARA VER SU PAYLOAD"}
+                  </div>
+                ) : (
+                  <textarea
+                    value={payloadJsonString}
+                    onChange={(e) => setPayloadJsonString(e.target.value)}
+                    placeholder="// ESPERANDO ANALISIS..."
+                    className="w-full bg-zinc-950 border border-zinc-800 p-3 text-[9px] font-mono text-zinc-400 overflow-auto h-full whitespace-pre-wrap leading-tight resize-none focus:outline-none focus:border-white transition-colors"
+                    spellCheck={false}
+                  />
+                )}
               </div>
             </div>
           </div>
