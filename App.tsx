@@ -101,25 +101,23 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     return () => clearTimeout(timer);
   }, [user, userLoading]);
 
-  // Fetch API key from Supabase
+  // Fetch API key from Supabase Edge Function
   const fetchApiKey = async () => {
     try {
       setLoadingApiKey(true);
-      const { data, error } = await supabase
-        .from('app_settings')
-        .select('value')
-        .eq('key', 'gemini_api_key')
-        .single();
-
+      
+      // Try to get from Edge Function first
+      const { data, error } = await supabase.functions.invoke('get-api-key');
+      
       if (error) {
-        console.error('Error fetching API key:', error);
-        // Fallback to environment variable if Supabase fails
+        console.error('Error fetching API key from edge function:', error);
+        // Fallback to environment variable
         const envKey = import.meta.env.VITE_API_KEY || '';
         setApiKey(envKey);
         setHasAccess(!!envKey);
-      } else if (data) {
-        setApiKey(data.value);
-        setHasAccess(!!data.value && data.value !== 'YOUR_API_KEY_HERE');
+      } else if (data?.apiKey) {
+        setApiKey(data.apiKey);
+        setHasAccess(true);
       }
     } catch (err) {
       console.error('Failed to fetch API key:', err);
@@ -134,20 +132,12 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
   // Get current API key
   const getCurrentApiKey = () => {
-    if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
+    if (!apiKey) {
       console.error('No API key configured');
       return '';
     }
     return apiKey;
   };
-
-  // Expose refresh function to window for admin panel
-  useEffect(() => {
-    (window as any).refreshApiKey = fetchApiKey;
-    return () => {
-      delete (window as any).refreshApiKey;
-    };
-  }, []);
 
   const fetchModelos = async () => {
     setLoadingModels(true);

@@ -34,7 +34,7 @@ interface AdminPanelProps {
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'stats' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'stats'>('users');
   const [users, setUsers] = useState<UserWithProfile[]>([]);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,15 +48,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     totalCreditsIssued: 0,
     activeToday: 0,
   });
-  const [apiKey, setApiKey] = useState('');
-  const [newApiKey, setNewApiKey] = useState('');
-  const [loadingApiKey, setLoadingApiKey] = useState(false);
 
   useEffect(() => {
     if (isOpen && user?.is_admin) {
       fetchUsers();
       fetchStats();
-      fetchApiKey();
     }
   }, [isOpen, user]);
 
@@ -171,40 +167,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const fetchApiKey = async () => {
-    const { data, error } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'gemini_api_key')
-      .single();
-    
-    if (!error && data) {
-      setApiKey(data.value);
-    }
-  };
-
-  const handleUpdateApiKey = async () => {
-    if (!newApiKey.trim()) return;
-
-    setLoadingApiKey(true);
-    const { error } = await supabase.rpc('update_api_key', {
-      p_new_key: newApiKey.trim(),
-    });
-
-    if (!error) {
-      setApiKey(newApiKey.trim());
-      setNewApiKey('');
-      // Refresh API key in main app
-      if ((window as any).refreshApiKey) {
-        (window as any).refreshApiKey();
-      }
-      alert('API Key updated successfully! All users will use the new key immediately.');
-    } else {
-      alert('Error updating API key: ' + error.message);
-    }
-    setLoadingApiKey(false);
-  };
-
   const filteredUsers = users.filter(u => 
     u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -273,7 +235,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
             {/* Tabs */}
           <div className="border-b border-gray-200">
             <div className="flex">
-              {(['users', 'transactions', 'stats', 'settings'] as const).map((tab) => (
+              {(['users', 'transactions', 'stats'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -283,7 +245,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  {tab === 'settings' ? 'API Settings' : tab}
+                  {tab}
                 </button>
               ))}
             </div>
@@ -423,90 +385,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
             {activeTab === 'stats' && (
               <div className="text-center py-12 text-gray-500">
                 Detailed statistics coming soon...
-              </div>
-            )}
-
-            {activeTab === 'settings' && (
-              <div className="max-w-2xl">
-                <h3 className="text-lg font-semibold mb-6">API Configuration</h3>
-                
-                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Current Gemini API Key
-                  </label>
-                  <div className="flex items-center gap-2 mb-4">
-                    <input
-                      type="password"
-                      value={apiKey}
-                      readOnly
-                      className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-600 font-mono text-sm"
-                    />
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(apiKey);
-                        alert('API Key copied to clipboard!');
-                      }}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
-                    >
-                      Copy
-                    </button>
-                    <button
-                      onClick={fetchApiKey}
-                      className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm"
-                      title="Refresh from Supabase"
-                    >
-                      Refresh
-                    </button>
-                  </div>
-                  
-                  <div className="border-t border-gray-200 pt-4 mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Update API Key
-                    </label>
-                    <input
-                      type="password"
-                      value={newApiKey}
-                      onChange={(e) => setNewApiKey(e.target.value)}
-                      placeholder="Enter new API key..."
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red font-mono text-sm mb-3"
-                    />
-                    <p className="text-xs text-gray-500 mb-4">
-                      Get your API key from{' '}
-                      <a 
-                        href="https://aistudio.google.com/app/apikey" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-reed-red hover:underline"
-                      >
-                        Google AI Studio
-                      </a>
-                    </p>
-                    <button
-                      onClick={handleUpdateApiKey}
-                      disabled={!newApiKey.trim() || loadingApiKey}
-                      className="w-full py-2 bg-reed-red text-white rounded-lg hover:bg-reed-red-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {loadingApiKey ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Updating...
-                        </>
-                      ) : (
-                        'Update API Key'
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h4 className="text-sm font-semibold text-blue-900 mb-2">Important Notes:</h4>
-                  <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                    <li>This API key is used globally for all users</li>
-                    <li>Changing the key will affect all image generations immediately</li>
-                    <li>Make sure the new key has sufficient quota</li>
-                    <li>The old key will be replaced and cannot be recovered</li>
-                  </ul>
-                </div>
               </div>
             )}
           </div>
