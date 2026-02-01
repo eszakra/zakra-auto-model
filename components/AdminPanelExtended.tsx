@@ -148,7 +148,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
   const fetchGenerations = async () => {
     setLoading(true);
-    console.log('Fetching generations for user:', selectedGenerationUser);
     
     try {
       // Primero obtener las generaciones
@@ -156,7 +155,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
         .from('generation_logs')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(500);
 
       if (selectedGenerationUser !== 'all') {
         query = query.eq('user_id', selectedGenerationUser);
@@ -164,12 +163,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
       const { data: genData, error: genError } = await query;
 
-      console.log('Generations data:', genData);
-      console.log('Generations error:', genError);
-
       if (genError) {
         console.error('Error fetching generations:', genError);
-        alert('Error fetching generations: ' + genError.message);
         setLoading(false);
         return;
       }
@@ -180,14 +175,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
         const userIds = [...new Set(genData.map(g => g.user_id))];
         
         // Obtener los perfiles de usuario
-        const { data: profilesData, error: profilesError } = await supabase
+        const { data: profilesData } = await supabase
           .from('user_profiles')
           .select('id, email')
           .in('id', userIds);
-
-        if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
-        }
 
         // Crear un mapa de user_id a email
         const emailMap: Record<string, string> = {};
@@ -209,7 +200,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       }
     } catch (err) {
       console.error('Exception fetching generations:', err);
-      alert('Exception: ' + (err as Error).message);
     }
     setLoading(false);
   };
