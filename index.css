@@ -46,9 +46,9 @@
   --scrollbar-thumb-hover: #525252;
   --glass-bg: rgba(20, 20, 20, 0.8);
   --glass-border: rgba(255, 255, 255, 0.1);
-  --accent-red: #DC2626;
-  --accent-red-light: #EF4444;
-  --accent-red-dark: #B91C1C;
+  --accent-red: #A11008;
+  --accent-red-light: #C41E14;
+  --accent-red-dark: #7C0A03;
 }
 
 /* Base styles */
