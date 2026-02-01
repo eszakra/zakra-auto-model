@@ -139,6 +139,19 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     return apiKey;
   };
 
+  // Refresh API key (called from AdminPanel after update)
+  const refreshApiKey = async () => {
+    await fetchApiKey();
+  };
+
+  // Expose refresh function to window for AdminPanel access
+  useEffect(() => {
+    (window as any).refreshAppApiKey = refreshApiKey;
+    return () => {
+      delete (window as any).refreshAppApiKey;
+    };
+  }, []);
+
   const fetchModelos = async () => {
     setLoadingModels(true);
     const { data, error } = await supabase.from('saved_models').select('*').order('created_at', { ascending: false });

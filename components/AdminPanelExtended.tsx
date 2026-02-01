@@ -5,10 +5,29 @@ import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { 
   Users, CreditCard, TrendingUp, Search, Plus, Minus, 
   Crown, Shield, X, Loader2, RefreshCw, ToggleLeft, ToggleRight,
-  Settings, Zap, Lock
+  Settings, Zap, Lock, Key, Eye, EyeOff, CheckCircle, AlertTriangle
 } from 'lucide-react';
 
-// ... [keep existing interfaces] ...
+interface UserWithProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  plan_type: string;
+  credits: number;
+  total_generations: number;
+  is_admin: boolean;
+  created_at: string;
+}
+
+interface CreditTransaction {
+  id: string;
+  user_id: string;
+  amount: number;
+  type: string;
+  description: string;
+  created_at: string;
+  user_email?: string;
+}
 
 interface FeatureFlag {
   id: string;
@@ -18,26 +37,230 @@ interface FeatureFlag {
   category: string;
 }
 
+interface AdminPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { flags, isEnabled, updateFlag, loading: flagsLoading } = useFeatureFlags();
-  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'stats' | 'features'>('users');
-  // ... [keep existing state] ...
+  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'stats' | 'features' | 'apikey'>('users');
+  
+  // Users state
+  const [users, setUsers] = useState<UserWithProfile[]>([]);
+  const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUser, setSelectedUser] = useState<UserWithProfile | null>(null);
+  const [creditAmount, setCreditAmount] = useState(100);
+  const [creditReason, setCreditReason] = useState('');
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalGenerations: 0,
+    totalCreditsIssued: 0,
+    activeToday: 0,
+  });
+
+  // Feature flags state
   const [featureFlags, setFeatureFlags] = useState<FeatureFlag[]>([]);
 
-  // Fetch feature flags
+  // API Key state
+  const [apiKey, setApiKey] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [apiKeyLoading, setApiKeyLoading] = useState(false);
+  const [apiKeyMessage, setApiKeyMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [currentApiKeySource, setCurrentApiKeySource] = useState<string>('');
+
+  useEffect(() => {
+    if (isOpen && user?.is_admin) {
+      fetchUsers();
+      fetchStats();
+    }
+  }, [isOpen, user]);
+
+  useEffect(() => {
+    if (activeTab === 'transactions') {
+      fetchTransactions();
+    }
+    if (activeTab === 'features') {
+      fetchFeatureFlags();
+    }
+    if (activeTab === 'apikey') {
+      fetchCurrentApiKey();
+    }
+  }, [activeTab]);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setUsers(data);
+    }
+    setLoading(false);
+  };
+
+  const fetchTransactions = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('credit_transactions')
+      .select(`
+        *,
+        user_profiles:user_id (email)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (!error && data) {
+      setTransactions(data.map(t => ({
+        ...t,
+        user_email: t.user_profiles?.email
+      })));
+    }
+    setLoading(false);
+  };
+
+  const fetchStats = async () => {
+    const { count: totalUsers } = await supabase
+      .from('user_profiles')
+      .select('*', { count: 'exact', head: true });
+
+    const { data: genData } = await supabase
+      .from('user_profiles')
+      .select('total_generations');
+    
+    const totalGenerations = genData?.reduce((sum, u) => sum + (u.total_generations || 0), 0) || 0;
+
+    const { data: creditData } = await supabase
+      .from('credit_transactions')
+      .select('amount')
+      .gt('amount', 0);
+    
+    const totalCreditsIssued = creditData?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { count: activeToday } = await supabase
+      .from('generation_logs')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', today.toISOString());
+
+    setStats({
+      totalUsers: totalUsers || 0,
+      totalGenerations,
+      totalCreditsIssued,
+      activeToday: activeToday || 0,
+    });
+  };
+
   const fetchFeatureFlags = async () => {
     const { data } = await supabase.from('feature_flags').select('*').order('category');
     if (data) setFeatureFlags(data);
   };
 
-  useEffect(() => {
-    if (activeTab === 'features') {
-      fetchFeatureFlags();
+  const fetchCurrentApiKey = async () => {
+    try {
+      setApiKeyLoading(true);
+      const { data, error } = await supabase.functions.invoke('get-api-key');
+      
+      if (error) {
+        console.error('Error fetching API key:', error);
+        setApiKeyMessage({ type: 'error', text: 'Failed to fetch current API key' });
+      } else if (data?.apiKey) {
+        // Mask the API key for display
+        const maskedKey = data.apiKey.substring(0, 10) + '...' + data.apiKey.substring(data.apiKey.length - 4);
+        setApiKey(maskedKey);
+        setCurrentApiKeySource(data.source || 'unknown');
+      } else {
+        setApiKey('');
+        setCurrentApiKeySource('');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      setApiKeyMessage({ type: 'error', text: 'Error connecting to API' });
+    } finally {
+      setApiKeyLoading(false);
     }
-  }, [activeTab]);
+  };
 
-  // Toggle feature flag
+  const handleUpdateApiKey = async () => {
+    if (!apiKey || apiKey.includes('...')) {
+      setApiKeyMessage({ type: 'error', text: 'Please enter a valid API key' });
+      return;
+    }
+
+    try {
+      setApiKeyLoading(true);
+      setApiKeyMessage(null);
+
+      const { data, error } = await supabase.functions.invoke('update-api-key', {
+        body: { apiKey }
+      });
+
+      if (error) {
+        console.error('Error updating API key:', error);
+        setApiKeyMessage({ type: 'error', text: 'Failed to update API key: ' + error.message });
+      } else if (data?.success) {
+        setApiKeyMessage({ type: 'success', text: 'API key updated successfully!' });
+        // Clear the input after successful update
+        setApiKey('');
+        // Refresh the API key in the main app
+        if ((window as any).refreshAppApiKey) {
+          (window as any).refreshAppApiKey();
+        }
+        setTimeout(() => {
+          fetchCurrentApiKey();
+        }, 1000);
+      } else {
+        setApiKeyMessage({ type: 'error', text: data?.error || 'Unknown error' });
+      }
+    } catch (err: any) {
+      console.error('Error:', err);
+      setApiKeyMessage({ type: 'error', text: 'Error: ' + err.message });
+    } finally {
+      setApiKeyLoading(false);
+    }
+  };
+
+  const handleAddCredits = async () => {
+    if (!selectedUser || creditAmount <= 0) return;
+
+    const { error } = await supabase.rpc('add_credits', {
+      p_user_id: selectedUser.id,
+      p_amount: creditAmount,
+      p_description: creditReason || 'Admin credit adjustment',
+      p_type: 'admin_adjustment',
+    });
+
+    if (!error) {
+      fetchUsers();
+      setSelectedUser(null);
+      setCreditAmount(100);
+      setCreditReason('');
+      alert(`Added ${creditAmount} credits to ${selectedUser.email}`);
+    } else {
+      alert('Error adding credits: ' + error.message);
+    }
+  };
+
+  const handleChangePlan = async (userId: string, newPlan: string) => {
+    const { error } = await supabase.rpc('update_user_plan', {
+      p_user_id: userId,
+      p_plan_type: newPlan,
+    });
+
+    if (!error) {
+      fetchUsers();
+      alert('Plan updated successfully');
+    } else {
+      alert('Error updating plan: ' + error.message);
+    }
+  };
+
   const toggleFeature = async (key: string, currentValue: boolean) => {
     const success = await updateFlag(key, !currentValue);
     if (success) {
@@ -45,14 +268,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // Group features by category
+  const filteredUsers = users.filter(u => 
+    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const groupedFeatures = featureFlags.reduce((acc, flag) => {
     if (!acc[flag.category]) acc[flag.category] = [];
     acc[flag.category].push(flag);
     return acc;
   }, {} as Record<string, FeatureFlag[]>);
-
-  // ... [keep existing fetch functions and handlers] ...
 
   if (!isOpen) return null;
 
@@ -117,7 +342,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
           {/* Tabs */}
           <div className="border-b border-gray-200">
             <div className="flex">
-              {(['users', 'transactions', 'stats', 'features'] as const).map((tab) => (
+              {(['users', 'transactions', 'stats', 'features', 'apikey'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -127,8 +352,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  {tab === 'features' <> <Settings className="w-4 h-4 inline mr-1" /> : null}
-                  {tab}
+                  {tab === 'features' && <Settings className="w-4 h-4 inline mr-1" />}
+                  {tab === 'apikey' && <Key className="w-4 h-4 inline mr-1" />}
+                  {tab === 'apikey' ? 'API Key' : tab}
                 </button>
               ))}
             </div>
@@ -136,6 +362,141 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
           {/* Content */}
           <div className="p-6">
+            {activeTab === 'users' && (
+              <div>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search users..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red"
+                    />
+                  </div>
+                  <button
+                    onClick={fetchUsers}
+                    className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-reed-red" />
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">User</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Plan</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Credits</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Generations</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {filteredUsers.map((u) => (
+                          <tr key={u.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                              <div>
+                                <div className="font-medium text-gray-900">{u.full_name || 'N/A'}</div>
+                                <div className="text-sm text-gray-500">{u.email}</div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <select
+                                value={u.plan_type}
+                                onChange={(e) => handleChangePlan(u.id, e.target.value)}
+                                className="border border-gray-200 rounded px-2 py-1 text-sm"
+                              >
+                                <option value="free">Free</option>
+                                <option value="basic">Basic</option>
+                                <option value="pro">Pro</option>
+                                <option value="premium">Premium</option>
+                              </select>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`font-bold ${u.credits < 10 ? 'text-red-600' : 'text-green-600'}`}>
+                                {u.credits}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">{u.total_generations}</td>
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={() => setSelectedUser(u)}
+                                className="flex items-center gap-1 px-3 py-1 bg-reed-red text-white text-sm rounded hover:bg-reed-red-dark"
+                              >
+                                <Plus className="w-4 h-4" /> Credits
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'transactions' && (
+              <div>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-reed-red" />
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Date</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">User</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Type</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Amount</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Description</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {transactions.map((t) => (
+                          <tr key={t.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm">
+                              {new Date(t.created_at).toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3 text-sm">{t.user_email}</td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                t.type === 'purchase' ? 'bg-green-100 text-green-800' :
+                                t.type === 'usage' ? 'bg-red-100 text-red-800' :
+                                t.type === 'bonus' ? 'bg-blue-100 text-blue-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {t.type}
+                              </span>
+                            </td>
+                            <td className={`px-4 py-3 font-bold ${t.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {t.amount > 0 ? '+' : ''}{t.amount}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">{t.description}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'stats' && (
+              <div className="text-center py-12 text-gray-500">
+                Detailed statistics coming soon...
+              </div>
+            )}
+
             {activeTab === 'features' && (
               <div>
                 <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
@@ -148,13 +509,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   </div>
                 ) : (
                   <div className="space-y-8">
-                    {Object.entries(groupedFeatures).map(([category, flags]) => (
+                    {Object.entries(groupedFeatures).map(([category, categoryFlags]: [string, FeatureFlag[]]) => (
                       <div key={category}>
                         <h4 className="text-lg font-semibold text-gray-900 mb-4 capitalize">
                           {category}
                         </h4>
                         <div className="grid gap-4">
-                          {flags.map((flag) => (
+                          {categoryFlags.map((flag: FeatureFlag) => (
                             <div 
                               key={flag.id}
                               className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
@@ -215,12 +576,182 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
               </div>
             )}
 
-            {/* ... [keep existing tabs content] ... */}
+            {activeTab === 'apikey' && (
+              <div>
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                  <Key className="w-5 h-5" /> API Key Management
+                </h3>
+
+                <div className="max-w-2xl">
+                  <div className="bg-gray-50 p-6 rounded-lg mb-6">
+                    <h4 className="font-semibold text-gray-900 mb-2">Current API Key Status</h4>
+                    <div className="flex items-center gap-2 mb-4">
+                      {apiKeyLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                      ) : apiKey ? (
+                        <>
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                          <span className="text-green-600 font-medium">API Key Configured</span>
+                          <span className="text-gray-400 text-sm">({currentApiKeySource})</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="w-5 h-5 text-amber-500" />
+                          <span className="text-amber-600 font-medium">No API Key Found</span>
+                        </>
+                      )}
+                    </div>
+                    
+                    {apiKey && !apiKey.includes('...') && (
+                      <div className="text-sm text-gray-600 mb-4">
+                        Current Key: <code className="bg-gray-200 px-2 py-1 rounded">{apiKey}</code>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        New Gemini API Key
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showApiKey ? 'text' : 'password'}
+                          value={apiKey.includes('...') ? '' : apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          placeholder="Enter your Gemini API key (starts with AIza...)"
+                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red pr-12"
+                        />
+                        <button
+                          onClick={() => setShowApiKey(!showApiKey)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showApiKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Get your API key from{' '}
+                        <a 
+                          href="https://aistudio.google.com/app/apikey" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-reed-red hover:underline"
+                        >
+                          Google AI Studio
+                        </a>
+                      </p>
+                    </div>
+
+                    {apiKeyMessage && (
+                      <div className={`p-4 rounded-lg flex items-center gap-2 ${
+                        apiKeyMessage.type === 'success' 
+                          ? 'bg-green-50 text-green-700 border border-green-200' 
+                          : 'bg-red-50 text-red-700 border border-red-200'
+                      }`}>
+                        {apiKeyMessage.type === 'success' ? (
+                          <CheckCircle className="w-5 h-5" />
+                        ) : (
+                          <AlertTriangle className="w-5 h-5" />
+                        )}
+                        {apiKeyMessage.text}
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleUpdateApiKey}
+                        disabled={apiKeyLoading || !apiKey || apiKey.includes('...')}
+                        className="flex-1 py-3 bg-reed-red text-white rounded-lg hover:bg-reed-red-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+                      >
+                        {apiKeyLoading ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Updating...
+                          </span>
+                        ) : (
+                          'Update API Key'
+                        )}
+                      </button>
+                      <button
+                        onClick={fetchCurrentApiKey}
+                        disabled={apiKeyLoading}
+                        className="px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-5 h-5 ${apiKeyLoading ? 'animate-spin' : ''}`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                      <Zap className="w-4 h-4" />
+                      Important Notes
+                    </h4>
+                    <ul className="text-sm text-blue-800 space-y-2 list-disc list-inside">
+                      <li>Updating the API key will affect all users immediately</li>
+                      <li>Make sure the new key has sufficient quota for image generation</li>
+                      <li>The old key will be replaced and cannot be recovered</li>
+                      <li>Users will need to refresh the page to use the new key</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ... [keep existing modals] ... */}
+      {/* Add Credits Modal */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4">Add Credits</h3>
+            <p className="text-gray-600 mb-4">
+              User: <span className="font-semibold">{selectedUser.email}</span><br />
+              Current: <span className="font-semibold">{selectedUser.credits} credits</span>
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                <input
+                  type="number"
+                  value={creditAmount}
+                  onChange={(e) => setCreditAmount(parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red"
+                  min="1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reason (optional)</label>
+                <input
+                  type="text"
+                  value={creditReason}
+                  onChange={(e) => setCreditReason(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red"
+                  placeholder="e.g., Bonus, Refund, Promotion"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setSelectedUser(null)}
+                className="flex-1 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddCredits}
+                className="flex-1 py-2 bg-reed-red text-white rounded-lg hover:bg-reed-red-dark"
+              >
+                Add Credits
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

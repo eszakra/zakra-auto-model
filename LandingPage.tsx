@@ -8,7 +8,7 @@ import {
 import App from './App';
 import { useAuth } from './contexts/AuthContext';
 import { LoginPage, RegisterPage } from './components/AuthPages';
-import { AdminPanel } from './components/AdminPanel';
+import { AdminPanel } from './components/AdminPanelExtended';
 
 // Navigation Component
 const Navigation = ({ 
