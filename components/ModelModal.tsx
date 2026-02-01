@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 import { X, Loader2 } from 'lucide-react';
 
 interface ModelModalProps {
@@ -9,6 +10,7 @@ interface ModelModalProps {
 }
 
 const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) => {
+    const { user } = useAuth();
     const [nombre, setNombre] = useState('');
     const [url, setUrl] = useState('');
     const [loading, setLoading] = useState(false);
@@ -52,7 +54,8 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
                     model_name: nombre,
                     image_url: finalImageUrl,
                     face_description: "PENDING_AUTO_ANALYSIS",
-                    hair_description: "PENDING_AUTO_ANALYSIS"
+                    hair_description: "PENDING_AUTO_ANALYSIS",
+                    user_id: user?.id
                 }
             ]);
 

@@ -159,7 +159,12 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
   const fetchModelos = async () => {
     setLoadingModels(true);
-    const { data, error } = await supabase.from('saved_models').select('*').order('created_at', { ascending: false });
+    // Only fetch models for the current user
+    const { data, error } = await supabase
+      .from('saved_models')
+      .select('*')
+      .eq('user_id', user?.id)
+      .order('created_at', { ascending: false });
     if (error) {
       console.error("Error fetching models:", error);
     } else {
