@@ -39,7 +39,7 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onClose, onSwitch, onSucces
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md bg-[var(--bg-primary)] rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="bg-reed-red p-6 text-white">
           <div className="flex items-center justify-between">
@@ -62,14 +62,14 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onClose, onSwitch, onSucces
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email</label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red transition-colors"
+                className="w-full pl-10 pr-4 py-3 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red transition-colors bg-[var(--bg-primary)] text-[var(--text-primary)]"
                 placeholder="you@example.com"
                 required
               />
@@ -77,14 +77,14 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onClose, onSwitch, onSucces
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Password</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red transition-colors"
+                className="w-full pl-10 pr-4 py-3 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red transition-colors bg-[var(--bg-primary)] text-[var(--text-primary)]"
                 placeholder="••••••••"
                 required
               />
@@ -109,7 +109,7 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onClose, onSwitch, onSucces
             )}
           </button>
 
-          <div className="text-center text-sm text-gray-600">
+          <div className="text-center text-sm text-[var(--text-secondary)]">
             Don't have an account?{' '}
             <button
               type="button"
@@ -165,14 +165,14 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
   if (success) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
+        <div className="w-full max-w-md bg-[var(--bg-primary)] rounded-2xl shadow-2xl p-8 text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Account Created!</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Account Created!</h2>
+          <p className="text-[var(--text-secondary)] mb-6">
             Check your email to verify your account. You got 5 free credits to start!
           </p>
           <button
@@ -188,7 +188,7 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-md bg-[var(--bg-primary)] rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-reed-red p-6 text-white">
           <div className="flex items-center justify-between">
@@ -211,14 +211,14 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Full Name</label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red transition-colors"
+                className="w-full pl-10 pr-4 py-3 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red transition-colors bg-[var(--bg-primary)] text-[var(--text-primary)]"
                 placeholder="John Doe"
                 required
               />
@@ -226,14 +226,14 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email</label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red transition-colors"
+                className="w-full pl-10 pr-4 py-3 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red transition-colors bg-[var(--bg-primary)] text-[var(--text-primary)]"
                 placeholder="you@example.com"
                 required
               />
@@ -241,14 +241,14 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Password</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red transition-colors"
+                className="w-full pl-10 pr-4 py-3 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red transition-colors bg-[var(--bg-primary)] text-[var(--text-primary)]"
                 placeholder="••••••••"
                 required
               />
@@ -256,14 +256,14 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Confirm Password</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red transition-colors"
+                className="w-full pl-10 pr-4 py-3 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red transition-colors bg-[var(--bg-primary)] text-[var(--text-primary)]"
                 placeholder="••••••••"
                 required
               />
@@ -288,7 +288,7 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
             )}
           </button>
 
-          <div className="text-center text-sm text-gray-600">
+          <div className="text-center text-sm text-[var(--text-secondary)]">
             Already have an account?{' '}
             <button
               type="button"

@@ -50,7 +50,7 @@ const Navigation = ({
               alt="REED" 
               className="h-8 w-auto"
             />
-            <span className="font-display font-bold text-xl tracking-tight text-gray-900">REED</span>
+            <span className="font-display font-bold text-xl tracking-tight text-[var(--text-primary)]">REED</span>
           </a>
 
           {/* Desktop Navigation */}
@@ -59,7 +59,7 @@ const Navigation = ({
               <a
                 key={link.name}
                 href={link.href}
-                className="text-sm font-medium text-gray-600 hover:text-reed-red transition-colors"
+                className="text-sm font-medium text-[var(--text-secondary)] hover:text-reed-red transition-colors"
               >
                 {link.name}
               </a>
@@ -71,9 +71,9 @@ const Navigation = ({
             {user ? (
               <>
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-secondary)] rounded-full">
                     <CreditCard className="w-4 h-4 text-reed-red" />
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-medium text-[var(--text-primary)]">
                       {user.plan_type === 'premium' ? '∞' : user.credits} credits
                     </span>
                   </div>
@@ -86,7 +86,7 @@ const Navigation = ({
                   </button>
                   <button
                     onClick={signOut}
-                    className="p-2 text-gray-400 hover:text-gray-600"
+                    className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                     title="Sign out"
                   >
                     <LogOut className="w-5 h-5" />
@@ -97,7 +97,7 @@ const Navigation = ({
               <>
                 <button
                   onClick={onLoginClick}
-                  className="text-sm font-medium text-gray-600 hover:text-reed-red transition-colors"
+                  className="text-sm font-medium text-[var(--text-secondary)] hover:text-reed-red transition-colors"
                 >
                   Log In
                 </button>
@@ -115,7 +115,7 @@ const Navigation = ({
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-gray-600"
+            className="md:hidden p-2 text-[var(--text-secondary)]"
           >
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -124,14 +124,14 @@ const Navigation = ({
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200">
+        <div className="md:hidden bg-[var(--bg-primary)] border-t border-[var(--border-color)]">
           <div className="px-4 py-4 space-y-3">
             {navLinks.map((link) => (
               <a
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-base font-medium text-gray-600 hover:text-reed-red"
+                className="block text-base font-medium text-[var(--text-secondary)] hover:text-reed-red"
               >
                 {link.name}
               </a>
@@ -139,9 +139,9 @@ const Navigation = ({
             
             {user ? (
               <>
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
+                <div className="flex items-center gap-2 px-3 py-2 bg-[var(--bg-secondary)] rounded-lg">
                   <CreditCard className="w-4 h-4 text-reed-red" />
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-medium text-[var(--text-primary)]">
                     {user.plan_type === 'premium' ? 'Unlimited' : `${user.credits} credits`}
                   </span>
                 </div>
@@ -171,7 +171,7 @@ const Navigation = ({
                     setIsMobileMenuOpen(false);
                     onLoginClick();
                   }}
-                  className="block w-full text-left text-base font-medium text-gray-600 hover:text-reed-red py-2"
+                  className="block w-full text-left text-base font-medium text-[var(--text-secondary)] hover:text-reed-red py-2"
                 >
                   Log In
                 </button>
@@ -198,7 +198,7 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
   const [spotsRemaining] = useState(50);
 
   return (
-    <section className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-white">
+    <section className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-[var(--bg-primary)]">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
@@ -208,14 +208,14 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
           </div>
 
           {/* Main Headline */}
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-7xl font-bold text-gray-900 leading-[1.1] mb-6 animate-slide-up">
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-7xl font-bold text-[var(--text-primary)] leading-[1.1] mb-6 animate-slide-up">
             Elite AI Model
             <br />
             <span className="text-gradient">Customization Service</span>
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-10 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <p className="text-lg sm:text-xl text-[var(--text-secondary)] max-w-2xl mx-auto mb-10 animate-slide-up" style={{ animationDelay: '0.1s' }}>
             Exclusive for serious creators. Advanced NSFW workflows, custom LoRAs trained by experts, 
             and premium image generation that multiplies your revenue.
           </p>
@@ -231,14 +231,14 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
             </button>
             <a
               href="#services"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white text-gray-900 text-base font-semibold rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-all"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-[var(--bg-primary)] text-[var(--text-primary)] text-base font-semibold rounded-xl border-2 border-[var(--border-color)] hover:border-[var(--text-muted)] transition-all"
             >
               View Services
             </a>
           </div>
 
           {/* Trust Indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-gray-500 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-[var(--text-muted)] animate-fade-in" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-reed-red" />
               <span>Privacy Guaranteed</span>
@@ -256,7 +256,7 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
       </div>
 
       {/* Decorative Elements */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--border-color)] to-transparent" />
     </section>
   );
 };
@@ -325,47 +325,47 @@ const ServicesSection = () => {
   ];
 
   return (
-    <section id="services" className="py-24 bg-gray-50">
+    <section id="services" className="py-24 bg-[var(--bg-secondary)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
           <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">Services</span>
-          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4">
             Premium Solutions for Creators
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
             Each service is designed to maximize the quality and consistency of your content.
           </p>
         </div>
 
         {/* Workflows */}
         <div className="mb-20">
-          <h3 className="font-display text-2xl font-bold text-gray-900 mb-8 flex items-center gap-3">
+          <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] mb-8 flex items-center gap-3">
             <Layers className="w-6 h-6 text-reed-red" />
             NSFW Workflows (One-Time)
           </h3>
           <div className="grid md:grid-cols-3 gap-6">
             {workflows.map((workflow) => (
-              <div key={workflow.name} className={`relative bg-white rounded-2xl p-6 border-2 transition-all hover:shadow-xl ${
-                workflow.popular ? 'border-reed-red' : 'border-gray-100'
+              <div key={workflow.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl ${
+                workflow.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
               }`}>
                 {workflow.popular && (
                   <div className="absolute -top-3 left-6 px-3 py-1 bg-reed-red text-white text-xs font-semibold rounded-full">
                     Most Popular
                   </div>
                 )}
-                <h4 className="font-display text-xl font-bold text-gray-900 mb-2">{workflow.name}</h4>
-                <p className="text-gray-600 text-sm mb-4">{workflow.description}</p>
-                <div className="text-3xl font-bold text-gray-900 mb-6">{workflow.price}</div>
+                <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{workflow.name}</h4>
+                <p className="text-[var(--text-secondary)] text-sm mb-4">{workflow.description}</p>
+                <div className="text-3xl font-bold text-[var(--text-primary)] mb-6">{workflow.price}</div>
                 <ul className="space-y-3 mb-6">
                   {workflow.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm text-gray-600">
+                    <li key={feature} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                       <Check className="w-4 h-4 text-reed-red flex-shrink-0" />
                       {feature}
                     </li>
                   ))}
                 </ul>
-                <button className="w-full py-3 border-2 border-gray-200 text-gray-900 font-semibold rounded-xl hover:border-reed-red hover:text-reed-red transition-colors">
+                <button className="w-full py-3 border-2 border-[var(--border-color)] text-[var(--text-primary)] font-semibold rounded-xl hover:border-reed-red hover:text-reed-red transition-colors">
                   Request
                 </button>
               </div>
@@ -375,19 +375,19 @@ const ServicesSection = () => {
 
         {/* LoRAs */}
         <div className="mb-20">
-          <h3 className="font-display text-2xl font-bold text-gray-900 mb-8 flex items-center gap-3">
+          <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] mb-8 flex items-center gap-3">
             <Cpu className="w-6 h-6 text-reed-red" />
             Custom LoRAs
           </h3>
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
             {loras.map((lora) => (
-              <div key={lora.name} className="bg-white rounded-2xl p-6 border-2 border-gray-100 hover:border-reed-red transition-all hover:shadow-xl">
-                <h4 className="font-display text-xl font-bold text-gray-900 mb-2">{lora.name}</h4>
-                <p className="text-gray-600 text-sm mb-4">{lora.description}</p>
-                <div className="text-3xl font-bold text-gray-900 mb-6">{lora.price}</div>
+              <div key={lora.name} className="bg-[var(--card-bg)] rounded-2xl p-6 border-2 border-[var(--card-border)] hover:border-reed-red transition-all hover:shadow-xl">
+                <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{lora.name}</h4>
+                <p className="text-[var(--text-secondary)] text-sm mb-4">{lora.description}</p>
+                <div className="text-3xl font-bold text-[var(--text-primary)] mb-6">{lora.price}</div>
                 <ul className="space-y-3 mb-6">
                   {lora.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm text-gray-600">
+                    <li key={feature} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                       <Check className="w-4 h-4 text-reed-red flex-shrink-0" />
                       {feature}
                     </li>
@@ -403,26 +403,26 @@ const ServicesSection = () => {
 
         {/* Packages */}
         <div>
-          <h3 className="font-display text-2xl font-bold text-gray-900 mb-8 flex items-center gap-3">
+          <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] mb-8 flex items-center gap-3">
             <Sparkles className="w-6 h-6 text-reed-red" />
             Complete Custom Packages
           </h3>
           <div className="grid md:grid-cols-3 gap-6">
             {packages.map((pkg) => (
-              <div key={pkg.name} className={`relative bg-white rounded-2xl p-6 border-2 transition-all hover:shadow-xl ${
-                pkg.popular ? 'border-reed-red' : 'border-gray-100'
+              <div key={pkg.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl ${
+                pkg.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
               }`}>
                 {pkg.popular && (
                   <div className="absolute -top-3 left-6 px-3 py-1 bg-reed-red text-white text-xs font-semibold rounded-full">
                     Recommended
                   </div>
                 )}
-                <h4 className="font-display text-xl font-bold text-gray-900 mb-2">{pkg.name}</h4>
-                <p className="text-gray-600 text-sm mb-4">{pkg.description}</p>
-                <div className="text-3xl font-bold text-gray-900 mb-6">{pkg.price}</div>
+                <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{pkg.name}</h4>
+                <p className="text-[var(--text-secondary)] text-sm mb-4">{pkg.description}</p>
+                <div className="text-3xl font-bold text-[var(--text-primary)] mb-6">{pkg.price}</div>
                 <ul className="space-y-3 mb-6">
                   {pkg.includes.map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-sm text-gray-600">
+                    <li key={item} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                       <Check className="w-4 h-4 text-reed-red flex-shrink-0" />
                       {item}
                     </li>
@@ -431,7 +431,7 @@ const ServicesSection = () => {
                 <button className={`w-full py-3 font-semibold rounded-xl transition-colors ${
                   pkg.popular 
                     ? 'bg-reed-red text-white hover:bg-reed-red-dark' 
-                    : 'border-2 border-gray-200 text-gray-900 hover:border-reed-red hover:text-reed-red'
+                    : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'
                 }`}>
                   {pkg.popular ? 'Get Started' : 'Request'}
                 </button>
@@ -512,22 +512,22 @@ const PricingSection = () => {
   ];
 
   return (
-    <section id="pricing" className="py-24 bg-white">
+    <section id="pricing" className="py-24 bg-[var(--bg-primary)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
           <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">Subscriptions</span>
-          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4">
             On-Site Generation
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
             SFW now, NSFW coming soon. Choose the plan that best fits your needs.
           </p>
           
           {user && (
-            <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full">
+            <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)] rounded-full">
               <CrownIcon className="w-5 h-5 text-reed-red" />
-              <span className="text-sm font-medium">
+              <span className="text-sm font-medium text-[var(--text-primary)]">
                 Your current plan: <span className="font-bold capitalize">{user.plan_type}</span>
                 {user.plan_type !== 'premium' && ` (${user.credits} credits remaining)`}
               </span>
@@ -538,8 +538,8 @@ const PricingSection = () => {
         {/* Pricing Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {plans.map((plan) => (
-            <div key={plan.name} className={`relative bg-white rounded-2xl p-6 border-2 transition-all hover:shadow-xl ${
-              plan.popular ? 'border-reed-red' : 'border-gray-200'
+            <div key={plan.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl ${
+              plan.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
             }`}>
               {plan.popular && (
                 <div className="absolute -top-3 left-6 px-3 py-1 bg-reed-red text-white text-xs font-semibold rounded-full">
@@ -547,20 +547,20 @@ const PricingSection = () => {
                 </div>
               )}
               
-              <h3 className="font-display text-xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+              <h3 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{plan.name}</h3>
               
               <div className="flex items-baseline gap-1 mb-4">
-                <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                <span className="text-gray-500">{plan.period}</span>
+                <span className="text-4xl font-bold text-[var(--text-primary)]">{plan.price}</span>
+                <span className="text-[var(--text-muted)]">{plan.period}</span>
               </div>
 
-              <div className="space-y-2 mb-6 pb-6 border-b border-gray-100">
+              <div className="space-y-2 mb-6 pb-6 border-b border-[var(--border-color)]">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Credits/month:</span>
-                  <span className="font-semibold text-gray-900">{plan.credits}</span>
+                  <span className="text-[var(--text-secondary)]">Credits/month:</span>
+                  <span className="font-semibold text-[var(--text-primary)]">{plan.credits}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">NSFW:</span>
+                  <span className="text-[var(--text-secondary)]">NSFW:</span>
                   <span className={`font-semibold ${plan.nsfw === true || plan.nsfw === 'Full' ? 'text-green-600' : plan.nsfw === 'Soon' ? 'text-amber-600' : 'text-gray-400'}`}>
                     {plan.nsfw === true ? 'Yes' : plan.nsfw === false ? 'No' : plan.nsfw}
                   </span>
@@ -569,7 +569,7 @@ const PricingSection = () => {
 
               <ul className="space-y-3 mb-6">
                 {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-2 text-sm text-gray-600">
+                  <li key={feature} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                     <Check className="w-4 h-4 text-reed-red flex-shrink-0" />
                     {feature}
                   </li>
@@ -579,7 +579,7 @@ const PricingSection = () => {
               <button className={`w-full py-3 font-semibold rounded-xl transition-colors ${
                 plan.popular 
                   ? 'bg-reed-red text-white hover:bg-reed-red-dark' 
-                  : 'border-2 border-gray-200 text-gray-900 hover:border-reed-red hover:text-reed-red'
+                  : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'
               }`}
               >
                 {plan.cta}
@@ -640,15 +640,15 @@ const FAQSection = () => {
   ];
 
   return (
-    <section id="faq" className="py-24 bg-gray-50">
+    <section id="faq" className="py-24 bg-[var(--bg-secondary)]">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
           <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">FAQ</span>
-          <h2 className="font-display text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--text-primary)] mb-4">
             Frequently Asked Questions
           </h2>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-[var(--text-secondary)]">
             Everything you need to know about our services.
           </p>
         </div>
@@ -658,22 +658,22 @@ const FAQSection = () => {
           {faqs.map((faq, index) => (
             <div
               key={index}
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+              className="bg-[var(--card-bg)] rounded-xl border border-[var(--card-border)] overflow-hidden"
             >
               <button
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between p-6 text-left hover:bg-[var(--hover-bg)] transition-colors"
               >
-                <span className="font-semibold text-gray-900 pr-4">{faq.question}</span>
+                <span className="font-semibold text-[var(--text-primary)] pr-4">{faq.question}</span>
                 {openIndex === index ? (
                   <ChevronUp className="w-5 h-5 text-reed-red flex-shrink-0" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                  <ChevronDown className="w-5 h-5 text-[var(--text-muted)] flex-shrink-0" />
                 )}
               </button>
               {openIndex === index && (
                 <div className="px-6 pb-6">
-                  <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
+                  <p className="text-[var(--text-secondary)] leading-relaxed">{faq.answer}</p>
                 </div>
               )}
             </div>
@@ -719,27 +719,27 @@ const CTASection = () => {
 // Footer
 const Footer = () => {
   return (
-    <footer className="bg-gray-900 text-white py-16">
+    <footer className="bg-[var(--bg-tertiary)] text-[var(--text-primary)] py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-8 w-auto brightness-0 invert" />
+              <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-8 w-auto brightness-0 invert dark:brightness-100 dark:invert-0" />
               <span className="font-display font-bold text-xl">REED</span>
             </div>
-            <p className="text-gray-400 max-w-sm mb-6">
+            <p className="text-[var(--text-secondary)] max-w-sm mb-6">
               Elite AI model customization service for serious creators. 
               NSFW workflows, custom LoRAs, and premium generation.
             </p>
             <div className="flex items-center gap-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
+              <a href="#" className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
                 <span className="sr-only">Twitter</span>
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                 </svg>
               </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
+              <a href="#" className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
                 <span className="sr-only">Discord</span>
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/>
@@ -752,29 +752,29 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4">Services</h4>
             <ul className="space-y-3">
-              <li><a href="#services" className="text-gray-400 hover:text-white transition-colors">Workflows</a></li>
-              <li><a href="#services" className="text-gray-400 hover:text-white transition-colors">LoRAs</a></li>
-              <li><a href="#services" className="text-gray-400 hover:text-white transition-colors">Packages</a></li>
-              <li><a href="#pricing" className="text-gray-400 hover:text-white transition-colors">Subscriptions</a></li>
+              <li><a href="#services" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">Workflows</a></li>
+              <li><a href="#services" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">LoRAs</a></li>
+              <li><a href="#services" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">Packages</a></li>
+              <li><a href="#pricing" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">Subscriptions</a></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-semibold mb-4">Legal</h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Terms</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">GDPR</a></li>
+              <li><a href="#" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">Privacy</a></li>
+              <li><a href="#" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">Terms</a></li>
+              <li><a href="#" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">GDPR</a></li>
             </ul>
           </div>
         </div>
 
         {/* Bottom */}
-        <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-gray-500 text-sm">
+        <div className="pt-8 border-t border-[var(--border-color)] flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-[var(--text-muted)] text-sm">
             © 2026 REED. All rights reserved.
           </p>
-          <p className="text-gray-500 text-sm">
+          <p className="text-[var(--text-muted)] text-sm">
             Designed for elite creators.
           </p>
         </div>
@@ -853,7 +853,7 @@ const LandingPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-[var(--bg-primary)]">
         <Navigation 
           onLaunchApp={handleShowApp}
           onLoginClick={() => setShowLogin(true)}
@@ -862,7 +862,7 @@ const LandingPage = () => {
         <div className="h-screen flex items-center justify-center">
           <div className="text-center">
             <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-12 w-auto mx-auto mb-4 animate-pulse" />
-            <p className="text-gray-600">Loading...</p>
+            <p className="text-[var(--text-secondary)]">Loading...</p>
           </div>
         </div>
       </div>

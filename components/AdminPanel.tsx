@@ -176,14 +176,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
   if (!user?.is_admin) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80">
         <div className="bg-white p-8 rounded-2xl shadow-2xl text-center">
           <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to access the admin panel.</p>
+          <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Access Denied</h2>
+          <p className="text-[var(--text-secondary)]">You don't have permission to access the admin panel.</p>
           <button
             onClick={onClose}
-            className="mt-4 px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+            className="mt-4 px-6 py-2 bg-[var(--bg-secondary)] text-gray-800 rounded-lg hover:bg-gray-300"
           >
             Close
           </button>
@@ -193,7 +193,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm overflow-y-auto">
       <div className="min-h-screen px-4 py-8">
         <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Header */}
@@ -233,7 +233,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
           </div>
 
             {/* Tabs */}
-          <div className="border-b border-gray-200">
+          <div className="border-b border-[var(--border-color)]">
             <div className="flex">
               {(['users', 'transactions', 'stats'] as const).map((tab) => (
                 <button
@@ -242,7 +242,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   className={`px-6 py-4 font-medium capitalize transition-colors ${
                     activeTab === tab
                       ? 'text-reed-red border-b-2 border-reed-red'
-                      : 'text-gray-600 hover:text-gray-900'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   {tab}
@@ -263,12 +263,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                       placeholder="Search users..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red"
+                      className="w-full pl-10 pr-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red"
                     />
                   </div>
                   <button
                     onClick={fetchUsers}
-                    className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+                    className="p-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-secondary)]"
                   >
                     <RefreshCw className="w-5 h-5" />
                   </button>
@@ -281,21 +281,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-[var(--bg-secondary)]">
                         <tr>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">User</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Plan</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Credits</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Generations</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">User</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">Plan</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">Credits</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">Generations</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
+                      <tbody className="divide-y divide-[var(--border-color)]">
                         {filteredUsers.map((u) => (
-                          <tr key={u.id} className="hover:bg-gray-50">
+                          <tr key={u.id} className="hover:bg-[var(--bg-secondary)]">
                             <td className="px-4 py-3">
                               <div>
-                                <div className="font-medium text-gray-900">{u.full_name || 'N/A'}</div>
+                                <div className="font-medium text-[var(--text-primary)]">{u.full_name || 'N/A'}</div>
                                 <div className="text-sm text-gray-500">{u.email}</div>
                               </div>
                             </td>
@@ -303,7 +303,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                               <select
                                 value={u.plan_type}
                                 onChange={(e) => handleChangePlan(u.id, e.target.value)}
-                                className="border border-gray-200 rounded px-2 py-1 text-sm"
+                                className="border border-[var(--border-color)] rounded px-2 py-1 text-sm"
                               >
                                 <option value="free">Free</option>
                                 <option value="basic">Basic</option>
@@ -343,18 +343,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-[var(--bg-secondary)]">
                         <tr>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Date</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">User</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Type</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Amount</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Description</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">Date</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">User</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">Type</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">Amount</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">Description</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
+                      <tbody className="divide-y divide-[var(--border-color)]">
                         {transactions.map((t) => (
-                          <tr key={t.id} className="hover:bg-gray-50">
+                          <tr key={t.id} className="hover:bg-[var(--bg-secondary)]">
                             <td className="px-4 py-3 text-sm">
                               {new Date(t.created_at).toLocaleString()}
                             </td>
@@ -364,7 +364,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                 t.type === 'purchase' ? 'bg-green-100 text-green-800' :
                                 t.type === 'usage' ? 'bg-red-100 text-red-800' :
                                 t.type === 'bonus' ? 'bg-blue-100 text-blue-800' :
-                                'bg-gray-100 text-gray-800'
+                                'bg-[var(--bg-secondary)] text-gray-800'
                               }`}>
                                 {t.type}
                               </span>
@@ -372,7 +372,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                             <td className={`px-4 py-3 font-bold ${t.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {t.amount > 0 ? '+' : ''}{t.amount}
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-600">{t.description}</td>
+                            <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">{t.description}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -396,30 +396,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
           <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">Add Credits</h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-[var(--text-secondary)] mb-4">
               User: <span className="font-semibold">{selectedUser.email}</span><br />
               Current: <span className="font-semibold">{selectedUser.credits} credits</span>
             </p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Amount</label>
                 <input
                   type="number"
                   value={creditAmount}
                   onChange={(e) => setCreditAmount(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red"
+                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red"
                   min="1"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reason (optional)</label>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Reason (optional)</label>
                 <input
                   type="text"
                   value={creditReason}
                   onChange={(e) => setCreditReason(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red"
+                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red"
                   placeholder="e.g., Bonus, Refund, Promotion"
                 />
               </div>
@@ -428,7 +428,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setSelectedUser(null)}
-                className="flex-1 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+                className="flex-1 py-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-secondary)]"
               >
                 Cancel
               </button>

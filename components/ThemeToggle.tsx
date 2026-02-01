@@ -19,8 +19,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
         flex items-center justify-center
         transition-all duration-300 ease-in-out
         ${isDark 
-          ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700 border border-gray-700' 
-          : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 shadow-md'
+          ? 'bg-[var(--bg-secondary)] text-yellow-400 hover:bg-[var(--hover-bg)] border border-[var(--border-color)]' 
+          : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] border border-[var(--border-color)] shadow-md'
         }
         ${className}
       `}

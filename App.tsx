@@ -612,7 +612,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   // --- RENDER HELPERS ---
   if (loadingApiKey) {
     return (
-      <div className="h-screen flex items-center justify-center bg-white text-gray-900">
+      <div className="h-screen flex items-center justify-center bg-[var(--bg-primary)] text-[var(--text-primary)]">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-reed-red mx-auto mb-4" />
           <p className="text-sm font-medium">Loading configuration...</p>
@@ -623,16 +623,16 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
   if (!hasAccess) {
     return (
-      <div className="h-screen bg-white flex flex-col items-center justify-center p-4">
+      <div className="h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center p-4">
         <div className="text-center max-w-md">
           <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-16 w-auto mx-auto mb-6" />
           <div className="text-reed-red mb-4"><AlertCircle size={48} className="mx-auto" /></div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">API Key Not Configured</h1>
-          <p className="text-gray-600 mb-8">The API key is not configured. Please contact the administrator.</p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">API Key Not Configured</h1>
+          <p className="text-[var(--text-secondary)] mb-8">The API key is not configured. Please contact the administrator.</p>
           
           <button 
             onClick={handleBackToLanding}
-            className="w-full px-6 py-3 border-2 border-gray-200 text-gray-700 font-semibold rounded-lg hover:border-gray-300 transition-colors"
+            className="w-full px-6 py-3 border-2 border-[var(--border-color)] text-[var(--text-secondary)] font-semibold rounded-lg hover:border-[var(--text-muted)] transition-colors"
           >
             Back to Home
           </button>
@@ -642,43 +642,43 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   }
 
   return (
-    <div className="h-screen bg-white text-gray-900 flex flex-col overflow-hidden">
+    <div className="h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="h-16 border-b border-gray-200 flex justify-between items-center px-4 lg:px-6 bg-white z-50 shrink-0">
+      <header className="h-16 border-b border-[var(--border-color)] flex justify-between items-center px-4 lg:px-6 bg-[var(--bg-primary)] z-50 shrink-0">
         <div className="flex items-center gap-3">
           <button 
             onClick={handleBackToLanding}
-            className="flex items-center gap-2 text-gray-600 hover:text-reed-red transition-colors"
+            className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-reed-red transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="text-sm font-medium hidden sm:inline">Back</span>
           </button>
-          <div className="w-px h-6 bg-gray-200 mx-2" />
+          <div className="w-px h-6 bg-[var(--border-color)] mx-2" />
           <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-6 w-auto" />
-          <span className="text-sm font-bold tracking-wide text-gray-900 hidden sm:inline">REED GENERATOR</span>
+          <span className="text-sm font-bold tracking-wide text-[var(--text-primary)] hidden sm:inline">REED GENERATOR</span>
           <div className={`w-2 h-2 rounded-full ml-2 ${appState === AppState.GENERATING || appState === AppState.ANALYZING ? 'bg-amber-500 animate-pulse' : 'bg-green-500'}`}></div>
         </div>
         
         <div className="flex items-center gap-4">
           {/* Credits Display - More Prominent */}
           {userLoading ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full">
-              <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
-              <span className="text-sm text-gray-500">Loading...</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-secondary)] rounded-full">
+              <Loader2 className="w-4 h-4 text-[var(--text-muted)] animate-spin" />
+              <span className="text-sm text-[var(--text-muted)]">Loading...</span>
             </div>
           ) : user ? (
             <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-reed-red/10 to-reed-red/5 border border-reed-red/20 rounded-full shadow-sm">
               {user.plan_type === 'premium' ? (
                 <>
                   <Crown className="w-5 h-5 text-amber-500" />
-                  <span className="text-sm font-bold text-gray-900">Unlimited</span>
+                  <span className="text-sm font-bold text-[var(--text-primary)]">Unlimited</span>
                   <span className="text-xs text-amber-600 font-medium bg-amber-100 px-2 py-0.5 rounded-full">PREMIUM</span>
                 </>
               ) : (
                 <>
                   <CreditCard className="w-5 h-5 text-reed-red" />
-                  <span className="text-sm font-bold text-gray-900">{user.credits}</span>
-                  <span className="text-xs text-gray-500">credits</span>
+                  <span className="text-sm font-bold text-[var(--text-primary)]">{user.credits}</span>
+                  <span className="text-xs text-[var(--text-muted)]">credits</span>
                   <span className="text-xs text-reed-red font-medium bg-reed-red/10 px-2 py-0.5 rounded-full uppercase">{user.plan_type}</span>
                 </>
               )}
@@ -692,7 +692,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
           <button
             onClick={() => setShowHistory(true)}
-            className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1 transition-colors"
+            className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center gap-1 transition-colors"
           >
             <Calendar className="w-4 h-4" />
             <span className="hidden sm:inline">History</span>
@@ -702,7 +702,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
           {user?.is_admin && (
             <button
               onClick={() => setShowAdmin(true)}
-              className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1 transition-colors"
+              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center gap-1 transition-colors"
             >
               <Shield className="w-4 h-4" />
               <span className="hidden sm:inline">Admin</span>
@@ -712,52 +712,52 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       </header>
 
       {/* 3-COLUMN GRID */}
-      <main className="flex-grow grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 overflow-hidden">
+      <main className="flex-grow grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-[var(--border-color)] overflow-hidden">
 
         {/* COL 1: LIBRARY */}
-        <section className="flex flex-col h-full bg-gray-50 overflow-y-auto">
-          <div className="p-4 border-b border-gray-200 bg-white sticky top-0 z-10 flex justify-between items-center">
+        <section className="flex flex-col h-full bg-[var(--bg-secondary)] overflow-y-auto">
+          <div className="p-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)] sticky top-0 z-10 flex justify-between items-center">
             <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${selectedModel ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>1</span>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${selectedModel ? 'bg-green-500 text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)]'}`}>1</span>
               <span>Select Model</span>
             </h2>
-            <button onClick={fetchModelos} className="text-gray-400 hover:text-gray-900"><RefreshCcw size={14} /></button>
+            <button onClick={fetchModelos} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><RefreshCcw size={14} /></button>
           </div>
 
           <div className="p-4 flex flex-col gap-4">
             {/* GRID OF MODELS */}
             {loadingModels ? (
-              <div className="text-sm text-gray-500 text-center py-8">Loading models...</div>
+              <div className="text-sm text-[var(--text-muted)] text-center py-8">Loading models...</div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {modelos.map(modelo => (
                   <div
                     key={modelo.id}
                     onClick={() => setSelectedModel(modelo)}
-                    className={`cursor-pointer border-2 rounded-lg p-2 transition-all relative group ${selectedModel?.id === modelo.id ? 'border-reed-red bg-reed-red/5' : 'border-gray-200 hover:border-gray-300'}`}
+                    className={`cursor-pointer border-2 rounded-lg p-2 transition-all relative group ${selectedModel?.id === modelo.id ? 'border-reed-red bg-reed-red/5' : 'border-[var(--border-color)] hover:border-[var(--text-muted)]'}`}
                   >
                     {/* Action buttons */}
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                       <button
                         onClick={(e) => handleStartEdit(modelo, e)}
-                        className="w-6 h-6 bg-white border border-gray-200 hover:border-reed-red hover:text-reed-red rounded text-xs flex items-center justify-center transition-colors"
+                        className="w-6 h-6 bg-[var(--bg-primary)] border border-[var(--border-color)] hover:border-reed-red hover:text-reed-red rounded text-xs flex items-center justify-center transition-colors"
                         title="Edit name"
                       >
                         ✎
                       </button>
                       <button
                         onClick={(e) => handleStartDelete(modelo, e)}
-                        className="w-6 h-6 bg-white border border-gray-200 hover:border-red-500 hover:text-red-500 rounded flex items-center justify-center transition-colors"
+                        className="w-6 h-6 bg-[var(--bg-primary)] border border-[var(--border-color)] hover:border-red-500 hover:text-red-500 rounded flex items-center justify-center transition-colors"
                         title="Delete model"
                       >
                         <X size={12} />
                       </button>
                     </div>
 
-                    <div className="aspect-square bg-gray-100 rounded mb-2 overflow-hidden">
+                    <div className="aspect-square bg-[var(--bg-secondary)] rounded mb-2 overflow-hidden">
                       <img src={modelo.image_url} alt={modelo.model_name} className="w-full h-full object-cover" />
                     </div>
-                    <div className="text-xs font-semibold truncate uppercase text-gray-900">{modelo.model_name}</div>
+                    <div className="text-xs font-semibold truncate uppercase text-[var(--text-primary)]">{modelo.model_name}</div>
                   </div>
                 ))}
               </div>
@@ -766,42 +766,42 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
             {/* ADD BUTTON */}
             <button
               onClick={() => setShowModal(true)}
-              className="w-full py-4 border-2 border-dashed border-gray-300 hover:border-reed-red hover:text-reed-red text-gray-500 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-all"
+              className="w-full py-4 border-2 border-dashed border-[var(--border-color)] hover:border-reed-red hover:text-reed-red text-[var(--text-muted)] text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-all"
             >
               <Plus size={16} /> Add New Model
             </button>
 
             {selectedModel && (
-              <div className="mt-2 text-xs text-gray-500 bg-white p-3 rounded-lg border border-gray-200">
-                Selected: <span className="font-semibold text-gray-900">{selectedModel.model_name}</span>
+              <div className="mt-2 text-xs text-[var(--text-muted)] bg-[var(--bg-primary)] p-3 rounded-lg border border-[var(--border-color)]">
+                Selected: <span className="font-semibold text-[var(--text-primary)]">{selectedModel.model_name}</span>
               </div>
             )}
           </div>
         </section>
 
         {/* COL 2: REFERENCE & ANALYSIS */}
-        <section className={`flex flex-col h-full bg-gray-50 overflow-y-auto relative ${!selectedModel ? 'pointer-events-none' : ''}`}>
+        <section className="flex flex-col h-full bg-[var(--bg-secondary)] overflow-hidden relative">
           {/* LOCK OVERLAY when no model selected */}
           {!selectedModel && (
-            <div className="absolute inset-0 bg-white/90 z-30 flex items-center justify-center">
+            <div className="absolute inset-0 bg-[var(--bg-primary)] z-[100] flex items-center justify-center">
               <div className="text-center">
-                <div className="text-gray-400 mb-2"><Layers size={32} className="mx-auto" /></div>
-                <p className="text-sm text-gray-500">Select a model first</p>
+                <div className="text-[var(--text-muted)] mb-2"><Layers size={32} className="mx-auto" /></div>
+                <p className="text-sm text-[var(--text-muted)]">Select a model first</p>
               </div>
             </div>
           )}
           
-          <div className="p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+          <div className="p-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)] sticky top-0 z-10">
             <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${selectedModel ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>2</span>
-              <span className={selectedModel ? 'text-gray-900' : 'text-gray-400'}>Upload Reference & Analyze</span>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${selectedModel ? 'bg-green-500 text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)]'}`}>2</span>
+              <span className={selectedModel ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}>Upload Reference & Analyze</span>
             </h2>
           </div>
 
           <div className="p-4 flex flex-col gap-6">
             {/* DROP ZONE */}
             <div
-              className={`${isBatchMode ? 'h-[500px]' : 'aspect-square'} w-full border-2 border-dashed rounded-xl ${refImage || isBatchMode ? 'border-reed-red bg-reed-red/5' : 'border-gray-300 hover:border-gray-400'} relative flex flex-col items-center justify-center transition-all group overflow-hidden ${!isBatchMode ? 'cursor-pointer' : ''}`}
+              className={`${isBatchMode ? 'h-[500px]' : 'aspect-square'} w-full border-2 border-dashed rounded-xl ${refImage || isBatchMode ? 'border-reed-red bg-reed-red/5' : 'border-[var(--border-color)] hover:border-[var(--text-muted)]'} relative flex flex-col items-center justify-center transition-all group overflow-hidden ${!isBatchMode ? 'cursor-pointer' : ''}`}
               onClick={() => !isBatchMode && fileInputRef.current?.click()}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
@@ -814,18 +814,18 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                     <div
                       key={q.id}
                       onClick={() => setSelectedQueueId(q.id)}
-                      className={`relative aspect-square border-2 rounded-lg cursor-pointer transition-all group/item ${selectedQueueId === q.id ? 'border-reed-red bg-reed-red/5' : 'border-gray-200'}`}
+                      className={`relative aspect-square border-2 rounded-lg cursor-pointer transition-all group/item ${selectedQueueId === q.id ? 'border-reed-red bg-reed-red/5' : 'border-[var(--border-color)]'}`}
                     >
                       <img src={q.previewUrl} className="w-full h-full object-cover rounded" />
                       <button
                         onClick={(e) => { e.stopPropagation(); removeQueueItem(q.id); }}
-                        className="absolute top-1 right-1 w-5 h-5 bg-white border border-gray-200 hover:border-red-500 hover:text-red-500 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-all z-30"
+                        className="absolute top-1 right-1 w-5 h-5 bg-[var(--bg-primary)] border border-[var(--border-color)] hover:border-red-500 hover:text-red-500 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-all z-30"
                         title="Remove"
                       >
                         <X size={10} />
                       </button>
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        {q.status === 'PENDING' && <div className="w-2 h-2 bg-gray-400 rounded-full" />}
+                        {q.status === 'PENDING' && <div className="w-2 h-2 bg-[var(--text-muted)] rounded-full" />}
                         {q.status === 'ANALYZING' && <Loader2 className="animate-spin text-amber-500 w-5 h-5" />}
                         {q.status === 'ANALYZED' && (
                           <>
@@ -841,7 +841,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                   ))}
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="cursor-pointer flex items-center justify-center border-2 border-dashed border-gray-300 text-gray-400 text-xs aspect-square rounded-lg hover:border-reed-red hover:text-reed-red transition-colors"
+                    className="cursor-pointer flex items-center justify-center border-2 border-dashed border-[var(--border-color)] text-[var(--text-muted)] text-xs aspect-square rounded-lg hover:border-reed-red hover:text-reed-red transition-colors"
                   >
                     <Plus size={16} />
                   </div>
@@ -850,8 +850,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                 <img src={refImage} alt="Reference" className="h-full w-full object-contain p-2 rounded-lg" />
               ) : (
                 <div className="text-center p-4">
-                  <div className="text-4xl text-gray-300 font-light mb-2 group-hover:text-reed-red transition-colors">+</div>
-                  <span className="text-xs text-gray-500 group-hover:text-gray-900 font-medium">Upload Reference(s)</span>
+                  <div className="text-4xl text-[var(--text-muted)] font-light mb-2 group-hover:text-reed-red transition-colors">+</div>
+                  <span className="text-xs text-[var(--text-muted)] group-hover:text-[var(--text-primary)] font-medium">Upload Reference(s)</span>
                 </div>
               )}
             </div>
@@ -863,8 +863,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                   onClick={runAutoAnalysis}
                   disabled={!selectedModel || !refImage || appState === AppState.ANALYZING}
                   className={`w-full py-3 text-sm font-bold uppercase rounded-lg border-2 transition-all
-                    ${(!selectedModel || !refImage) ? 'border-gray-200 text-gray-400' :
-                      appState === AppState.ANALYZING ? 'border-amber-500 text-amber-600 animate-pulse' : 'border-gray-300 text-gray-700 hover:border-reed-red hover:text-reed-red'}`}
+                    ${(!selectedModel || !refImage) ? 'border-[var(--border-color)] text-[var(--text-muted)]' :
+                      appState === AppState.ANALYZING ? 'border-amber-500 text-amber-600 animate-pulse' : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:border-reed-red hover:text-reed-red'}`}
                 >
                   {appState === AppState.ANALYZING ? 'Analyzing...' : 'Run Fusion Analysis'}
                 </button>
@@ -874,15 +874,15 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                     onClick={analyzeAllBatchItems}
                     disabled={!queue.some(q => q.status === 'PENDING')}
                     className={`flex-grow py-3 text-sm font-bold uppercase rounded-lg border-2 transition-all
-                      ${!queue.some(q => q.status === 'PENDING') ? 'border-gray-200 text-gray-400' :
-                        'border-amber-500 text-amber-600 hover:bg-amber-50'}`}
+                      ${!queue.some(q => q.status === 'PENDING') ? 'border-[var(--border-color)] text-[var(--text-muted)]' :
+                        'border-amber-500 text-amber-600 hover:bg-amber-500/10'}`}
                   >
                     {queue.some(q => q.status === 'ANALYZING') ? 'Analyzing Batch...' : 'Generate Payloads (Auto)'}
                   </button>
                   {selectedQueueId && queue.find(q => q.id === selectedQueueId)?.status === 'PENDING' && (
                     <button
                       onClick={() => analyzeBatchItem(selectedQueueId)}
-                      className="px-3 border-2 border-gray-200 text-gray-500 hover:text-amber-500 hover:border-amber-500 rounded-lg"
+                      className="px-3 border-2 border-[var(--border-color)] text-[var(--text-muted)] hover:text-amber-500 hover:border-amber-500 rounded-lg"
                       title="Analyze individually"
                     >
                       1
@@ -892,7 +892,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
               )}
 
               {isBatchMode && (
-                <div className="w-full pb-2 text-xs font-bold uppercase text-gray-500 flex justify-between">
+                <div className="w-full pb-2 text-xs font-bold uppercase text-[var(--text-muted)] flex justify-between">
                   <span>Batch: {queue.length} images</span>
                   <span>Analyzed: {queue.filter(q => q.status !== 'PENDING' && q.status !== 'ANALYZING').length} / {queue.length}</span>
                 </div>
@@ -900,12 +900,12 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
               {/* JSON DISPLAY */}
               <div className="flex flex-col gap-1 h-64">
-                <label className="text-xs text-gray-500 uppercase flex justify-between">
+                <label className="text-xs text-[var(--text-muted)] uppercase flex justify-between">
                   <span>Generated Payload {isBatchMode && "(Selected Item)"}</span>
                 </label>
                 
                 {isBatchMode ? (
-                  <div className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-xs font-mono text-gray-600 overflow-auto h-full whitespace-pre-wrap leading-tight">
+                  <div className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-3 text-xs font-mono text-[var(--text-secondary)] overflow-auto h-full whitespace-pre-wrap leading-tight">
                     {selectedQueueId ?
                       JSON.stringify(queue.find(q => q.id === selectedQueueId)?.payload || { status: queue.find(q => q.id === selectedQueueId)?.status || 'UNKNOWN' }, null, 2)
                       : "// Select an image to view its payload"}
@@ -915,7 +915,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                     value={payloadJsonString}
                     onChange={(e) => setPayloadJsonString(e.target.value)}
                     placeholder="// Waiting for analysis..."
-                    className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-xs font-mono text-gray-600 overflow-auto h-full whitespace-pre-wrap leading-tight resize-none focus:outline-none focus:border-reed-red transition-colors"
+                    className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-3 text-xs font-mono text-[var(--text-secondary)] overflow-auto h-full whitespace-pre-wrap leading-tight resize-none focus:outline-none focus:border-reed-red transition-colors"
                     spellCheck={false}
                   />
                 )}
@@ -925,32 +925,32 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         </section>
 
         {/* COL 3: OUTPUT */}
-        <section className={`flex flex-col h-full bg-gray-50 relative ${!generatedPayload && !isBatchMode ? 'pointer-events-none' : ''}`}>
+        <section className="flex flex-col h-full bg-[var(--bg-secondary)] overflow-hidden relative">
           {/* LOCK OVERLAY when no payload generated */}
           {!generatedPayload && !isBatchMode && (
-            <div className="absolute inset-0 bg-white/90 z-30 flex items-center justify-center">
+            <div className="absolute inset-0 bg-[var(--bg-primary)] z-[100] flex items-center justify-center">
               <div className="text-center">
-                <div className="text-gray-400 mb-2"><Cpu size={32} className="mx-auto" /></div>
-                <p className="text-sm text-gray-500">Analyze an image first</p>
+                <div className="text-[var(--text-muted)] mb-2"><Cpu size={32} className="mx-auto" /></div>
+                <p className="text-sm text-[var(--text-muted)]">Analyze an image first</p>
               </div>
             </div>
           )}
           
-          <div className="p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+          <div className="p-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)] sticky top-0 z-10">
             <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${generatedPayload ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>3</span>
-              <span className={generatedPayload ? 'text-gray-900' : 'text-gray-400'}>Final Result</span>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${generatedPayload ? 'bg-green-500 text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)]'}`}>3</span>
+              <span className={generatedPayload ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}>Final Result</span>
             </h2>
           </div>
 
           <div className="flex-grow relative min-h-0">
-            <div className="absolute inset-4 border border-gray-200 bg-white rounded-xl overflow-hidden">
+            <div className="absolute inset-4 border border-[var(--border-color)] bg-[var(--bg-primary)] rounded-xl overflow-hidden">
               {isBatchMode ? (
                 <div className="w-full p-4 grid grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto">
                   {queue.map(q => (
                     <div key={q.id} className="flex flex-col gap-1 group relative">
                       <div
-                        className={`aspect-[4/5] bg-gray-100 border-2 rounded-lg ${q.resultImage ? 'border-gray-200 cursor-zoom-in hover:border-reed-red' : 'border-gray-200'} relative overflow-hidden transition-all`}
+                        className={`aspect-[4/5] bg-[var(--bg-secondary)] border-2 rounded-lg ${q.resultImage ? 'border-[var(--border-color)] cursor-zoom-in hover:border-reed-red' : 'border-[var(--border-color)]'} relative overflow-hidden transition-all`}
                         onClick={() => q.resultImage && setLightboxImage(q.resultImage)}
                       >
                         {q.resultImage ? (
@@ -961,12 +961,12 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                             </div>
                           </>
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300">
-                            {q.status === 'ERROR' ? <AlertCircle className="text-red-300" /> :
-                              q.status === 'COMPLETED' ? <CheckCircle2 className="text-green-300" /> :
+                          <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]">
+                            {q.status === 'ERROR' ? <AlertCircle className="text-red-400" /> :
+                              q.status === 'COMPLETED' ? <CheckCircle2 className="text-green-400" /> :
                                 q.status === 'GENERATING' ? <Loader2 className="animate-spin text-green-400" /> :
                                   q.status === 'ANALYZED' ? <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" /> :
-                                    <div className="w-1 h-1 bg-gray-300 rounded-full" />}
+                                    <div className="w-1 h-1 bg-[var(--text-muted)] rounded-full" />}
                           </div>
                         )}
 
@@ -988,12 +988,12 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                       {appState === AppState.GENERATING ? (
                         <div className="flex flex-col items-center gap-2">
                           <Loader2 className="w-6 h-6 text-reed-red animate-spin" />
-                          <span className="text-sm uppercase tracking-wide text-gray-600">Processing...</span>
+                          <span className="text-sm uppercase tracking-wide text-[var(--text-secondary)]">Processing...</span>
                         </div>
                       ) : appState === AppState.ERROR ? (
                         <span className="text-sm text-red-500 font-bold uppercase">{errorMsg || "Error"}</span>
                       ) : (
-                        <span className="text-sm uppercase tracking-wide text-gray-400">No image generated</span>
+                        <span className="text-sm uppercase tracking-wide text-[var(--text-muted)]">No image generated</span>
                       )}
                     </div>
                   )}
@@ -1003,13 +1003,13 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
           </div>
 
           {/* FIXED FOOTER CONTROLS */}
-          <div className="p-4 bg-white border-t border-gray-200 z-20">
+          <div className="p-4 bg-[var(--bg-primary)] border-t border-[var(--border-color)] z-20">
             {/* DOWNLOAD BUTTONS */}
             {isBatchMode ? (
               <button
                 onClick={handleDownloadBatchZip}
                 disabled={!queue.some(q => q.status === 'COMPLETED')}
-                className="mb-3 w-full py-2 text-sm font-bold tracking-wide uppercase border-2 border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mb-3 w-full py-2 text-sm font-bold tracking-wide uppercase border-2 border-blue-500 text-blue-600 rounded-lg hover:bg-blue-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Download Batch ZIP
               </button>
@@ -1017,7 +1017,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
               generatedImage && (
                 <button
                   onClick={handleDownload}
-                  className="mb-3 w-full py-2 text-sm font-bold tracking-wide uppercase border-2 border-green-500 text-green-600 rounded-lg hover:bg-green-50 transition-all"
+                  className="mb-3 w-full py-2 text-sm font-bold tracking-wide uppercase border-2 border-green-500 text-green-600 rounded-lg hover:bg-green-500/10 transition-all"
                 >
                   Download Image
                 </button>
@@ -1027,7 +1027,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
             {/* RESOLUTION & ASPECT RATIO SELECTORS */}
             <div className="mb-4 grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500 uppercase font-medium flex items-center gap-1">
+                <label className="text-xs text-[var(--text-muted)] uppercase font-medium flex items-center gap-1">
                   Resolution
                   {(user?.plan_type === 'free' || user?.plan_type === 'basic') && (
                     <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">1K max</span>
@@ -1036,24 +1036,24 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                 <select
                   value={selectedResolution}
                   onChange={(e) => setSelectedResolution(e.target.value)}
-                  className="bg-gray-100 border border-gray-200 rounded-lg p-2 text-sm text-gray-900 outline-none focus:border-reed-red"
+                  className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-2 text-sm text-[var(--text-primary)] outline-none focus:border-reed-red"
                 >
                   {RESOLUTIONS.map(res => (
                     <option key={res} value={res}>{res === 'AUTO' ? 'Auto (Model Chooses)' : res}</option>
                   ))}
                 </select>
                 {(user?.plan_type === 'free' || user?.plan_type === 'basic') && (
-                  <p className="text-[10px] text-gray-400 mt-1">
+                  <p className="text-[10px] text-[var(--text-muted)] mt-1">
                     Upgrade to Pro for 2K/4K
                   </p>
                 )}
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500 uppercase font-medium">Aspect Ratio</label>
+                <label className="text-xs text-[var(--text-muted)] uppercase font-medium">Aspect Ratio</label>
                 <select
                   value={selectedAspectRatio}
                   onChange={(e) => setSelectedAspectRatio(e.target.value)}
-                  className="bg-gray-100 border border-gray-200 rounded-lg p-2 text-sm text-gray-900 outline-none focus:border-reed-red"
+                  className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-2 text-sm text-[var(--text-primary)] outline-none focus:border-reed-red"
                 >
                   {ASPECT_RATIOS.map(ratio => (
                     <option key={ratio} value={ratio}>{ratio === 'AUTO' ? 'Auto (Model Chooses)' : ratio}</option>
@@ -1069,7 +1069,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                 disabled={!queue.some(q => q.status === 'ANALYZED')}
                 className={`w-full py-3 text-sm font-bold tracking-wide uppercase rounded-lg border-2 transition-all
                   ${!queue.some(q => q.status === 'ANALYZED')
-                    ? 'bg-gray-100 text-gray-400 border-gray-200'
+                    ? 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-color)]'
                     : 'bg-reed-red text-white border-reed-red hover:bg-reed-red-dark'}`}
               >
                 Generate Images ({queue.filter(q => q.status === 'ANALYZED').length} Ready)
@@ -1080,7 +1080,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                 disabled={appState === AppState.GENERATING || !generatedPayload}
                 className={`w-full py-3 text-sm font-bold tracking-wide uppercase rounded-lg border-2 transition-all
                   ${appState === AppState.GENERATING || !generatedPayload
-                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                    ? 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-color)] cursor-not-allowed'
                     : 'bg-reed-red text-white border-reed-red hover:bg-reed-red-dark'}`}
               >
                 {appState === AppState.GENERATING ? 'Generating...' : 'Start Generation'}
@@ -1101,13 +1101,13 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       {/* EDIT NAME MODAL */}
       {editingModel && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-gray-200 rounded-xl p-6 w-full max-w-md shadow-xl">
-            <h3 className="text-lg font-bold mb-4 text-gray-900">Edit Name</h3>
+          <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="text-lg font-bold mb-4 text-[var(--text-primary)]">Edit Name</h3>
             <input
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-gray-900 mb-4 outline-none focus:border-reed-red"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-3 text-[var(--text-primary)] mb-4 outline-none focus:border-reed-red"
               placeholder="e.g., Aisah, Sofia..."
               autoFocus
             />
@@ -1115,13 +1115,13 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
               <button
                 onClick={handleSaveEdit}
                 disabled={!editName.trim()}
-                className="flex-1 py-2 text-sm font-bold uppercase bg-reed-red text-white rounded-lg hover:bg-reed-red-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 py-2 text-sm font-bold uppercase bg-reed-red text-white rounded-lg hover:bg-reed-red-dark disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-muted)] disabled:cursor-not-allowed transition-colors"
               >
                 Save
               </button>
               <button
                 onClick={() => { setEditingModel(null); setEditName(''); }}
-                className="flex-1 py-2 text-sm font-bold uppercase border-2 border-gray-200 text-gray-700 rounded-lg hover:border-gray-300 transition-colors"
+                className="flex-1 py-2 text-sm font-bold uppercase border-2 border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:border-[var(--text-muted)] transition-colors"
               >
                 Cancel
               </button>
@@ -1133,23 +1133,23 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       {/* DELETE CONFIRMATION MODAL */}
       {deleteConfirmModel && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-red-200 rounded-xl p-6 w-full max-w-md shadow-xl">
+          <div className="bg-[var(--bg-primary)] border border-red-200 rounded-xl p-6 w-full max-w-md shadow-xl">
             <h3 className="text-lg font-bold mb-4 text-red-600">Confirm Deletion</h3>
-            <p className="text-gray-600 mb-2">Are you sure you want to delete the model:</p>
-            <p className="text-gray-900 font-bold mb-4 uppercase">"{deleteConfirmModel.model_name}"?</p>
-            <p className="text-xs text-gray-500 mb-6">This action cannot be undone.</p>
+            <p className="text-[var(--text-secondary)] mb-2">Are you sure you want to delete the model:</p>
+            <p className="text-[var(--text-primary)] font-bold mb-4 uppercase">"{deleteConfirmModel.model_name}"?</p>
+            <p className="text-xs text-[var(--text-muted)] mb-6">This action cannot be undone.</p>
             <div className="flex gap-2">
               <button
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
-                className="flex-1 py-2 text-sm font-bold uppercase bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300 transition-colors"
+                className="flex-1 py-2 text-sm font-bold uppercase bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-[var(--bg-secondary)] transition-colors"
               >
                 {isDeleting ? 'Deleting...' : 'Yes, Delete'}
               </button>
               <button
                 onClick={() => setDeleteConfirmModel(null)}
                 disabled={isDeleting}
-                className="flex-1 py-2 text-sm font-bold uppercase border-2 border-gray-200 text-gray-700 rounded-lg hover:border-gray-300 disabled:opacity-50 transition-colors"
+                className="flex-1 py-2 text-sm font-bold uppercase border-2 border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:border-[var(--text-muted)] disabled:opacity-50 transition-colors"
               >
                 Cancel
               </button>
@@ -1163,31 +1163,31 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       {/* ERROR MODAL */}
       {appState === AppState.ERROR && (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white border border-red-200 rounded-xl p-8 w-full max-w-lg shadow-2xl text-center">
+          <div className="bg-[var(--bg-primary)] border border-red-200 rounded-xl p-8 w-full max-w-lg shadow-2xl text-center">
             <div className="text-red-500 mb-4">
               <AlertCircle size={48} className="mx-auto" />
             </div>
 
-            <h3 className="text-xl font-bold mb-2 text-gray-900">
+            <h3 className="text-xl font-bold mb-2 text-[var(--text-primary)]">
               {errorMsg === "CONTENIDO_BLOQUEADO_SEGURIDAD" ? "Content Blocked" :
                 errorMsg === "QUOTA_API_AGOTADA" ? "API Limit Reached" :
                   "System Error"}
             </h3>
 
-            <div className="h-px w-24 bg-gray-200 my-4 mx-auto"></div>
+            <div className="h-px w-24 bg-[var(--border-color)] my-4 mx-auto"></div>
 
-            <p className="text-sm text-gray-600 mb-8">
+            <p className="text-sm text-[var(--text-secondary)] mb-8">
               {errorMsg === "CONTENIDO_BLOQUEADO_SEGURIDAD" ? (
                 <>
                   The security system has detected content that violates usage policies (possible sexual, violent, or explicit content).
                   <br /><br />
-                  <span className="text-gray-900 font-medium">Please use appropriate reference images.</span>
+                  <span className="text-[var(--text-primary)] font-medium">Please use appropriate reference images.</span>
                 </>
               ) : errorMsg === "QUOTA_API_AGOTADA" ? (
                 <>
                   You have exhausted the free quota of your Gemini API Key.
                   <br /><br />
-                  <span className="text-gray-900 font-medium">Go to Settings and update your API Key to continue.</span>
+                  <span className="text-[var(--text-primary)] font-medium">Go to Settings and update your API Key to continue.</span>
                 </>
               ) : (
                 <>
@@ -1200,7 +1200,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
             <button
               onClick={() => setAppState(AppState.IDLE)}
-              className="px-8 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-semibold transition-colors"
+              className="px-8 py-3 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-lg hover:opacity-90 font-semibold transition-colors"
             >
               Understood
             </button>

@@ -75,16 +75,16 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="w-full max-w-lg border border-gray-200 bg-white rounded-xl p-6 shadow-2xl flex flex-col gap-4">
-                <div className="flex justify-between items-center border-b border-gray-200 pb-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-lg border border-[var(--border-color)] bg-[var(--bg-primary)] rounded-xl p-6 shadow-2xl flex flex-col gap-4">
+                <div className="flex justify-between items-center border-b border-[var(--border-color)] pb-4">
                     <div className="flex items-center gap-2">
                         <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-5 w-auto" />
-                        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Add New Model</h2>
+                        <h2 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wide">Add New Model</h2>
                     </div>
                     <button 
                         onClick={onClose} 
-                        className="text-gray-400 hover:text-gray-900 p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="text-gray-400 hover:text-[var(--text-primary)] p-1 hover:bg-[var(--bg-secondary)] rounded-lg transition-colors"
                     >
                         <X size={18} />
                     </button>
@@ -96,7 +96,7 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
                         <input 
                             value={nombre} 
                             onChange={e => setNombre(e.target.value)} 
-                            className="bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 outline-none focus:border-reed-red transition-colors" 
+                            className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-3 text-sm text-[var(--text-primary)] outline-none focus:border-reed-red transition-colors" 
                             placeholder="e.g., Aisah, Sofia, Luna, Emma" 
                         />
                     </div>
@@ -104,7 +104,7 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
                     <div className="flex flex-col gap-2">
                         <label className="text-xs text-gray-500 uppercase font-medium">Model Image</label>
                         <div
-                            className="border-2 border-dashed border-gray-300 bg-gray-50 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-reed-red transition-colors"
+                            className="border-2 border-dashed border-gray-300 bg-[var(--bg-secondary)] rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-reed-red transition-colors"
                             onClick={() => document.getElementById('model-upload')?.click()}
                         >
                             {url ? (
