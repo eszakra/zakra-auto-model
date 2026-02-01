@@ -5,7 +5,8 @@ import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { 
   Users, CreditCard, TrendingUp, Search, Plus, Minus, 
   Crown, Shield, X, Loader2, RefreshCw, ToggleLeft, ToggleRight,
-  Settings, Zap, Lock, Key, Eye, EyeOff, CheckCircle, AlertTriangle
+  Settings, Zap, Lock, Key, Eye, EyeOff, CheckCircle, AlertTriangle,
+  Image as ImageIcon, Download
 } from 'lucide-react';
 
 interface UserWithProfile {
@@ -476,12 +477,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                             </td>
                             <td className="px-4 py-3">{u.total_generations}</td>
                             <td className="px-4 py-3">
-                              <button
-                                onClick={() => setSelectedUser(u)}
-                                className="flex items-center gap-1 px-3 py-1 bg-reed-red text-white text-sm rounded hover:bg-reed-red-dark"
-                              >
-                                <Plus className="w-4 h-4" /> Credits
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => setSelectedUser(u)}
+                                  className="flex items-center gap-1 px-3 py-1 bg-reed-red text-white text-sm rounded hover:bg-reed-red-dark"
+                                >
+                                  <Plus className="w-4 h-4" /> Credits
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedGenerationUser(u.id);
+                                    setActiveTab('generations');
+                                    fetchGenerations();
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-1 border border-[var(--border-color)] text-[var(--text-primary)] text-sm rounded hover:bg-[var(--hover-bg)]"
+                                  title="View generations"
+                                >
+                                  <ImageIcon className="w-4 h-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -544,26 +558,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
               <div>
                 <div className="flex items-center gap-4 mb-6">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" />
                     <select
                       value={selectedGenerationUser}
                       onChange={(e) => {
                         setSelectedGenerationUser(e.target.value);
                         fetchGenerations();
                       }}
-                      className="w-full pl-10 pr-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red"
+                      className="w-full pl-10 pr-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red bg-[var(--bg-primary)] text-[var(--text-primary)]"
                     >
                       <option value="all">All Users</option>
                       {users.map((u) => (
                         <option key={u.id} value={u.id}>
-                          {u.full_name || u.email}
+                          {u.full_name || u.email} ({u.total_generations} gens)
                         </option>
                       ))}
                     </select>
                   </div>
+                  {selectedGenerationUser !== 'all' && (
+                    <button
+                      onClick={() => setSelectedGenerationUser('all')}
+                      className="px-4 py-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-secondary)]"
+                    >
+                      Show All
+                    </button>
+                  )}
                   <button
                     onClick={fetchGenerations}
-                    className="p-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-secondary)]"
+                    className="p-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)]"
                   >
                     <RefreshCw className="w-5 h-5" />
                   </button>
@@ -574,55 +596,69 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                     <Loader2 className="w-8 h-8 animate-spin text-reed-red" />
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-[var(--bg-secondary)]">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">Image</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">User</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">Model</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">Date</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">Credits</th>
-                          <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)]">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border-color)]">
-                        {generations.map((g) => (
-                          <tr key={g.id} className="hover:bg-[var(--bg-secondary)]">
-                            <td className="px-4 py-3">
-                              <img 
-                                src={g.image_url} 
-                                alt={g.model_name}
-                                className="w-16 h-16 object-cover rounded-lg border border-[var(--border-color)]"
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-sm">{g.user_email}</td>
-                            <td className="px-4 py-3 text-sm">{g.model_name}</td>
-                            <td className="px-4 py-3 text-sm">
-                              {new Date(g.created_at).toLocaleString()}
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="text-sm font-medium text-[var(--text-primary)]">
-                                {g.credits_used}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
+                  <div>
+                    <div className="mb-4 text-sm text-[var(--text-muted)]">
+                      Showing {generations.length} generation{generations.length !== 1 ? 's' : ''}
+                      {selectedGenerationUser !== 'all' && (
+                        <span> for {users.find(u => u.id === selectedGenerationUser)?.full_name || 'selected user'}</span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {generations.map((g) => (
+                        <div key={g.id} className="bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] overflow-hidden hover:border-reed-red transition-colors group">
+                          <div className="aspect-square relative">
+                            <img 
+                              src={g.image_url} 
+                              alt={g.model_name}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                               <a
                                 href={g.image_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-sm text-reed-red hover:underline"
+                                className="p-2 bg-white rounded-full hover:bg-gray-200"
+                                title="View full size"
                               >
-                                View
+                                <Eye className="w-4 h-4 text-gray-900" />
                               </a>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                              <button
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = g.image_url;
+                                  link.download = `generation_${g.model_name}_${new Date(g.created_at).getTime()}.png`;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                }}
+                                className="p-2 bg-white rounded-full hover:bg-gray-200"
+                                title="Download"
+                              >
+                                <Download className="w-4 h-4 text-gray-900" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="p-3">
+                            <div className="font-medium text-[var(--text-primary)] text-sm truncate">{g.model_name}</div>
+                            <div className="text-xs text-[var(--text-muted)] truncate">{g.user_email}</div>
+                            <div className="flex items-center justify-between mt-2 text-xs text-[var(--text-muted)]">
+                              <span>{new Date(g.created_at).toLocaleDateString()}</span>
+                              <span className="flex items-center gap-1">
+                                <CreditCard className="w-3 h-3" />
+                                {g.credits_used}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                     {generations.length === 0 && (
-                      <div className="text-center py-12 text-gray-500">
-                        No generations found
+                      <div className="text-center py-12 text-[var(--text-muted)]">
+                        <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>No generations found</p>
+                        {selectedGenerationUser !== 'all' && (
+                          <p className="text-sm mt-2">This user hasn't generated any images yet</p>
+                        )}
                       </div>
                     )}
                   </div>
