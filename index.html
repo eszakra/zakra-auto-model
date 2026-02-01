@@ -3,47 +3,94 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZAKRA // AUTO_MODEL</title>
+    <title>REED | Elite AI Model Customization Service</title>
+    <meta name="description" content="Exclusive AI model customization service for serious creators. NSFW workflows, custom LoRAs, and premium image generation." />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
           extend: {
             fontFamily: {
-              mono: ['"JetBrains Mono"', 'monospace'],
+              sans: ['Inter', 'sans-serif'],
+              display: ['Space Grotesk', 'sans-serif'],
             },
             colors: {
-              'zakra-black': '#000000',
-              'zakra-text': '#E5E5E5',
-              'zakra-grey': '#A1A1AA',
-              'zakra-border': '#333333', 
-            }
+              reed: {
+                red: '#A11008',
+                'red-light': '#C41E14',
+                'red-dark': '#7A0C06',
+                black: '#0A0A0A',
+                white: '#FFFFFF',
+                gray: {
+                  50: '#FAFAFA',
+                  100: '#F5F5F5',
+                  200: '#E5E5E5',
+                  300: '#D4D4D4',
+                  400: '#A3A3A3',
+                  500: '#737373',
+                  600: '#525252',
+                  700: '#404040',
+                  800: '#262626',
+                  900: '#171717',
+                }
+              }
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.6s ease-out',
+              'slide-up': 'slideUp 0.6s ease-out',
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              slideUp: {
+                '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+            },
           }
         }
       }
     </script>
     <style>
+      * {
+        scroll-behavior: smooth;
+      }
       body {
-        background-color: #000000;
-        color: #E5E5E5;
-        font-family: 'JetBrains Mono', monospace;
+        font-family: 'Inter', sans-serif;
+        background-color: #FFFFFF;
+        color: #0A0A0A;
+      }
+      .font-display {
+        font-family: 'Space Grotesk', sans-serif;
       }
       ::-webkit-scrollbar {
         width: 8px;
-        height: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: #000000;
-        border-left: 1px solid #333;
+        background: #F5F5F5;
       }
       ::-webkit-scrollbar-thumb {
-        background: #333;
+        background: #D4D4D4;
+        border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #555;
+        background: #A3A3A3;
+      }
+      .glass-effect {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+      .text-gradient {
+        background: linear-gradient(135deg, #A11008 0%, #C41E14 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
     </style>
   <script type="importmap">

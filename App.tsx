@@ -4,17 +4,23 @@ import { constructPayload, generateIndustrialImage } from './services/geminiServ
 import { AppState, ModeloBase, QueueItem } from './types';
 import ModelModal from './components/ModelModal';
 import HistoryModal from './components/HistoryModal';
-import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers, ScanSearch, X, Check } from 'lucide-react';
+import { useAuth } from './contexts/AuthContext';
+import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers, ScanSearch, X, Check, ArrowLeft, CreditCard, Crown } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
-const App: React.FC = () => {
+interface AppProps {
+  onBackToLanding?: () => void;
+}
+
+const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   // --- AUTH & CONFIG ---
-  const [customApiKey, setCustomApiKey] = useState(() => localStorage.getItem('zakra_api_key') || '');
+  const { user, loading: userLoading, hasEnoughCredits, useCredits } = useAuth();
+  // API key from Supabase - fetched dynamically
+  const [apiKey, setApiKey] = useState<string>('');
   const [hasAccess, setHasAccess] = useState(false);
-  const [loadingAuth, setLoadingAuth] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
-  const [tempApiKey, setTempApiKey] = useState('');
+  const [loadingApiKey, setLoadingApiKey] = useState(true);
+  const [userLoadError, setUserLoadError] = useState(false);
 
   // --- APP STATE ---
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
@@ -25,7 +31,7 @@ const App: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<ModeloBase | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
-  const [showHistory, setShowHistory] = useState(false); // NEW History State
+  const [showHistory, setShowHistory] = useState(false);
 
   // --- EDIT/DELETE STATE ---
   const [editingModel, setEditingModel] = useState<ModeloBase | null>(null);
@@ -72,7 +78,7 @@ const App: React.FC = () => {
     if (!generatedImage) return;
     const link = document.createElement('a');
     link.href = generatedImage;
-    link.download = `zakra_${selectedModel?.model_name || 'output'}_${Date.now()}.png`;
+    link.download = `reed_${selectedModel?.model_name || 'output'}_${Date.now()}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -80,48 +86,59 @@ const App: React.FC = () => {
 
   // --- INITIALIZATION ---
   useEffect(() => {
-    checkAuth();
+    // Fetch API key from Supabase
+    fetchApiKey();
     fetchModelos();
   }, []);
 
-  const checkAuth = async () => {
-    if (window.aistudio) {
-      const hasKey = await window.aistudio.hasSelectedApiKey();
-      setHasAccess(hasKey);
-    } else {
-      // Check if we have a stored API key or environment variable (NO hardcoded fallback)
-      const storedKey = localStorage.getItem('zakra_api_key');
+  // Check if user fails to load after timeout
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!user && !userLoading) {
+        setUserLoadError(true);
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [user, userLoading]);
+
+  // Fetch API key from Supabase
+  const fetchApiKey = async () => {
+    try {
+      setLoadingApiKey(true);
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'gemini_api_key')
+        .single();
+
+      if (error) {
+        console.error('Error fetching API key:', error);
+        // Fallback to environment variable if Supabase fails
+        const envKey = import.meta.env.VITE_API_KEY || '';
+        setApiKey(envKey);
+        setHasAccess(!!envKey);
+      } else if (data) {
+        setApiKey(data.value);
+        setHasAccess(!!data.value && data.value !== 'YOUR_API_KEY_HERE');
+      }
+    } catch (err) {
+      console.error('Failed to fetch API key:', err);
+      // Fallback to environment variable
       const envKey = import.meta.env.VITE_API_KEY || '';
-      const activeKey = storedKey || envKey;
-      setCustomApiKey(activeKey);
-      setHasAccess(!!activeKey);
+      setApiKey(envKey);
+      setHasAccess(!!envKey);
+    } finally {
+      setLoadingApiKey(false);
     }
-    setLoadingAuth(false);
   };
 
-  // Get current API key (NO hardcoded fallback - user must configure)
+  // Get current API key
   const getCurrentApiKey = () => {
-    const key = customApiKey || import.meta.env.VITE_API_KEY || '';
-    if (!key) {
-      setShowSettings(true);
+    if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
+      console.error('No API key configured');
+      return '';
     }
-    return key;
-  };
-
-  const handleSaveApiKey = () => {
-    if (tempApiKey.trim()) {
-      localStorage.setItem('zakra_api_key', tempApiKey.trim());
-      setCustomApiKey(tempApiKey.trim());
-    }
-    setShowSettings(false);
-    setTempApiKey('');
-  };
-
-  const handleAuth = async () => {
-    if (window.aistudio) {
-      await window.aistudio.openSelectKey();
-      setHasAccess(true);
-    }
+    return apiKey;
   };
 
   const fetchModelos = async () => {
@@ -140,7 +157,6 @@ const App: React.FC = () => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // If we already have a queue, APPEND to it
     if (queue.length > 0) {
       const newItems: QueueItem[] = Array.from(files).map((file: File) => ({
         id: Math.random().toString(36).substr(2, 9),
@@ -153,14 +169,12 @@ const App: React.FC = () => {
       return;
     }
 
-    // Fresh upload - reset state
     setGeneratedPayload(null);
     setGeneratedImage(null);
     setAppState(AppState.IDLE);
     setRefImage(null);
 
     if (files.length === 1) {
-      // SINGLE MODE
       const file = files[0];
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -168,7 +182,6 @@ const App: React.FC = () => {
       };
       reader.readAsDataURL(file);
     } else {
-      // BATCH MODE
       const newQueue: QueueItem[] = Array.from(files).map((file: File) => ({
         id: Math.random().toString(36).substr(2, 9),
         file,
@@ -199,7 +212,6 @@ const App: React.FC = () => {
     const files = e.dataTransfer.files;
     if (!files || files.length === 0) return;
 
-    // Append if queue exists, else same logic as handleImageUpload
     if (queue.length > 0) {
       const newItems: QueueItem[] = Array.from(files).map((file: File) => ({
         id: Math.random().toString(36).substr(2, 9),
@@ -234,7 +246,6 @@ const App: React.FC = () => {
     }
   };
 
-
   // Analyze a single batch item (Step A)
   const analyzeBatchItem = async (itemId: string) => {
     setQueue(prev => prev.map(item => item.id === itemId ? { ...item, status: 'ANALYZING' } : item));
@@ -254,24 +265,21 @@ const App: React.FC = () => {
     }
   };
 
-
-
   const analyzeAllBatchItems = async () => {
     const pendingItems = queue.filter(q => q.status === 'PENDING');
     if (pendingItems.length === 0) return;
 
-    // Process sequentially
     for (const item of pendingItems) {
       await analyzeBatchItem(item.id);
     }
   };
 
   const startBatchGeneration = async () => {
-    if (!selectedModel) { alert("MODELO?"); return; }
+    if (!selectedModel) { alert("SELECT MODEL?"); return; }
 
     const readyItems = queue.filter(q => q.status === 'ANALYZED');
     if (readyItems.length === 0) {
-      alert("PRIMERO DEBES ANALIZAR AL MENOS UNA IMAGEN (SELECCIONA Y ANALIZA)");
+      alert("FIRST YOU MUST ANALYZE AT LEAST ONE IMAGE (SELECT AND ANALYZE)");
       return;
     }
 
@@ -282,26 +290,34 @@ const App: React.FC = () => {
 
   // Generate image for a single analyzed item (Step B)
   const generateBatchItem = async (item: QueueItem) => {
-    // 1. Set Generating
     setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'GENERATING' } : q));
 
     try {
       if (!selectedModel) throw new Error("No model selected");
       if (!item.payload) throw new Error("No payload found");
 
+      // Check credits before generating
+      if (!hasEnoughCredits(1)) {
+        throw new Error("Insufficient credits. Please upgrade your plan or purchase more credits.");
+      }
+
       const currentKey = getCurrentApiKey();
       const { generateIndustrialImage } = await import('./services/geminiService');
 
-      // Generation
       const resultBase64 = await generateIndustrialImage(
         currentKey,
-        item.payload, // Use stored payload
+        item.payload,
         selectedModel.image_url,
         selectedResolution === 'AUTO' ? undefined : selectedResolution,
         selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio
       );
 
-      // Save
+      // Deduct credits after successful generation
+      const creditsUsed = await useCredits(1, `Batch generation with model: ${selectedModel.model_name || 'unknown'}`);
+      if (!creditsUsed) {
+        console.warn('Failed to deduct credits, but image was generated');
+      }
+
       const fileName = `batch_${Date.now()}_${item.id}.png`;
       const publicUrl = await uploadBase64Image(resultBase64, 'generations', fileName);
       await supabase.from('generation_history').insert({
@@ -312,7 +328,6 @@ const App: React.FC = () => {
         resolution: selectedResolution
       });
 
-      // Complete
       setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'COMPLETED', resultImage: resultBase64 } : q));
 
     } catch (e: any) {
@@ -336,10 +351,10 @@ const App: React.FC = () => {
     if (completedItems.length === 0) return;
     completedItems.forEach((item, index) => {
       const imgData = item.resultImage!.split(',')[1];
-      zip.file(`zakra_batch_${index + 1}.png`, imgData, { base64: true });
+      zip.file(`reed_batch_${index + 1}.png`, imgData, { base64: true });
     });
     const content = await zip.generateAsync({ type: 'blob' });
-    saveAs(content, `zakra_batch_${Date.now()}.zip`);
+    saveAs(content, `reed_batch_${Date.now()}.zip`);
   };
 
   // --- EDIT MODEL ---
@@ -358,7 +373,7 @@ const App: React.FC = () => {
       .eq('id', editingModel.id);
 
     if (error) {
-      alert("ERROR AL EDITAR: " + error.message);
+      alert("ERROR EDITING: " + error.message);
     } else {
       fetchModelos();
       if (selectedModel?.id === editingModel.id) {
@@ -385,7 +400,7 @@ const App: React.FC = () => {
       .eq('id', deleteConfirmModel.id);
 
     if (error) {
-      alert("ERROR AL ELIMINAR: " + error.message);
+      alert("ERROR DELETING: " + error.message);
     } else {
       fetchModelos();
       if (selectedModel?.id === deleteConfirmModel.id) {
@@ -398,7 +413,7 @@ const App: React.FC = () => {
 
   const runAutoAnalysis = async () => {
     if (!selectedModel || !refImage) {
-      alert("SELECCIONA MODELO Y REFERENCIA PRIMERO");
+      alert("SELECT MODEL AND REFERENCE FIRST");
       return;
     }
 
@@ -407,10 +422,7 @@ const App: React.FC = () => {
     setGeneratedPayload(null);
 
     try {
-      // CALL NEW GEMINI SERVICE
       const currentKey = getCurrentApiKey();
-
-      // Import dynamic function to avoid circular dep issues in some bundlers if not careful, but direct import is fine here
       const { generateUnifiedPayload } = await import('./services/geminiService');
 
       const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, refImage);
@@ -420,23 +432,28 @@ const App: React.FC = () => {
     } catch (e: any) {
       console.error(e);
       setAppState(AppState.ERROR);
-      setErrorMsg("FALLO ANALISIS: " + e.message);
+      setErrorMsg("ANALYSIS FAILED: " + e.message);
     }
   };
 
   // --- GENERATION LOGIC ---
   const handleExecute = async () => {
     if (!payloadJsonString && !generatedPayload) {
-      alert("PRIMERO DEBES REALIZAR EL ANALISIS (PASO 2)");
+      alert("FIRST YOU MUST PERFORM THE ANALYSIS (STEP 2)");
       return;
     }
 
-    // Try to parse the edited payload
+    // Check credits before generating
+    if (!hasEnoughCredits(1)) {
+      alert("INSUFFICIENT CREDITS: You need at least 1 credit to generate images. Please upgrade your plan or purchase more credits.");
+      return;
+    }
+
     let finalPayload: any;
     try {
       finalPayload = JSON.parse(payloadJsonString);
     } catch (e) {
-      alert("JSON INVÁLIDO: Por favor corrige el formato del prompt antes de generar.");
+      alert("INVALID JSON: Please correct the prompt format before generating.");
       return;
     }
 
@@ -446,18 +463,22 @@ const App: React.FC = () => {
 
     try {
       const { generateIndustrialImage } = await import('./services/geminiService');
-      // Pass base model image, resolution, and aspect ratio to generation
       const result = await generateIndustrialImage(
         currentKey,
         finalPayload,
-        selectedModel?.image_url || "", // Pass BASE MODEL image
+        selectedModel?.image_url || "",
         selectedResolution === 'AUTO' ? undefined : selectedResolution,
         selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio
       );
       setGeneratedImage(result);
       setAppState(AppState.COMPLETE);
 
-      // AUTO SAVE TO HISTORY
+      // Deduct credits after successful generation
+      const creditsUsed = await useCredits(1, `Generated image with model: ${selectedModel?.model_name || 'unknown'}`);
+      if (!creditsUsed) {
+        console.warn('Failed to deduct credits, but image was generated');
+      }
+
       saveToHistory(result, finalPayload);
 
     } catch (error: any) {
@@ -486,94 +507,153 @@ const App: React.FC = () => {
     }
   };
 
+  // Back to landing
+  const handleBackToLanding = () => {
+    if (onBackToLanding) {
+      onBackToLanding();
+    } else {
+      window.location.reload();
+    }
+  };
+
   // --- RENDER HELPERS ---
-  if (loadingAuth) return <div className="h-screen flex items-center justify-center bg-black text-white text-xs">VERIFICANDO CREDENCIALES...</div>;
+  if (loadingApiKey) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-white text-gray-900">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-reed-red mx-auto mb-4" />
+          <p className="text-sm font-medium">Loading configuration...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!hasAccess) {
     return (
-      <div className="h-screen bg-black text-white font-mono flex flex-col items-center justify-center p-4 border-4 border-zinc-900 m-2">
-        <div className="text-red-600 mb-4"><AlertCircle size={48} /></div>
-        <h1 className="text-xl tracking-[0.3em] font-bold text-red-600">// ACCESO DENEGADO</h1>
-        <button onClick={handleAuth} className="mt-8 px-6 py-3 border border-red-600 text-red-600 hover:bg-red-600 hover:text-white uppercase text-xs font-bold tracking-widest transition-all">
-          [ AUTENTICAR CLAVE API ]
-        </button>
+      <div className="h-screen bg-white flex flex-col items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <img src="/REED LOGO RED PNG.png" alt="REED" className="h-16 w-auto mx-auto mb-6" />
+          <div className="text-reed-red mb-4"><AlertCircle size={48} className="mx-auto" /></div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">API Key Not Configured</h1>
+          <p className="text-gray-600 mb-8">The API key is not configured. Please contact the administrator.</p>
+          
+          <button 
+            onClick={handleBackToLanding}
+            className="w-full px-6 py-3 border-2 border-gray-200 text-gray-700 font-semibold rounded-lg hover:border-gray-300 transition-colors"
+          >
+            Back to Home
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-black text-zakra-text font-mono flex flex-col overflow-hidden selection:bg-white selection:text-black">
-
-      <header className="h-12 border-b border-zakra-border flex justify-between items-center px-4 bg-black z-50 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 ${appState === AppState.GENERATING || appState === AppState.ANALYZING ? 'bg-orange-500 animate-pulse' : customApiKey ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></div>
-          <h1 className="text-xs font-bold tracking-[0.2em] text-white">AUTO MODEL BY ZAKRA</h1>
+    <div className="h-screen bg-white text-gray-900 flex flex-col overflow-hidden">
+      {/* Header */}
+      <header className="h-16 border-b border-gray-200 flex justify-between items-center px-4 lg:px-6 bg-white z-50 shrink-0">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={handleBackToLanding}
+            className="flex items-center gap-2 text-gray-600 hover:text-reed-red transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium hidden sm:inline">Back</span>
+          </button>
+          <div className="w-px h-6 bg-gray-200 mx-2" />
+          <img src="/REED LOGO RED PNG.png" alt="REED" className="h-6 w-auto" />
+          <span className="text-sm font-bold tracking-wide text-gray-900 hidden sm:inline">REED GENERATOR</span>
+          <div className={`w-2 h-2 rounded-full ml-2 ${appState === AppState.GENERATING || appState === AppState.ANALYZING ? 'bg-amber-500 animate-pulse' : 'bg-green-500'}`}></div>
         </div>
+        
         <div className="flex items-center gap-4">
+          {/* Credits Display - More Prominent */}
+          {userLoading ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full">
+              <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+              <span className="text-sm text-gray-500">Loading...</span>
+            </div>
+          ) : user ? (
+            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-reed-red/10 to-reed-red/5 border border-reed-red/20 rounded-full shadow-sm">
+              {user.plan_type === 'premium' ? (
+                <>
+                  <Crown className="w-5 h-5 text-amber-500" />
+                  <span className="text-sm font-bold text-gray-900">Unlimited</span>
+                  <span className="text-xs text-amber-600 font-medium bg-amber-100 px-2 py-0.5 rounded-full">PREMIUM</span>
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-5 h-5 text-reed-red" />
+                  <span className="text-sm font-bold text-gray-900">{user.credits}</span>
+                  <span className="text-xs text-gray-500">credits</span>
+                  <span className="text-xs text-reed-red font-medium bg-reed-red/10 px-2 py-0.5 rounded-full uppercase">{user.plan_type}</span>
+                </>
+              )}
+            </div>
+          ) : userLoadError ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full">
+              <AlertCircle className="w-4 h-4 text-red-500" />
+              <span className="text-sm text-red-600">Auth Error</span>
+            </div>
+          ) : null}
+
           <button
             onClick={() => setShowHistory(true)}
-            className="text-[10px] text-zinc-500 hover:text-white uppercase tracking-widest flex items-center gap-1 transition-colors"
+            className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1 transition-colors"
           >
-            <Calendar size={12} /> HISTORIAL
+            <Calendar className="w-4 h-4" />
+            <span className="hidden sm:inline">History</span>
           </button>
-
-          <button
-            onClick={() => { setTempApiKey(customApiKey); setShowSettings(true); }}
-            className={`text-[10px] uppercase tracking-widest flex items-center gap-1 ${!customApiKey ? 'text-red-500' : 'text-zinc-500 hover:text-white'}`}
-          >
-            ⚙ {!customApiKey ? 'CONFIGURAR API' : 'AJUSTES'}
-          </button>
-          <div className={`text-[10px] uppercase ${customApiKey ? 'text-zinc-600' : 'text-red-500'}`}>{customApiKey ? 'ONLINE' : 'SIN API KEY'}</div>
         </div>
       </header>
 
       {/* 3-COLUMN GRID */}
-      <main className="flex-grow grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-zakra-border overflow-hidden">
+      <main className="flex-grow grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 overflow-hidden">
 
         {/* COL 1: LIBRARY */}
-        <section className="flex flex-col h-full bg-black/50 overflow-y-auto">
-          <div className="p-3 border-b border-zakra-border bg-zinc-900/20 sticky top-0 backdrop-blur-sm z-10 flex justify-between items-center">
-            <h2 className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${selectedModel ? 'bg-green-500 text-black' : 'bg-white text-black'}`}>1</span>
-              <span className="text-white">SELECCIONA TU MODELO</span>
+        <section className="flex flex-col h-full bg-gray-50 overflow-y-auto">
+          <div className="p-4 border-b border-gray-200 bg-white sticky top-0 z-10 flex justify-between items-center">
+            <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${selectedModel ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>1</span>
+              <span>Select Model</span>
             </h2>
-            <button onClick={fetchModelos} className="text-zinc-600 hover:text-white"><RefreshCcw size={12} /></button>
+            <button onClick={fetchModelos} className="text-gray-400 hover:text-gray-900"><RefreshCcw size={14} /></button>
           </div>
 
           <div className="p-4 flex flex-col gap-4">
             {/* GRID OF MODELS */}
             {loadingModels ? (
-              <div className="text-[10px] text-zinc-600">CARGANDO DATOS...</div>
+              <div className="text-sm text-gray-500 text-center py-8">Loading models...</div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 {modelos.map(modelo => (
                   <div
                     key={modelo.id}
                     onClick={() => setSelectedModel(modelo)}
-                    className={`cursor-pointer border p-1 transition-all relative group ${selectedModel?.id === modelo.id ? 'border-white bg-zinc-900' : 'border-zinc-800 hover:border-zinc-600'}`}
+                    className={`cursor-pointer border-2 rounded-lg p-2 transition-all relative group ${selectedModel?.id === modelo.id ? 'border-reed-red bg-reed-red/5' : 'border-gray-200 hover:border-gray-300'}`}
                   >
-                    {/* Action buttons - show on hover */}
+                    {/* Action buttons */}
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                       <button
                         onClick={(e) => handleStartEdit(modelo, e)}
-                        className="w-6 h-6 bg-zinc-800 hover:bg-blue-600 text-white text-[10px] flex items-center justify-center"
-                        title="Editar nombre"
+                        className="w-6 h-6 bg-white border border-gray-200 hover:border-reed-red hover:text-reed-red rounded text-xs flex items-center justify-center transition-colors"
+                        title="Edit name"
                       >
                         ✎
                       </button>
                       <button
                         onClick={(e) => handleStartDelete(modelo, e)}
-                        className="w-5 h-5 bg-zinc-900 hover:bg-red-500 text-white flex items-center justify-center transition-colors"
-                        title="Eliminar modelo"
+                        className="w-6 h-6 bg-white border border-gray-200 hover:border-red-500 hover:text-red-500 rounded flex items-center justify-center transition-colors"
+                        title="Delete model"
                       >
                         <X size={12} />
                       </button>
                     </div>
 
-                    <div className="aspect-square bg-zinc-900 mb-2 overflow-hidden">
+                    <div className="aspect-square bg-gray-100 rounded mb-2 overflow-hidden">
                       <img src={modelo.image_url} alt={modelo.model_name} className="w-full h-full object-cover" />
                     </div>
-                    <div className="text-[9px] font-bold truncate uppercase px-1">{modelo.model_name}</div>
+                    <div className="text-xs font-semibold truncate uppercase text-gray-900">{modelo.model_name}</div>
                   </div>
                 ))}
               </div>
@@ -582,36 +662,42 @@ const App: React.FC = () => {
             {/* ADD BUTTON */}
             <button
               onClick={() => setShowModal(true)}
-              className="w-full py-3 border border-dashed border-zinc-700 hover:border-white hover:text-white text-zinc-500 text-[10px] uppercase flex items-center justify-center gap-2 transition-all"
+              className="w-full py-4 border-2 border-dashed border-gray-300 hover:border-reed-red hover:text-reed-red text-gray-500 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-all"
             >
-              <Plus size={12} /> [ + NUEVA MODELO ]
+              <Plus size={16} /> Add New Model
             </button>
 
             {selectedModel && (
-              <div className="mt-2 text-[9px] text-zinc-500">
-                MODELO SELECCIONADO: <span className="text-white">{selectedModel.model_name}</span>
+              <div className="mt-2 text-xs text-gray-500 bg-white p-3 rounded-lg border border-gray-200">
+                Selected: <span className="font-semibold text-gray-900">{selectedModel.model_name}</span>
               </div>
             )}
           </div>
         </section>
 
         {/* COL 2: REFERENCE & ANALYSIS */}
-        <section className={`flex flex-col h-full bg-black/50 overflow-y-auto relative ${!selectedModel ? 'pointer-events-none' : ''}`}>
+        <section className={`flex flex-col h-full bg-gray-50 overflow-y-auto relative ${!selectedModel ? 'pointer-events-none' : ''}`}>
           {/* LOCK OVERLAY when no model selected */}
           {!selectedModel && (
-            <div className="absolute inset-0 bg-black/80 z-30 backdrop-blur-md" />
+            <div className="absolute inset-0 bg-white/90 z-30 flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-gray-400 mb-2"><Layers size={32} className="mx-auto" /></div>
+                <p className="text-sm text-gray-500">Select a model first</p>
+              </div>
+            </div>
           )}
-          <div className="p-3 border-b border-zakra-border bg-zinc-900/20 sticky top-0 backdrop-blur-sm z-10">
-            <h2 className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${selectedModel ? 'bg-green-500 text-black' : 'bg-zinc-700 text-zinc-400'}`}>2</span>
-              <span className={selectedModel ? 'text-white' : 'text-zinc-600'}>SUBIR REFERENCIA Y ANALIZAR</span>
+          
+          <div className="p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+            <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${selectedModel ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>2</span>
+              <span className={selectedModel ? 'text-gray-900' : 'text-gray-400'}>Upload Reference & Analyze</span>
             </h2>
           </div>
 
           <div className="p-4 flex flex-col gap-6">
             {/* DROP ZONE */}
             <div
-              className={`${isBatchMode ? 'h-[500px]' : 'aspect-square'} w-full border border-dashed ${refImage || isBatchMode ? 'border-white bg-zinc-900' : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900'} relative flex flex-col items-center justify-center transition-all group overflow-hidden ${!isBatchMode ? 'cursor-pointer' : ''}`}
+              className={`${isBatchMode ? 'h-[500px]' : 'aspect-square'} w-full border-2 border-dashed rounded-xl ${refImage || isBatchMode ? 'border-reed-red bg-reed-red/5' : 'border-gray-300 hover:border-gray-400'} relative flex flex-col items-center justify-center transition-all group overflow-hidden ${!isBatchMode ? 'cursor-pointer' : ''}`}
               onClick={() => !isBatchMode && fileInputRef.current?.click()}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
@@ -619,85 +705,81 @@ const App: React.FC = () => {
               <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
 
               {isBatchMode ? (
-                <div className="w-full h-full p-2 grid grid-cols-3 gap-2 overflow-y-auto content-start scrollbar-thin scrollbar-thumb-zinc-700">
+                <div className="w-full h-full p-2 grid grid-cols-3 gap-2 overflow-y-auto content-start">
                   {queue.map(q => (
                     <div
                       key={q.id}
                       onClick={() => setSelectedQueueId(q.id)}
-                      className={`relative aspect-square border cursor-pointer transition-all group/item ${selectedQueueId === q.id ? 'border-white bg-zinc-800' : 'border-zinc-700 bg-zinc-900 opacity-60 hover:opacity-100'}`}
+                      className={`relative aspect-square border-2 rounded-lg cursor-pointer transition-all group/item ${selectedQueueId === q.id ? 'border-reed-red bg-reed-red/5' : 'border-gray-200'}`}
                     >
-                      <img src={q.previewUrl} className="w-full h-full object-cover" />
-                      {/* Remove Button */}
+                      <img src={q.previewUrl} className="w-full h-full object-cover rounded" />
                       <button
                         onClick={(e) => { e.stopPropagation(); removeQueueItem(q.id); }}
-                        className="absolute top-1 right-1 w-5 h-5 bg-zinc-900 hover:bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-all z-30"
-                        title="Eliminar"
+                        className="absolute top-1 right-1 w-5 h-5 bg-white border border-gray-200 hover:border-red-500 hover:text-red-500 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-all z-30"
+                        title="Remove"
                       >
-                        <X size={12} />
+                        <X size={10} />
                       </button>
-                      {/* Status Overlay */}
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        {q.status === 'PENDING' && <div className="w-2 h-2 bg-zinc-500" />}
-                        {q.status === 'ANALYZING' && <Loader2 className="animate-spin text-orange-500 w-5 h-5" />}
+                        {q.status === 'PENDING' && <div className="w-2 h-2 bg-gray-400 rounded-full" />}
+                        {q.status === 'ANALYZING' && <Loader2 className="animate-spin text-amber-500 w-5 h-5" />}
                         {q.status === 'ANALYZED' && (
                           <>
-                            <div className="absolute inset-0 border-2 border-orange-500 pointer-events-none z-10" />
-                            <Play className="animate-pulse text-orange-500 w-8 h-8 z-20" fill="currentColor" />
+                            <div className="absolute inset-0 border-2 border-amber-500 rounded-lg pointer-events-none z-10" />
+                            <Play className="text-amber-500 w-8 h-8 z-20" fill="currentColor" />
                           </>
                         )}
                         {q.status === 'GENERATING' && <Loader2 className="animate-spin text-green-500 w-5 h-5" />}
-                        {q.status === 'COMPLETED' && <div className="w-5 h-5 bg-green-500/20 border border-green-500 flex items-center justify-center"><Check className="text-green-500 w-3 h-3" /></div>}
-                        {q.status === 'ERROR' && <div className="w-5 h-5 bg-red-500/20 border border-red-500 flex items-center justify-center"><X className="text-red-500 w-3 h-3" /></div>}
+                        {q.status === 'COMPLETED' && <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center"><Check className="text-white w-3 h-3" /></div>}
+                        {q.status === 'ERROR' && <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"><X className="text-white w-3 h-3" /></div>}
                       </div>
                     </div>
                   ))}
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="cursor-pointer flex items-center justify-center border border-zinc-700 text-zinc-500 text-xs aspect-square hover:bg-zinc-800 hover:text-white transition-colors"
+                    className="cursor-pointer flex items-center justify-center border-2 border-dashed border-gray-300 text-gray-400 text-xs aspect-square rounded-lg hover:border-reed-red hover:text-reed-red transition-colors"
                   >
                     <Plus size={16} />
                   </div>
                 </div>
               ) : refImage ? (
-                <img src={refImage} alt="Reference" className="h-full w-full object-contain p-2" />
+                <img src={refImage} alt="Reference" className="h-full w-full object-contain p-2 rounded-lg" />
               ) : (
                 <div className="text-center p-4">
-                  <div className="text-4xl text-zinc-700 font-light mb-2 group-hover:text-white transition-colors">+</div>
-                  <span className="text-[9px] text-zinc-500 group-hover:text-white uppercase tracking-widest block">SUBIR REFERENCIA(S)</span>
+                  <div className="text-4xl text-gray-300 font-light mb-2 group-hover:text-reed-red transition-colors">+</div>
+                  <span className="text-xs text-gray-500 group-hover:text-gray-900 font-medium">Upload Reference(s)</span>
                 </div>
               )}
             </div>
 
             {/* ANALYSIS TRIGGER AND OUTPUT */}
             <div className="flex flex-col gap-2">
-              {/* ANALYSIS BUTTON - Single Mode OR Batch Selected Item */}
               {!isBatchMode ? (
                 <button
                   onClick={runAutoAnalysis}
                   disabled={!selectedModel || !refImage || appState === AppState.ANALYZING}
-                  className={`w-full py-3 text-[10px] font-bold uppercase border transition-all
-                                ${(!selectedModel || !refImage) ? 'border-zinc-800 text-zinc-700' :
-                      appState === AppState.ANALYZING ? 'border-orange-500 text-orange-500 animate-pulse' : 'border-zinc-500 text-zinc-300 hover:border-white hover:text-white'}`}
+                  className={`w-full py-3 text-sm font-bold uppercase rounded-lg border-2 transition-all
+                    ${(!selectedModel || !refImage) ? 'border-gray-200 text-gray-400' :
+                      appState === AppState.ANALYZING ? 'border-amber-500 text-amber-600 animate-pulse' : 'border-gray-300 text-gray-700 hover:border-reed-red hover:text-reed-red'}`}
                 >
-                  {appState === AppState.ANALYZING ? '[ ANALIZANDO... ]' : '[ EJECUTAR ANALISIS DE FUSIÓN ]'}
+                  {appState === AppState.ANALYZING ? 'Analyzing...' : 'Run Fusion Analysis'}
                 </button>
               ) : (
-                // BATCH ANALYSIS BUTTONS
                 <div className="flex gap-2">
                   <button
                     onClick={analyzeAllBatchItems}
                     disabled={!queue.some(q => q.status === 'PENDING')}
-                    className={`flex-grow py-3 text-[10px] font-bold uppercase border transition-all
-                              ${!queue.some(q => q.status === 'PENDING') ? 'border-zinc-800 text-zinc-700' :
-                        'border-orange-500 text-orange-500 hover:bg-orange-500/10'}`}
+                    className={`flex-grow py-3 text-sm font-bold uppercase rounded-lg border-2 transition-all
+                      ${!queue.some(q => q.status === 'PENDING') ? 'border-gray-200 text-gray-400' :
+                        'border-amber-500 text-amber-600 hover:bg-amber-50'}`}
                   >
-                    {queue.some(q => q.status === 'ANALYZING') ? '[ ANALIZANDO LOTE... ]' : '[ GENERAR PAYLOADS (AUTOMÁTICO) ]'}
+                    {queue.some(q => q.status === 'ANALYZING') ? 'Analyzing Batch...' : 'Generate Payloads (Auto)'}
                   </button>
                   {selectedQueueId && queue.find(q => q.id === selectedQueueId)?.status === 'PENDING' && (
                     <button
                       onClick={() => analyzeBatchItem(selectedQueueId)}
-                      className="px-3 border border-zinc-800 text-zinc-500 hover:text-orange-500"
-                      title="Analizar individualmente"
+                      className="px-3 border-2 border-gray-200 text-gray-500 hover:text-amber-500 hover:border-amber-500 rounded-lg"
+                      title="Analyze individually"
                     >
                       1
                     </button>
@@ -706,30 +788,30 @@ const App: React.FC = () => {
               )}
 
               {isBatchMode && (
-                <div className="w-full pb-2 text-[9px] font-bold uppercase text-zinc-500 text-center flex justify-between">
-                  <span>LOTE: {queue.length} IMÁGENES</span>
-                  <span>ANALIZADAS: {queue.filter(q => q.status !== 'PENDING' && q.status !== 'ANALYZING').length} / {queue.length}</span>
+                <div className="w-full pb-2 text-xs font-bold uppercase text-gray-500 flex justify-between">
+                  <span>Batch: {queue.length} images</span>
+                  <span>Analyzed: {queue.filter(q => q.status !== 'PENDING' && q.status !== 'ANALYZING').length} / {queue.length}</span>
                 </div>
               )}
 
               {/* JSON DISPLAY */}
               <div className="flex flex-col gap-1 h-64">
-                <label className="text-[9px] text-zinc-500 uppercase flex justify-between">
-                  <span>PAYLOAD GENERADO {isBatchMode && "(ITEM SELECCIONADO)"}</span>
+                <label className="text-xs text-gray-500 uppercase flex justify-between">
+                  <span>Generated Payload {isBatchMode && "(Selected Item)"}</span>
                 </label>
-                {/* JSON EDITOR */}
+                
                 {isBatchMode ? (
-                  <div className="w-full bg-zinc-950 border border-zinc-800 p-3 text-[9px] font-mono text-zinc-400 overflow-auto h-full whitespace-pre-wrap leading-tight">
+                  <div className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-xs font-mono text-gray-600 overflow-auto h-full whitespace-pre-wrap leading-tight">
                     {selectedQueueId ?
                       JSON.stringify(queue.find(q => q.id === selectedQueueId)?.payload || { status: queue.find(q => q.id === selectedQueueId)?.status || 'UNKNOWN' }, null, 2)
-                      : "// SELECCIONA UNA IMAGEN PARA VER SU PAYLOAD"}
+                      : "// Select an image to view its payload"}
                   </div>
                 ) : (
                   <textarea
                     value={payloadJsonString}
                     onChange={(e) => setPayloadJsonString(e.target.value)}
-                    placeholder="// ESPERANDO ANALISIS..."
-                    className="w-full bg-zinc-950 border border-zinc-800 p-3 text-[9px] font-mono text-zinc-400 overflow-auto h-full whitespace-pre-wrap leading-tight resize-none focus:outline-none focus:border-white transition-colors"
+                    placeholder="// Waiting for analysis..."
+                    className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-xs font-mono text-gray-600 overflow-auto h-full whitespace-pre-wrap leading-tight resize-none focus:outline-none focus:border-reed-red transition-colors"
                     spellCheck={false}
                   />
                 )}
@@ -739,373 +821,306 @@ const App: React.FC = () => {
         </section>
 
         {/* COL 3: OUTPUT */}
-        <section className={`flex flex-col h-full bg-black/50 relative ${!generatedPayload && !isBatchMode ? 'pointer-events-none' : ''}`}>
+        <section className={`flex flex-col h-full bg-gray-50 relative ${!generatedPayload && !isBatchMode ? 'pointer-events-none' : ''}`}>
           {/* LOCK OVERLAY when no payload generated */}
           {!generatedPayload && !isBatchMode && (
-            <div className="absolute inset-0 bg-black/80 z-30 backdrop-blur-md" />
+            <div className="absolute inset-0 bg-white/90 z-30 flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-gray-400 mb-2"><Cpu size={32} className="mx-auto" /></div>
+                <p className="text-sm text-gray-500">Analyze an image first</p>
+              </div>
+            </div>
           )}
-          <div className="p-3 border-b border-zakra-border bg-zinc-900/20 sticky top-0 backdrop-blur-sm z-10">
-            <h2 className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${generatedPayload ? 'bg-green-500 text-black' : 'bg-zinc-700 text-zinc-400'}`}>3</span>
-              <span className={generatedPayload ? 'text-white' : 'text-zinc-600'}>RESULTADO FINAL</span>
+          
+          <div className="p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+            <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${generatedPayload ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>3</span>
+              <span className={generatedPayload ? 'text-gray-900' : 'text-gray-400'}>Final Result</span>
             </h2>
           </div>
 
           <div className="flex-grow relative min-h-0">
-            <div className="absolute inset-0 border border-zinc-800 bg-zinc-950 overflow-y-auto">
-              {/* Grid Pattern */}
-              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-
+            <div className="absolute inset-4 border border-gray-200 bg-white rounded-xl overflow-hidden">
               {isBatchMode ? (
-                // BATCH RESULT GRID
-                <div className="w-full p-4 grid grid-cols-2 lg:grid-cols-3 gap-3 relative z-10">
+                <div className="w-full p-4 grid grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto">
                   {queue.map(q => (
                     <div key={q.id} className="flex flex-col gap-1 group relative">
                       <div
-                        className={`aspect-[4/5] bg-zinc-900 border ${q.resultImage ? 'border-zinc-800 cursor-zoom-in hover:border-white' : 'border-zinc-800'} relative overflow-hidden transition-all`}
+                        className={`aspect-[4/5] bg-gray-100 border-2 rounded-lg ${q.resultImage ? 'border-gray-200 cursor-zoom-in hover:border-reed-red' : 'border-gray-200'} relative overflow-hidden transition-all`}
                         onClick={() => q.resultImage && setLightboxImage(q.resultImage)}
                       >
                         {q.resultImage ? (
                           <>
-                            <img src={q.resultImage} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                            {/* Hover Overlay */}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <img src={q.resultImage} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 rounded" />
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
                               <ScanSearch className="text-white w-6 h-6" />
                             </div>
                           </>
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                            {q.status === 'ERROR' ? <AlertCircle className="text-red-900" /> :
-                              q.status === 'COMPLETED' ? <CheckCircle2 className="text-green-900" /> :
-                                q.status === 'GENERATING' ? <Loader2 className="animate-spin text-green-500/50" /> :
-                                  q.status === 'ANALYZED' ? <div className="w-2 h-2 bg-orange-500/50 rounded-full animate-pulse" /> :
-                                    <div className="w-1 h-1 bg-zinc-800 rounded-full" />}
+                          <div className="w-full h-full flex items-center justify-center text-gray-300">
+                            {q.status === 'ERROR' ? <AlertCircle className="text-red-300" /> :
+                              q.status === 'COMPLETED' ? <CheckCircle2 className="text-green-300" /> :
+                                q.status === 'GENERATING' ? <Loader2 className="animate-spin text-green-400" /> :
+                                  q.status === 'ANALYZED' ? <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" /> :
+                                    <div className="w-1 h-1 bg-gray-300 rounded-full" />}
                           </div>
                         )}
 
-                        {/* Status Icon Top Right */}
                         <div className="absolute top-2 right-2 z-10">
-                          {q.status === 'GENERATING' && <Loader2 className="animate-spin text-green-500 w-4 h-4 shadow-black drop-shadow-md" />}
-                          {q.status === 'ANALYZING' && <Loader2 className="animate-spin text-orange-500 w-4 h-4 shadow-black drop-shadow-md" />}
-                          {q.status === 'COMPLETED' && <CheckCircle2 className="text-green-500 w-4 h-4 shadow-black drop-shadow-md" />}
+                          {q.status === 'GENERATING' && <Loader2 className="animate-spin text-green-500 w-4 h-4" />}
+                          {q.status === 'ANALYZING' && <Loader2 className="animate-spin text-amber-500 w-4 h-4" />}
+                          {q.status === 'COMPLETED' && <CheckCircle2 className="text-green-500 w-4 h-4" />}
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-
-
-                // SINGLE IMAGE RESULT
-                <div className="flex-grow w-full h-full flex items-center justify-center z-10 relative">
+                <div className="flex-grow w-full h-full flex items-center justify-center">
                   {generatedImage ? (
-                    <img src={generatedImage} alt="Result" className="relative z-10 max-w-full max-h-full object-contain shadow-2xl p-4" />
+                    <img src={generatedImage} alt="Result" className="relative z-10 max-w-full max-h-full object-contain p-4" />
                   ) : (
-                    <div className="text-center z-10">
+                    <div className="text-center">
                       {appState === AppState.GENERATING ? (
                         <div className="flex flex-col items-center gap-2">
-                          <div className="w-2 h-2 bg-white animate-ping"></div>
-                          <span className="text-[10px] uppercase tracking-widest text-white">PROCESANDO SECUENCIA...</span>
+                          <Loader2 className="w-6 h-6 text-reed-red animate-spin" />
+                          <span className="text-sm uppercase tracking-wide text-gray-600">Processing...</span>
                         </div>
                       ) : appState === AppState.ERROR ? (
-                        <span className="text-xs text-red-500 font-bold uppercase">{errorMsg || "ERROR"}</span>
+                        <span className="text-sm text-red-500 font-bold uppercase">{errorMsg || "Error"}</span>
                       ) : (
-                        <span className="text-[10px] uppercase tracking-widest text-zinc-600">SIN SEÑAL DE VIDEO</span>
+                        <span className="text-sm uppercase tracking-wide text-gray-400">No image generated</span>
                       )}
                     </div>
-                  )
-                  }
+                  )}
                 </div>
-              )
-              }
-            </div >
+              )}
+            </div>
           </div>
 
           {/* FIXED FOOTER CONTROLS */}
-          <div className="p-4 bg-zinc-950 border-t border-zinc-800 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+          <div className="p-4 bg-white border-t border-gray-200 z-20">
             {/* DOWNLOAD BUTTONS */}
-            {
-              isBatchMode ? (
+            {isBatchMode ? (
+              <button
+                onClick={handleDownloadBatchZip}
+                disabled={!queue.some(q => q.status === 'COMPLETED')}
+                className="mb-3 w-full py-2 text-sm font-bold tracking-wide uppercase border-2 border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Download Batch ZIP
+              </button>
+            ) : (
+              generatedImage && (
                 <button
-                  onClick={handleDownloadBatchZip}
-                  disabled={!queue.some(q => q.status === 'COMPLETED')}
-                  className="mt-3 w-full py-2 text-xs font-bold tracking-[0.15em] uppercase border border-blue-500 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all disabled:opacity-50"
+                  onClick={handleDownload}
+                  className="mb-3 w-full py-2 text-sm font-bold tracking-wide uppercase border-2 border-green-500 text-green-600 rounded-lg hover:bg-green-50 transition-all"
                 >
-                  [ DESCARGAR ZIP LOTE ]
+                  Download Image
                 </button>
-              ) : (
-                generatedImage && (
-                  <button
-                    onClick={handleDownload}
-                    className="mt-3 w-full py-2 text-xs font-bold tracking-[0.15em] uppercase border border-green-500 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all"
-                  >
-                    [ DESCARGAR IMAGEN ]
-                  </button>
-                )
               )
-            }
+            )}
 
             {/* RESOLUTION & ASPECT RATIO SELECTORS */}
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mb-4 grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-[9px] text-zinc-500 uppercase">RESOLUCIÓN</label>
+                <label className="text-xs text-gray-500 uppercase font-medium">Resolution</label>
                 <select
                   value={selectedResolution}
                   onChange={(e) => setSelectedResolution(e.target.value)}
-                  className="bg-zinc-900 border border-zinc-700 p-2 text-xs text-white outline-none focus:border-white"
+                  className="bg-gray-100 border border-gray-200 rounded-lg p-2 text-sm text-gray-900 outline-none focus:border-reed-red"
                 >
                   {RESOLUTIONS.map(res => (
-                    <option key={res} value={res}>{res === 'AUTO' ? 'AUTO (Modelo Elige)' : res}</option>
+                    <option key={res} value={res}>{res === 'AUTO' ? 'Auto (Model Chooses)' : res}</option>
                   ))}
                 </select>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[9px] text-zinc-500 uppercase">ASPECT RATIO</label>
+                <label className="text-xs text-gray-500 uppercase font-medium">Aspect Ratio</label>
                 <select
                   value={selectedAspectRatio}
                   onChange={(e) => setSelectedAspectRatio(e.target.value)}
-                  className="bg-zinc-900 border border-zinc-700 p-2 text-xs text-white outline-none focus:border-white"
+                  className="bg-gray-100 border border-gray-200 rounded-lg p-2 text-sm text-gray-900 outline-none focus:border-reed-red"
                 >
                   {ASPECT_RATIOS.map(ratio => (
-                    <option key={ratio} value={ratio}>{ratio === 'AUTO' ? 'AUTO (Modelo Elige)' : ratio}</option>
+                    <option key={ratio} value={ratio}>{ratio === 'AUTO' ? 'Auto (Model Chooses)' : ratio}</option>
                   ))}
                 </select>
               </div>
             </div>
 
             {/* EXECUTE BUTTON */}
-            {
-              isBatchMode ? (
-                <button
-                  onClick={startBatchGeneration}
-                  disabled={!queue.some(q => q.status === 'ANALYZED')}
-                  className={`mt-4 w-full py-4 text-xs font-bold tracking-[0.2em] uppercase border transition-all
-                        ${!queue.some(q => q.status === 'ANALYZED')
-                      ? 'bg-zinc-900/50 text-zinc-600 border-zinc-800'
-                      : 'bg-white text-black border-white hover:bg-zinc-200'}`}
-                >
-                  [ GENERAR IMÁGENES ( {queue.filter(q => q.status === 'ANALYZED').length} LISTAS ) ]
-                </button>
-              ) : (
-                <button
-                  onClick={handleExecute}
-                  disabled={appState === AppState.GENERATING || !generatedPayload}
-                  className={`mt-4 w-full py-4 text-xs font-bold tracking-[0.2em] uppercase border transition-all
-                              ${appState === AppState.GENERATING || !generatedPayload
-                      ? 'bg-zinc-900 text-zinc-600 border-zinc-800 cursor-not-allowed'
-                      : 'bg-white text-black border-white hover:bg-zinc-200 active:scale-[0.99]'}`
-                  }
-                >
-                  {appState === AppState.GENERATING ? '[ EJECUTANDO... ]' : '[ INICIAR SECUENCIA DE GENERADO ]'}
-                </button>
-              )
-            }
-          </div >
-        </section >
+            {isBatchMode ? (
+              <button
+                onClick={startBatchGeneration}
+                disabled={!queue.some(q => q.status === 'ANALYZED')}
+                className={`w-full py-3 text-sm font-bold tracking-wide uppercase rounded-lg border-2 transition-all
+                  ${!queue.some(q => q.status === 'ANALYZED')
+                    ? 'bg-gray-100 text-gray-400 border-gray-200'
+                    : 'bg-reed-red text-white border-reed-red hover:bg-reed-red-dark'}`}
+              >
+                Generate Images ({queue.filter(q => q.status === 'ANALYZED').length} Ready)
+              </button>
+            ) : (
+              <button
+                onClick={handleExecute}
+                disabled={appState === AppState.GENERATING || !generatedPayload}
+                className={`w-full py-3 text-sm font-bold tracking-wide uppercase rounded-lg border-2 transition-all
+                  ${appState === AppState.GENERATING || !generatedPayload
+                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                    : 'bg-reed-red text-white border-reed-red hover:bg-reed-red-dark'}`}
+              >
+                {appState === AppState.GENERATING ? 'Generating...' : 'Start Generation'}
+              </button>
+            )}
+          </div>
+        </section>
 
-      </main >
+      </main>
 
       {/* CREATE MODEL MODAL */}
-      < ModelModal
+      <ModelModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onSuccess={fetchModelos}
       />
 
       {/* EDIT NAME MODAL */}
-      {
-        editingModel && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-            <div className="bg-zinc-900 border border-zinc-700 p-6 w-full max-w-md">
-              <h3 className="text-sm font-bold uppercase tracking-widest mb-4 text-white">// EDITAR NOMBRE</h3>
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-700 p-3 text-sm text-white mb-4 outline-none focus:border-white"
-                placeholder="Ej: Aisah, Sofia..."
-                autoFocus
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={!editName.trim()}
-                  className="flex-1 py-2 text-xs font-bold uppercase bg-white text-black hover:bg-zinc-200 disabled:bg-zinc-700 disabled:text-zinc-500"
-                >
-                  [ GUARDAR ]
-                </button>
-                <button
-                  onClick={() => { setEditingModel(null); setEditName(''); }}
-                  className="flex-1 py-2 text-xs font-bold uppercase border border-zinc-600 text-zinc-400 hover:border-white hover:text-white"
-                >
-                  [ CANCELAR ]
-                </button>
-              </div>
+      {editingModel && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="text-lg font-bold mb-4 text-gray-900">Edit Name</h3>
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="w-full bg-gray-100 border border-gray-200 rounded-lg p-3 text-gray-900 mb-4 outline-none focus:border-reed-red"
+              placeholder="e.g., Aisah, Sofia..."
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveEdit}
+                disabled={!editName.trim()}
+                className="flex-1 py-2 text-sm font-bold uppercase bg-reed-red text-white rounded-lg hover:bg-reed-red-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => { setEditingModel(null); setEditName(''); }}
+                className="flex-1 py-2 text-sm font-bold uppercase border-2 border-gray-200 text-gray-700 rounded-lg hover:border-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           </div>
-        )
-      }
+        </div>
+      )}
 
       {/* DELETE CONFIRMATION MODAL */}
-      {
-        deleteConfirmModel && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-            <div className="bg-zinc-900 border border-red-600 p-6 w-full max-w-md">
-              <h3 className="text-sm font-bold uppercase tracking-widest mb-4 text-red-500">// CONFIRMAR ELIMINACIÓN</h3>
-              <p className="text-sm text-zinc-400 mb-2">
-                ¿Estás seguro de que deseas eliminar el modelo:
-              </p>
-              <p className="text-white font-bold mb-4 uppercase">"{deleteConfirmModel.model_name}"?</p>
-              <p className="text-[10px] text-zinc-500 mb-6">Esta acción no se puede deshacer.</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleConfirmDelete}
-                  disabled={isDeleting}
-                  className="flex-1 py-2 text-xs font-bold uppercase bg-red-600 text-white hover:bg-red-500 disabled:bg-zinc-700"
-                >
-                  {isDeleting ? '[ ELIMINANDO... ]' : '[ SÍ, ELIMINAR ]'}
-                </button>
-                <button
-                  onClick={() => setDeleteConfirmModel(null)}
-                  disabled={isDeleting}
-                  className="flex-1 py-2 text-xs font-bold uppercase border border-zinc-600 text-zinc-400 hover:border-white hover:text-white disabled:opacity-50"
-                >
-                  [ CANCELAR ]
-                </button>
-              </div>
+      {deleteConfirmModel && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-red-200 rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="text-lg font-bold mb-4 text-red-600">Confirm Deletion</h3>
+            <p className="text-gray-600 mb-2">Are you sure you want to delete the model:</p>
+            <p className="text-gray-900 font-bold mb-4 uppercase">"{deleteConfirmModel.model_name}"?</p>
+            <p className="text-xs text-gray-500 mb-6">This action cannot be undone.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="flex-1 py-2 text-sm font-bold uppercase bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300 transition-colors"
+              >
+                {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+              <button
+                onClick={() => setDeleteConfirmModel(null)}
+                disabled={isDeleting}
+                className="flex-1 py-2 text-sm font-bold uppercase border-2 border-gray-200 text-gray-700 rounded-lg hover:border-gray-300 disabled:opacity-50 transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           </div>
-        )
-      }
+        </div>
+      )}
 
-      {/* SETTINGS MODAL */}
-      {
-        showSettings && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-            <div className="bg-zinc-900 border border-zinc-700 p-6 w-full max-w-lg">
-              <h3 className="text-sm font-bold uppercase tracking-widest mb-6 text-white">⚙ AJUSTES</h3>
 
-              <div className="mb-6">
-                <label className="text-[10px] text-zinc-500 uppercase block mb-2">API KEY DE GEMINI</label>
-                <input
-                  type="password"
-                  value={tempApiKey}
-                  onChange={(e) => setTempApiKey(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700 p-3 text-sm text-white mb-2 outline-none focus:border-white font-mono"
-                  placeholder="AIzaSy..."
-                />
-                <p className="text-[9px] text-zinc-600">
-                  Tu API Key se guarda localmente en tu navegador. Puedes obtener una nueva en{' '}
-                  <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" className="text-blue-400 hover:underline">
-                    aistudio.google.com
-                  </a>
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={handleSaveApiKey}
-                  className="flex-1 py-3 text-xs font-bold uppercase bg-white text-black hover:bg-zinc-200"
-                >
-                  [ GUARDAR CAMBIOS ]
-                </button>
-                <button
-                  onClick={() => { setShowSettings(false); setTempApiKey(''); }}
-                  className="flex-1 py-3 text-xs font-bold uppercase border border-zinc-600 text-zinc-400 hover:border-white hover:text-white"
-                >
-                  [ CANCELAR ]
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      }
 
       {/* ERROR MODAL */}
-      {
-        appState === AppState.ERROR && (
-          <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-zinc-950 border border-red-600/50 p-8 w-full max-w-lg shadow-[0_0_50px_rgba(220,38,38,0.2)] text-center relative overflow-hidden">
-              {/* Background Texture */}
-              <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #ff0000 0, #ff0000 1px, transparent 0, transparent 50%)', backgroundSize: '10px 10px' }}></div>
-
-              <div className="relative z-10 flex flex-col items-center">
-                <div className="text-red-500 mb-4 animate-pulse">
-                  <AlertCircle size={48} />
-                </div>
-
-                <h3 className="text-xl font-bold uppercase tracking-[0.2em] mb-2 text-red-500">
-                  {errorMsg === "CONTENIDO_BLOQUEADO_SEGURIDAD" ? "CONTENIDO BLOQUEADO" :
-                    errorMsg === "QUOTA_API_AGOTADA" ? "LÍMITE DE API ALCANZADO" :
-                      "ERROR DEL SISTEMA"}
-                </h3>
-
-                <div className="h-px w-24 bg-red-800 my-4"></div>
-
-                <p className="text-xs text-zinc-400 font-mono mb-8 uppercase leading-relaxed max-w-sm">
-                  {errorMsg === "CONTENIDO_BLOQUEADO_SEGURIDAD" ? (
-                    <>
-                      El sistema de seguridad ha detectado contenido que viola las políticas de uso (posible contenido sexual, violento o explícito).
-                      <br /><br />
-                      <span className="text-white">POR FAVOR, UTILIZA IMÁGENES DE REFERENCIA APROPIADAS.</span>
-                    </>
-                  ) : errorMsg === "QUOTA_API_AGOTADA" ? (
-                    <>
-                      Has agotado la cuota gratuita de tu API Key de Gemini.
-                      <br /><br />
-                      <span className="text-white">VE A AJUSTES ⚙ Y ACTUALIZA TU API KEY PARA CONTINUAR.</span>
-                    </>
-                  ) : (
-                    <>
-                      {errorMsg || "Ha ocurrido un error inesperado en el procesamiento."}
-                      <br /><br />
-                      Revisa la consola para más detalles o intenta nuevamente.
-                    </>
-                  )}
-                </p>
-
-                <button
-                  onClick={() => setAppState(AppState.IDLE)}
-                  className="px-8 py-3 bg-red-600/10 border border-red-600 text-red-500 hover:bg-red-600 hover:text-white uppercase text-xs font-bold tracking-widest transition-all"
-                >
-                  [ ENTENDIDO ]
-                </button>
-              </div>
+      {appState === AppState.ERROR && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white border border-red-200 rounded-xl p-8 w-full max-w-lg shadow-2xl text-center">
+            <div className="text-red-500 mb-4">
+              <AlertCircle size={48} className="mx-auto" />
             </div>
+
+            <h3 className="text-xl font-bold mb-2 text-gray-900">
+              {errorMsg === "CONTENIDO_BLOQUEADO_SEGURIDAD" ? "Content Blocked" :
+                errorMsg === "QUOTA_API_AGOTADA" ? "API Limit Reached" :
+                  "System Error"}
+            </h3>
+
+            <div className="h-px w-24 bg-gray-200 my-4 mx-auto"></div>
+
+            <p className="text-sm text-gray-600 mb-8">
+              {errorMsg === "CONTENIDO_BLOQUEADO_SEGURIDAD" ? (
+                <>
+                  The security system has detected content that violates usage policies (possible sexual, violent, or explicit content).
+                  <br /><br />
+                  <span className="text-gray-900 font-medium">Please use appropriate reference images.</span>
+                </>
+              ) : errorMsg === "QUOTA_API_AGOTADA" ? (
+                <>
+                  You have exhausted the free quota of your Gemini API Key.
+                  <br /><br />
+                  <span className="text-gray-900 font-medium">Go to Settings and update your API Key to continue.</span>
+                </>
+              ) : (
+                <>
+                  {errorMsg || "An unexpected error occurred during processing."}
+                  <br /><br />
+                  Check the console for more details or try again.
+                </>
+              )}
+            </p>
+
+            <button
+              onClick={() => setAppState(AppState.IDLE)}
+              className="px-8 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-semibold transition-colors"
+            >
+              Understood
+            </button>
           </div>
-        )
-      }
+        </div>
+      )}
 
       {/* LIGHTBOX MODAL */}
-      {
-        lightboxImage && (
-          <div
-            className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-4 backdrop-blur-md cursor-zoom-out"
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
             onClick={() => setLightboxImage(null)}
+            className="fixed top-6 right-6 text-white hover:text-gray-300 z-[80] text-sm uppercase tracking-wide font-medium"
           >
-            {/* Close Button - Fixed to screen corner */}
-            <button
-              onClick={() => setLightboxImage(null)}
-              className="fixed top-6 right-6 text-white hover:text-zinc-300 z-[80] text-sm uppercase tracking-widest"
-            >
-              [ CERRAR ]
-            </button>
+            Close
+          </button>
 
-            <img
-              src={lightboxImage}
-              className="max-h-[90vh] max-w-[90vw] object-contain shadow-2xl border border-zinc-800"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        )
-      }
+          <img
+            src={lightboxImage}
+            className="max-h-[90vh] max-w-[90vw] object-contain shadow-2xl rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* History Modal */}
       <HistoryModal
         isOpen={showHistory}
         onClose={() => setShowHistory(false)}
       />
-    </div >
+    </div>
   );
 };
 
