@@ -194,7 +194,7 @@ const Navigation = ({
 };
 
 // Hero Section
-const HeroSection = () => {
+const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
   const [spotsRemaining] = useState(50);
 
   return (
@@ -222,13 +222,13 @@ const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            <a
-              href="#pricing"
+            <button
+              onClick={onLaunchApp}
               className="inline-flex items-center gap-2 px-8 py-4 bg-reed-red text-white text-base font-semibold rounded-xl hover:bg-reed-red-dark transition-all shadow-lg shadow-reed-red/25"
             >
-              Join the Waitlist
+              Start Generating
               <ArrowRight className="w-5 h-5" />
-            </a>
+            </button>
             <a
               href="#services"
               className="inline-flex items-center gap-2 px-8 py-4 bg-white text-gray-900 text-base font-semibold rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-all"
@@ -907,7 +907,7 @@ const LandingPage = () => {
         />
       )}
 
-      <HeroSection />
+      <HeroSection onLaunchApp={handleShowApp} />
       <ServicesSection />
       <PricingSection />
       <FAQSection />
