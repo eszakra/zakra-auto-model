@@ -395,13 +395,35 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   const handleDownloadBatchZip = async () => {
     const zip = new JSZip();
     const completedItems = queue.filter(q => q.status === 'COMPLETED' && q.resultImage);
-    if (completedItems.length === 0) return;
-    completedItems.forEach((item, index) => {
-      const imgData = item.resultImage!.split(',')[1];
-      zip.file(`reed_batch_${index + 1}.png`, imgData, { base64: true });
-    });
-    const content = await zip.generateAsync({ type: 'blob' });
-    saveAs(content, `reed_batch_${Date.now()}.zip`);
+    if (completedItems.length === 0) {
+      alert("No completed images to download");
+      return;
+    }
+    
+    try {
+      completedItems.forEach((item, index) => {
+        let imgData = item.resultImage!;
+        
+        // Check if it's a data URL (base64 with prefix)
+        if (imgData.includes(',')) {
+          imgData = imgData.split(',')[1];
+        }
+        
+        // Check if it's already base64 without prefix
+        if (!imgData) {
+          console.error(`Empty image data for item ${index}`);
+          return;
+        }
+        
+        zip.file(`reed_batch_${index + 1}.png`, imgData, { base64: true });
+      });
+      
+      const content = await zip.generateAsync({ type: 'blob' });
+      saveAs(content, `reed_batch_${Date.now()}.zip`);
+    } catch (error) {
+      console.error('Error creating ZIP:', error);
+      alert('Error creating ZIP file. Please try again.');
+    }
   };
 
   // --- EDIT MODEL ---
