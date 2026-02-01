@@ -62,36 +62,100 @@
       * {
         scroll-behavior: smooth;
       }
+      
+      /* CSS Variables for theming */
+      :root {
+        --bg-primary: #FFFFFF;
+        --bg-secondary: #F5F5F5;
+        --bg-tertiary: #FAFAFA;
+        --text-primary: #0A0A0A;
+        --text-secondary: #525252;
+        --text-muted: #737373;
+        --border-color: #E5E5E5;
+        --card-bg: #FFFFFF;
+        --card-border: #E5E5E5;
+        --input-bg: #FFFFFF;
+        --input-border: #D4D4D4;
+        --hover-bg: #F5F5F5;
+        --shadow-color: rgba(0, 0, 0, 0.1);
+        --scrollbar-track: #F5F5F5;
+        --scrollbar-thumb: #D4D4D4;
+        --scrollbar-thumb-hover: #A3A3A3;
+        --glass-bg: rgba(255, 255, 255, 0.8);
+        --glass-border: rgba(255, 255, 255, 0.3);
+        --accent-red: #A11008;
+        --accent-red-light: #C41E14;
+        --accent-red-dark: #7C0A03;
+      }
+
+      .dark {
+        --bg-primary: #0A0A0A;
+        --bg-secondary: #141414;
+        --bg-tertiary: #1A1A1A;
+        --text-primary: #FAFAFA;
+        --text-secondary: #A3A3A3;
+        --text-muted: #737373;
+        --border-color: #262626;
+        --card-bg: #141414;
+        --card-border: #262626;
+        --input-bg: #1A1A1A;
+        --input-border: #404040;
+        --hover-bg: #1F1F1F;
+        --shadow-color: rgba(0, 0, 0, 0.5);
+        --scrollbar-track: #1A1A1A;
+        --scrollbar-thumb: #404040;
+        --scrollbar-thumb-hover: #525252;
+        --glass-bg: rgba(20, 20, 20, 0.8);
+        --glass-border: rgba(255, 255, 255, 0.1);
+        --accent-red: #DC2626;
+        --accent-red-light: #EF4444;
+        --accent-red-dark: #B91C1C;
+      }
+      
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #FFFFFF;
-        color: #0A0A0A;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        transition: background-color 0.3s ease, color 0.3s ease;
       }
+      
       .font-display {
         font-family: 'Space Grotesk', sans-serif;
       }
+      
       ::-webkit-scrollbar {
         width: 8px;
       }
+      
       ::-webkit-scrollbar-track {
-        background: #F5F5F5;
+        background: var(--scrollbar-track);
       }
+      
       ::-webkit-scrollbar-thumb {
-        background: #D4D4D4;
+        background: var(--scrollbar-thumb);
         border-radius: 4px;
       }
+      
       ::-webkit-scrollbar-thumb:hover {
-        background: #A3A3A3;
+        background: var(--scrollbar-thumb-hover);
       }
+      
       .glass-effect {
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
       }
+      
       .text-gradient {
-        background: linear-gradient(135deg, #A11008 0%, #C41E14 100%);
+        background: linear-gradient(135deg, var(--accent-red) 0%, var(--accent-red-light) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
+      }
+      
+      /* Selection */
+      ::selection {
+        background-color: var(--accent-red);
+        color: white;
       }
     </style>
   <script type="importmap">
@@ -107,6 +171,7 @@
 }
 </script>
 <link rel="stylesheet" href="/index.css">
+<link rel="stylesheet" href="/theme-utilities.css">
 </head>
   <body>
     <div id="root"></div>

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import LandingPage from './LandingPage';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -11,8 +12,10 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <AuthProvider>
-      <LandingPage />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <LandingPage />
+      </AuthProvider>
+    </ThemeProvider>
   </React.StrictMode>
 );

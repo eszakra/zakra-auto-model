@@ -1,0 +1,43 @@
+/* Dark Mode Utilities for Tailwind CDN */
+
+/* Background colors */
+.bg-theme-primary { background-color: var(--bg-primary); }
+.bg-theme-secondary { background-color: var(--bg-secondary); }
+.bg-theme-tertiary { background-color: var(--bg-tertiary); }
+.bg-theme-card { background-color: var(--card-bg); }
+.bg-theme-input { background-color: var(--input-bg); }
+.bg-theme-hover { background-color: var(--hover-bg); }
+
+/* Text colors */
+.text-theme-primary { color: var(--text-primary); }
+.text-theme-secondary { color: var(--text-secondary); }
+.text-theme-muted { color: var(--text-muted); }
+
+/* Border colors */
+.border-theme { border-color: var(--border-color); }
+.border-theme-card { border-color: var(--card-border); }
+.border-theme-input { border-color: var(--input-border); }
+
+/* Glass effect */
+.glass-theme {
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Accent colors */
+.text-accent { color: var(--accent-red); }
+.text-accent-light { color: var(--accent-red-light); }
+.text-accent-dark { color: var(--accent-red-dark); }
+.bg-accent { background-color: var(--accent-red); }
+.bg-accent-light { background-color: var(--accent-red-light); }
+.bg-accent-dark { background-color: var(--accent-red-dark); }
+
+/* Hover states */
+.hover\:bg-theme-hover:hover { background-color: var(--hover-bg); }
+.hover\:text-accent:hover { color: var(--accent-red); }
+
+/* Shadow */
+.shadow-theme { box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px var(--shadow-color); }
+.shadow-theme-lg { box-shadow: 0 10px 15px -3px var(--shadow-color), 0 4px 6px -2px var(--shadow-color); }

@@ -8,6 +8,7 @@ import {
 import App from './App';
 import { useAuth } from './contexts/AuthContext';
 import { LoginPage, RegisterPage } from './components/AuthPages';
+import { ThemeToggle } from './components/ThemeToggle';
 import { supabase } from './services/supabaseClient';
 
 // Navigation Component
@@ -37,8 +38,8 @@ const Navigation = ({
   ];
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-white/95 backdrop-blur-md border-b border-gray-200' : 'bg-transparent'
+    <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
+      isScrolled ? 'bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-color)]' : 'bg-transparent'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
@@ -873,31 +874,32 @@ const LandingPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <Navigation 
+    <div className="min-h-screen bg-[var(--bg-primary)] transition-colors duration-300">
+      <ThemeToggle />
+      <Navigation
         onLaunchApp={handleShowApp}
         onLoginClick={() => setShowLogin(true)}
         onRegisterClick={() => setShowRegister(true)}
       />
-      
+
       {showLogin && (
-        <LoginPage 
-          onClose={() => setShowLogin(false)} 
+        <LoginPage
+          onClose={() => setShowLogin(false)}
           onSwitch={() => { setShowLogin(false); setShowRegister(true); }}
-          onSuccess={() => { 
+          onSuccess={() => {
             setShowLogin(false);
             handleShowApp();
           }}
         />
       )}
-      
+
       {showRegister && (
-        <RegisterPage 
-          onClose={() => setShowRegister(false)} 
+        <RegisterPage
+          onClose={() => setShowRegister(false)}
           onSwitch={() => { setShowRegister(false); setShowLogin(true); }}
         />
       )}
-      
+
       <HeroSection onLaunchApp={handleShowApp} />
       <ServicesSection />
       <PricingSection />
