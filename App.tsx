@@ -101,23 +101,28 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     return () => clearTimeout(timer);
   }, [user, userLoading]);
 
-  // Fetch API key from Supabase Edge Function
+  // Fetch API key from Supabase
   const fetchApiKey = async () => {
     try {
       setLoadingApiKey(true);
       
-      // Try to get from Edge Function first
-      const { data, error } = await supabase.functions.invoke('get-api-key');
+      // Try to get from RPC function first
+      const { data, error } = await supabase.rpc('get_api_key');
       
       if (error) {
-        console.error('Error fetching API key from edge function:', error);
+        console.error('Error fetching API key from RPC:', error);
         // Fallback to environment variable
         const envKey = import.meta.env.VITE_API_KEY || '';
         setApiKey(envKey);
         setHasAccess(!!envKey);
-      } else if (data?.apiKey) {
-        setApiKey(data.apiKey);
+      } else if (data) {
+        setApiKey(data);
         setHasAccess(true);
+      } else {
+        // Fallback to environment variable
+        const envKey = import.meta.env.VITE_API_KEY || '';
+        setApiKey(envKey);
+        setHasAccess(!!envKey);
       }
     } catch (err) {
       console.error('Failed to fetch API key:', err);
