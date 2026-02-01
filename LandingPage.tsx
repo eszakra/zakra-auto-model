@@ -9,6 +9,7 @@ import App from './App';
 import { useAuth } from './contexts/AuthContext';
 import { LoginPage, RegisterPage } from './components/AuthPages';
 import { AdminPanel } from './components/AdminPanelExtended';
+import { supabase } from './services/supabaseClient';
 
 // Navigation Component
 const Navigation = ({ 
@@ -797,6 +798,37 @@ const LandingPage = () => {
       setShowApp(true);
     }
   }, [user, loading]);
+
+  // Handle email confirmation from URL
+  useEffect(() => {
+    const handleEmailConfirmation = async () => {
+      // Check if there's a hash in the URL (from email confirmation)
+      if (window.location.hash) {
+        try {
+          // Supabase automatically handles the token in the URL hash
+          // We just need to get the session
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error('Error getting session:', error);
+          } else if (data.session) {
+            console.log('Session obtained successfully:', data);
+            // Clear the URL hash
+            window.history.replaceState({}, document.title, window.location.pathname);
+            // Show success message
+            alert('Email confirmed successfully! Welcome to REED.');
+            // Redirect to app
+            setShowApp(true);
+            localStorage.setItem('reed_show_app', 'true');
+          }
+        } catch (err) {
+          console.error('Error:', err);
+        }
+      }
+    };
+    
+    handleEmailConfirmation();
+  }, []);
 
   // Auto-redirect to app only on initial login, not on every user change
   useEffect(() => {
