@@ -148,26 +148,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
   const fetchGenerations = async () => {
     setLoading(true);
-    let query = supabase
-      .from('generation_logs')
-      .select(`
-        *,
-        user_profiles:user_id (email)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(200);
+    console.log('Fetching generations for user:', selectedGenerationUser);
+    
+    try {
+      let query = supabase
+        .from('generation_logs')
+        .select(`
+          *,
+          user_profiles:user_id (email)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(200);
 
-    if (selectedGenerationUser !== 'all') {
-      query = query.eq('user_id', selectedGenerationUser);
-    }
+      if (selectedGenerationUser !== 'all') {
+        query = query.eq('user_id', selectedGenerationUser);
+      }
 
-    const { data, error } = await query;
+      const { data, error } = await query;
 
-    if (!error && data) {
-      setGenerations(data.map(g => ({
-        ...g,
-        user_email: g.user_profiles?.email
-      })));
+      console.log('Generations data:', data);
+      console.log('Generations error:', error);
+
+      if (error) {
+        console.error('Error fetching generations:', error);
+        alert('Error fetching generations: ' + error.message);
+      } else if (data) {
+        setGenerations(data.map(g => ({
+          ...g,
+          user_email: g.user_profiles?.email
+        })));
+      }
+    } catch (err) {
+      console.error('Exception fetching generations:', err);
+      alert('Exception: ' + (err as Error).message);
     }
     setLoading(false);
   };
