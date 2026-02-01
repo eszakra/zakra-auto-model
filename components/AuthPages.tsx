@@ -56,7 +56,7 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onClose, onSwitch, onSucces
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-[#a11008] text-sm">
               {error}
             </div>
           )}
@@ -205,7 +205,7 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-[#a11008] text-sm">
               {error}
             </div>
           )}

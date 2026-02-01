@@ -672,7 +672,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                 <>
                   <Crown className="w-5 h-5 text-amber-500" />
                   <span className="text-sm font-bold text-[var(--text-primary)]">Unlimited</span>
-                  <span className="text-xs text-amber-600 font-medium bg-amber-100 px-2 py-0.5 rounded-full">PREMIUM</span>
+                  <span className="text-xs text-amber-500 font-medium bg-amber-100 px-2 py-0.5 rounded-full">PREMIUM</span>
                 </>
               ) : (
                 <>
@@ -685,8 +685,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
             </div>
           ) : userLoadError ? (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full">
-              <AlertCircle className="w-4 h-4 text-red-500" />
-              <span className="text-sm text-red-600">Auth Error</span>
+              <AlertCircle className="w-4 h-4 text-[#a11008]" />
+              <span className="text-sm text-[#a11008]">Auth Error</span>
             </div>
           ) : null}
 
@@ -747,7 +747,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                       </button>
                       <button
                         onClick={(e) => handleStartDelete(modelo, e)}
-                        className="w-6 h-6 bg-[var(--bg-primary)] border border-[var(--border-color)] hover:border-red-500 hover:text-red-500 rounded flex items-center justify-center transition-colors"
+                        className="w-6 h-6 bg-[var(--bg-primary)] border border-[var(--border-color)] hover:border-red-500 hover:text-[#a11008] rounded flex items-center justify-center transition-colors"
                         title="Delete model"
                       >
                         <X size={12} />
@@ -819,7 +819,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                       <img src={q.previewUrl} className="w-full h-full object-cover rounded" />
                       <button
                         onClick={(e) => { e.stopPropagation(); removeQueueItem(q.id); }}
-                        className="absolute top-1 right-1 w-5 h-5 bg-[var(--bg-primary)] border border-[var(--border-color)] hover:border-red-500 hover:text-red-500 rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-all z-30"
+                        className="absolute top-1 right-1 w-5 h-5 bg-[var(--bg-primary)] border border-[var(--border-color)] hover:border-red-500 hover:text-[#a11008] rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-all z-30"
                         title="Remove"
                       >
                         <X size={10} />
@@ -864,7 +864,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                   disabled={!selectedModel || !refImage || appState === AppState.ANALYZING}
                   className={`w-full py-3 text-sm font-bold uppercase rounded-lg border-2 transition-all
                     ${(!selectedModel || !refImage) ? 'border-[var(--border-color)] text-[var(--text-muted)]' :
-                      appState === AppState.ANALYZING ? 'border-amber-500 text-amber-600 animate-pulse' : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:border-reed-red hover:text-reed-red'}`}
+                      appState === AppState.ANALYZING ? 'border-amber-500 text-amber-500 animate-pulse' : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:border-reed-red hover:text-reed-red'}`}
                 >
                   {appState === AppState.ANALYZING ? 'Analyzing...' : 'Run Fusion Analysis'}
                 </button>
@@ -875,7 +875,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                     disabled={!queue.some(q => q.status === 'PENDING')}
                     className={`flex-grow py-3 text-sm font-bold uppercase rounded-lg border-2 transition-all
                       ${!queue.some(q => q.status === 'PENDING') ? 'border-[var(--border-color)] text-[var(--text-muted)]' :
-                        'border-amber-500 text-amber-600 hover:bg-amber-500/10'}`}
+                        'border-amber-500 text-amber-500 hover:bg-amber-500/10'}`}
                   >
                     {queue.some(q => q.status === 'ANALYZING') ? 'Analyzing Batch...' : 'Generate Payloads (Auto)'}
                   </button>
@@ -962,7 +962,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                           </>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]">
-                            {q.status === 'ERROR' ? <AlertCircle className="text-red-400" /> :
+                            {q.status === 'ERROR' ? <AlertCircle className="text-[#a11008]" /> :
                               q.status === 'COMPLETED' ? <CheckCircle2 className="text-green-400" /> :
                                 q.status === 'GENERATING' ? <Loader2 className="animate-spin text-green-400" /> :
                                   q.status === 'ANALYZED' ? <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" /> :
@@ -991,7 +991,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                           <span className="text-sm uppercase tracking-wide text-[var(--text-secondary)]">Processing...</span>
                         </div>
                       ) : appState === AppState.ERROR ? (
-                        <span className="text-sm text-red-500 font-bold uppercase">{errorMsg || "Error"}</span>
+                        <span className="text-sm text-[#a11008] font-bold uppercase">{errorMsg || "Error"}</span>
                       ) : (
                         <span className="text-sm uppercase tracking-wide text-[var(--text-muted)]">No image generated</span>
                       )}
@@ -1017,7 +1017,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
               generatedImage && (
                 <button
                   onClick={handleDownload}
-                  className="mb-3 w-full py-2 text-sm font-bold tracking-wide uppercase border-2 border-green-500 text-green-600 rounded-lg hover:bg-green-500/10 transition-all"
+                  className="mb-3 w-full py-2 text-sm font-bold tracking-wide uppercase border-2 border-green-500 text-green-500 rounded-lg hover:bg-green-500/10 transition-all"
                 >
                   Download Image
                 </button>
@@ -1030,7 +1030,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                 <label className="text-xs text-[var(--text-muted)] uppercase font-medium flex items-center gap-1">
                   Resolution
                   {(user?.plan_type === 'free' || user?.plan_type === 'basic') && (
-                    <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">1K max</span>
+                    <span className="text-[10px] bg-amber-100 text-amber-500 px-1.5 py-0.5 rounded">1K max</span>
                   )}
                 </label>
                 <select
@@ -1134,7 +1134,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       {deleteConfirmModel && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-[var(--bg-primary)] border border-red-200 rounded-xl p-6 w-full max-w-md shadow-xl">
-            <h3 className="text-lg font-bold mb-4 text-red-600">Confirm Deletion</h3>
+            <h3 className="text-lg font-bold mb-4 text-[#a11008]">Confirm Deletion</h3>
             <p className="text-[var(--text-secondary)] mb-2">Are you sure you want to delete the model:</p>
             <p className="text-[var(--text-primary)] font-bold mb-4 uppercase">"{deleteConfirmModel.model_name}"?</p>
             <p className="text-xs text-[var(--text-muted)] mb-6">This action cannot be undone.</p>
@@ -1164,7 +1164,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       {appState === AppState.ERROR && (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
           <div className="bg-[var(--bg-primary)] border border-red-200 rounded-xl p-8 w-full max-w-lg shadow-2xl text-center">
-            <div className="text-red-500 mb-4">
+            <div className="text-[#a11008] mb-4">
               <AlertCircle size={48} className="mx-auto" />
             </div>
 

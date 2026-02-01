@@ -178,7 +178,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     return (
       <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80">
         <div className="bg-white p-8 rounded-2xl shadow-2xl text-center">
-          <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <Shield className="w-16 h-16 text-[#a11008] mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Access Denied</h2>
           <p className="text-[var(--text-secondary)]">You don't have permission to access the admin panel.</p>
           <button
@@ -312,7 +312,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                               </select>
                             </td>
                             <td className="px-4 py-3">
-                              <span className={`font-bold ${u.credits < 10 ? 'text-red-600' : 'text-green-600'}`}>
+                              <span className={`font-bold ${u.credits < 10 ? 'text-[#a11008]' : 'text-green-500'}`}>
                                 {u.credits}
                               </span>
                             </td>
@@ -361,15 +361,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                             <td className="px-4 py-3 text-sm">{t.user_email}</td>
                             <td className="px-4 py-3">
                               <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                t.type === 'purchase' ? 'bg-green-100 text-green-800' :
-                                t.type === 'usage' ? 'bg-red-100 text-red-800' :
+                                t.type === 'purchase' ? 'bg-green-100 text-green-500' :
+                                t.type === 'usage' ? 'bg-red-100 text-[#a11008]' :
                                 t.type === 'bonus' ? 'bg-blue-100 text-blue-800' :
                                 'bg-[var(--bg-secondary)] text-gray-800'
                               }`}>
                                 {t.type}
                               </span>
                             </td>
-                            <td className={`px-4 py-3 font-bold ${t.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <td className={`px-4 py-3 font-bold ${t.amount > 0 ? 'text-green-500' : 'text-[#a11008]'}`}>
                               {t.amount > 0 ? '+' : ''}{t.amount}
                             </td>
                             <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">{t.description}</td>

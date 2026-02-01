@@ -159,7 +159,7 @@ const Navigation = ({
                     setIsMobileMenuOpen(false);
                     signOut();
                   }}
-                  className="block w-full text-left text-base font-medium text-red-600 py-2"
+                  className="block w-full text-left text-base font-medium text-[#a11008] py-2"
                 >
                   Sign Out
                 </button>
@@ -561,7 +561,7 @@ const PricingSection = () => {
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-[var(--text-secondary)]">NSFW:</span>
-                  <span className={`font-semibold ${plan.nsfw === true || plan.nsfw === 'Full' ? 'text-green-600' : plan.nsfw === 'Soon' ? 'text-amber-600' : 'text-gray-400'}`}>
+                  <span className={`font-semibold ${plan.nsfw === true || plan.nsfw === 'Full' ? 'text-green-500' : plan.nsfw === 'Soon' ? 'text-amber-500' : 'text-gray-400'}`}>
                     {plan.nsfw === true ? 'Yes' : plan.nsfw === false ? 'No' : plan.nsfw}
                   </span>
                 </div>
@@ -590,7 +590,7 @@ const PricingSection = () => {
 
         {/* Guarantee */}
         <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-500 rounded-full text-sm">
             <Shield className="w-4 h-4" />
             14-day guarantee on all plans
           </div>

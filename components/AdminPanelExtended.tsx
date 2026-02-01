@@ -334,7 +334,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     return (
       <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80">
         <div className="bg-[var(--bg-primary)] p-8 rounded-2xl shadow-2xl text-center border border-[var(--border-color)]">
-          <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <Shield className="w-16 h-16 text-[#a11008] mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Access Denied</h2>
           <p className="text-[var(--text-secondary)]">You don't have permission to access the admin panel.</p>
           <button
@@ -470,7 +470,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                               </select>
                             </td>
                             <td className="px-4 py-3">
-                              <span className={`font-bold ${u.credits < 10 ? 'text-red-600' : 'text-green-600'}`}>
+                              <span className={`font-bold ${u.credits < 10 ? 'text-[#a11008]' : 'text-green-500'}`}>
                                 {u.credits}
                               </span>
                             </td>
@@ -519,15 +519,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                             <td className="px-4 py-3 text-sm">{t.user_email}</td>
                             <td className="px-4 py-3">
                               <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                t.type === 'purchase' ? 'bg-green-100 text-green-800' :
-                                t.type === 'usage' ? 'bg-red-100 text-red-800' :
-                                t.type === 'bonus' ? 'bg-blue-100 text-blue-800' :
+                                t.type === 'purchase' ? 'bg-green-100 text-green-500' :
+                                t.type === 'usage' ? 'bg-red-100 text-[#a11008]' :
+                                t.type === 'bonus' ? 'bg-blue-100 text-blue-400' :
                                 'bg-[var(--bg-secondary)] text-gray-800'
                               }`}>
                                 {t.type}
                               </span>
                             </td>
-                            <td className={`px-4 py-3 font-bold ${t.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <td className={`px-4 py-3 font-bold ${t.amount > 0 ? 'text-green-500' : 'text-[#a11008]'}`}>
                               {t.amount > 0 ? '+' : ''}{t.amount}
                             </td>
                             <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">{t.description}</td>
@@ -671,7 +671,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                 onClick={() => toggleFeature(flag.key, flag.value === true || flag.value === 'true')}
                                 className={`p-2 rounded-lg transition-colors ${
                                   flag.value === true || flag.value === 'true'
-                                    ? 'bg-green-100 text-green-600'
+                                    ? 'bg-green-100 text-green-500'
                                     : 'bg-[var(--bg-secondary)] text-gray-400'
                                 }`}
                               >
@@ -690,7 +690,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 )}
 
                 <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 mb-2">Quick Actions</h4>
+                  <h4 className="font-semibold text-blue-400 mb-2">Quick Actions</h4>
                   <div className="flex gap-2">
                     <button
                       onClick={() => toggleFeature('maintenance_mode', isEnabled('maintenance_mode'))}
@@ -730,7 +730,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                       ) : apiKey ? (
                         <>
                           <CheckCircle className="w-5 h-5 text-green-500" />
-                          <span className="text-green-600 font-medium">API Key Configured</span>
+                          <span className="text-green-500 font-medium">API Key Configured</span>
                           <span className="text-gray-400 text-sm">({currentApiKeySource})</span>
                         </>
                       ) : (
@@ -784,8 +784,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                     {apiKeyMessage && (
                       <div className={`p-4 rounded-lg flex items-center gap-2 ${
                         apiKeyMessage.type === 'success' 
-                          ? 'bg-green-50 text-green-700 border border-green-200' 
-                          : 'bg-red-50 text-red-700 border border-red-200'
+                          ? 'bg-green-50 text-green-500 border border-green-200' 
+                          : 'bg-red-50 text-[#a11008] border border-red-200'
                       }`}>
                         {apiKeyMessage.type === 'success' ? (
                           <CheckCircle className="w-5 h-5" />
@@ -822,11 +822,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   </div>
 
                   <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                    <h4 className="font-semibold text-blue-400 mb-2 flex items-center gap-2">
                       <Zap className="w-4 h-4" />
                       Important Notes
                     </h4>
-                    <ul className="text-sm text-blue-800 space-y-2 list-disc list-inside">
+                    <ul className="text-sm text-blue-400 space-y-2 list-disc list-inside">
                       <li>Updating the API key will affect all users immediately</li>
                       <li>Make sure the new key has sufficient quota for image generation</li>
                       <li>The old key will be replaced and cannot be recovered</li>
