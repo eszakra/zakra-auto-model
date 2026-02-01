@@ -76,7 +76,7 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
             <div className="w-full max-w-lg border border-gray-200 bg-white rounded-xl p-6 shadow-2xl flex flex-col gap-4">
                 <div className="flex justify-between items-center border-b border-gray-200 pb-4">
                     <div className="flex items-center gap-2">
-                        <img src="/REED LOGO RED PNG.png" alt="REED" className="h-5 w-auto" />
+                        <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-5 w-auto" />
                         <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Add New Model</h2>
                     </div>
                     <button 

@@ -532,7 +532,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     return (
       <div className="h-screen bg-white flex flex-col items-center justify-center p-4">
         <div className="text-center max-w-md">
-          <img src="/REED LOGO RED PNG.png" alt="REED" className="h-16 w-auto mx-auto mb-6" />
+          <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-16 w-auto mx-auto mb-6" />
           <div className="text-reed-red mb-4"><AlertCircle size={48} className="mx-auto" /></div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">API Key Not Configured</h1>
           <p className="text-gray-600 mb-8">The API key is not configured. Please contact the administrator.</p>
@@ -561,7 +561,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
             <span className="text-sm font-medium hidden sm:inline">Back</span>
           </button>
           <div className="w-px h-6 bg-gray-200 mx-2" />
-          <img src="/REED LOGO RED PNG.png" alt="REED" className="h-6 w-auto" />
+          <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-6 w-auto" />
           <span className="text-sm font-bold tracking-wide text-gray-900 hidden sm:inline">REED GENERATOR</span>
           <div className={`w-2 h-2 rounded-full ml-2 ${appState === AppState.GENERATING || appState === AppState.ANALYZING ? 'bg-amber-500 animate-pulse' : 'bg-green-500'}`}></div>
         </div>

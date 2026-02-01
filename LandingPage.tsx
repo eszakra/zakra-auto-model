@@ -45,7 +45,7 @@ const Navigation = ({
           {/* Logo */}
           <a href="#" className="flex items-center gap-3">
             <img 
-              src="/REED LOGO RED PNG.png" 
+              src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" 
               alt="REED" 
               className="h-8 w-auto"
             />
@@ -724,7 +724,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/REED LOGO RED PNG.png" alt="REED" className="h-8 w-auto brightness-0 invert" />
+              <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-8 w-auto brightness-0 invert" />
               <span className="font-display font-bold text-xl">REED</span>
             </div>
             <p className="text-gray-400 max-w-sm mb-6">
@@ -829,7 +829,7 @@ const LandingPage = () => {
         />
         <div className="h-screen flex items-center justify-center">
           <div className="text-center">
-            <img src="/REED LOGO RED PNG.png" alt="REED" className="h-12 w-auto mx-auto mb-4 animate-pulse" />
+            <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-12 w-auto mx-auto mb-4 animate-pulse" />
             <p className="text-gray-600">Loading...</p>
           </div>
         </div>

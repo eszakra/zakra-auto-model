@@ -71,7 +71,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose }) => {
                 {/* HEADER */}
                 <div className="flex justify-between items-center border-b border-gray-200 p-4 bg-white">
                     <div className="flex items-center gap-3">
-                        <img src="/REED LOGO RED PNG.png" alt="REED" className="h-6 w-auto" />
+                        <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-6 w-auto" />
                         <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide flex items-center gap-2">
                             <Calendar size={16} className="text-gray-400" />
                             Generation History

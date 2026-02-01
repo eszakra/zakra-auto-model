@@ -44,7 +44,7 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onClose, onSwitch, onSucces
         <div className="bg-reed-red p-6 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <img src="/REED LOGO RED PNG.png" alt="REED" className="h-6 w-auto brightness-0 invert" />
+              <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-6 w-auto brightness-0 invert" />
               <span className="font-bold text-lg">REED</span>
             </div>
             <button onClick={onClose} className="text-white/80 hover:text-white"><span className="text-2xl">×</span></button>
@@ -193,7 +193,7 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
         <div className="bg-reed-red p-6 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <img src="/REED LOGO RED PNG.png" alt="REED" className="h-6 w-auto brightness-0 invert" />
+              <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-6 w-auto brightness-0 invert" />
               <span className="font-bold text-lg">REED</span>
             </div>
             <button onClick={onClose} className="text-white/80 hover:text-white"><span className="text-2xl">×</span></button>
