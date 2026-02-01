@@ -798,9 +798,10 @@ const LandingPage = () => {
     }
   }, [user, loading]);
 
-  // Auto-redirect to app if user is already logged in
+  // Auto-redirect to app only on initial login, not on every user change
   useEffect(() => {
-    if (user && !loading) {
+    // Only redirect if user just logged in (was null before) and we're not already in the app
+    if (user && !loading && !showApp && !localStorage.getItem('reed_show_app')) {
       setShowApp(true);
       localStorage.setItem('reed_show_app', 'true');
     }
