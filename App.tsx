@@ -141,6 +141,14 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     return apiKey;
   };
 
+  // Expose refresh function to window for admin panel
+  useEffect(() => {
+    (window as any).refreshApiKey = fetchApiKey;
+    return () => {
+      delete (window as any).refreshApiKey;
+    };
+  }, []);
+
   const fetchModelos = async () => {
     setLoadingModels(true);
     const { data, error } = await supabase.from('saved_models').select('*').order('created_at', { ascending: false });

@@ -185,16 +185,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
   const handleUpdateApiKey = async () => {
     if (!newApiKey.trim()) return;
-    
+
     setLoadingApiKey(true);
     const { error } = await supabase.rpc('update_api_key', {
       p_new_key: newApiKey.trim(),
     });
-    
+
     if (!error) {
       setApiKey(newApiKey.trim());
       setNewApiKey('');
-      alert('API Key updated successfully!');
+      // Refresh API key in main app
+      if ((window as any).refreshApiKey) {
+        (window as any).refreshApiKey();
+      }
+      alert('API Key updated successfully! All users will use the new key immediately.');
     } else {
       alert('Error updating API key: ' + error.message);
     }
@@ -445,6 +449,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                       className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
                     >
                       Copy
+                    </button>
+                    <button
+                      onClick={fetchApiKey}
+                      className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm"
+                      title="Refresh from Supabase"
+                    >
+                      Refresh
                     </button>
                   </div>
                   
