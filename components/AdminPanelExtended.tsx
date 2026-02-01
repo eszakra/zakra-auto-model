@@ -197,14 +197,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       setApiKeyLoading(true);
       setApiKeyMessage(null);
 
-      const { data, error } = await supabase.functions.invoke('update-api-key', {
-        body: { apiKey }
+      // Use RPC instead of Edge Function
+      const { data, error } = await supabase.rpc('update_api_key', {
+        p_api_key: apiKey
       });
 
       if (error) {
         console.error('Error updating API key:', error);
         setApiKeyMessage({ type: 'error', text: 'Failed to update API key: ' + error.message });
-      } else if (data?.success) {
+      } else if (data) {
         setApiKeyMessage({ type: 'success', text: 'API key updated successfully!' });
         // Clear the input after successful update
         setApiKey('');
@@ -216,7 +217,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
           fetchCurrentApiKey();
         }, 1000);
       } else {
-        setApiKeyMessage({ type: 'error', text: data?.error || 'Unknown error' });
+        setApiKeyMessage({ type: 'error', text: 'Unknown error' });
       }
     } catch (err: any) {
       console.error('Error:', err);
