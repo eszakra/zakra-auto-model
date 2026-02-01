@@ -70,7 +70,16 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   const [selectedResolution, setSelectedResolution] = useState<string>('AUTO');
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<string>('1:1');
 
-  const RESOLUTIONS = ['AUTO', '1K', '2K', '4K'];
+  // Filter resolutions based on user plan
+  const getAvailableResolutions = () => {
+    const plan = user?.plan_type || 'free';
+    if (plan === 'free' || plan === 'basic') {
+      return ['AUTO', '1K']; // Free and Basic only get AUTO and 1K
+    }
+    return ['AUTO', '1K', '2K', '4K']; // Pro and Premium get all
+  };
+  
+  const RESOLUTIONS = getAvailableResolutions();
   const ASPECT_RATIOS = ['AUTO', '1:1', '4:3', '3:4', '4:5', '16:9', '9:16'];
 
   // Download handler
@@ -100,6 +109,14 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     }, 5000);
     return () => clearTimeout(timer);
   }, [user, userLoading]);
+
+  // Reset resolution if user changes plan and selected resolution is not available
+  useEffect(() => {
+    const plan = user?.plan_type || 'free';
+    if ((plan === 'free' || plan === 'basic') && (selectedResolution === '2K' || selectedResolution === '4K')) {
+      setSelectedResolution('AUTO');
+    }
+  }, [user?.plan_type, selectedResolution]);
 
   // Fetch API key from Supabase
   const fetchApiKey = async () => {
@@ -330,7 +347,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         item.payload,
         selectedModel.image_url,
         selectedResolution === 'AUTO' ? undefined : selectedResolution,
-        selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio
+        selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio,
+        user?.plan_type
       );
 
       // Deduct credits after successful generation
@@ -353,7 +371,12 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
     } catch (e: any) {
       console.error(e);
-      setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'ERROR', error: e.message } : q));
+      // Check if it's a resolution error
+      let errorMsg = e.message;
+      if (e.message?.includes('RESOLUTION_NOT_ALLOWED')) {
+        errorMsg = 'Your plan only supports up to 1K. Upgrade to Pro/Premium for higher resolutions.';
+      }
+      setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'ERROR', error: errorMsg } : q));
     }
   };
 
@@ -489,7 +512,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         finalPayload,
         selectedModel?.image_url || "",
         selectedResolution === 'AUTO' ? undefined : selectedResolution,
-        selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio
+        selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio,
+        user?.plan_type
       );
       setGeneratedImage(result);
       setAppState(AppState.COMPLETE);
@@ -504,7 +528,12 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
     } catch (error: any) {
       setAppState(AppState.ERROR);
-      setErrorMsg(error.message);
+      // Check if it's a resolution error
+      if (error.message?.includes('RESOLUTION_NOT_ALLOWED')) {
+        setErrorMsg('ANALYSIS FAILED: Your current plan only supports up to 1K resolution. Please upgrade to Pro or Premium to access 2K and 4K resolutions.');
+      } else {
+        setErrorMsg(error.message);
+      }
     }
   };
 
@@ -944,7 +973,12 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
             {/* RESOLUTION & ASPECT RATIO SELECTORS */}
             <div className="mb-4 grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500 uppercase font-medium">Resolution</label>
+                <label className="text-xs text-gray-500 uppercase font-medium flex items-center gap-1">
+                  Resolution
+                  {(user?.plan_type === 'free' || user?.plan_type === 'basic') && (
+                    <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">1K max</span>
+                  )}
+                </label>
                 <select
                   value={selectedResolution}
                   onChange={(e) => setSelectedResolution(e.target.value)}
@@ -954,6 +988,11 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                     <option key={res} value={res}>{res === 'AUTO' ? 'Auto (Model Chooses)' : res}</option>
                   ))}
                 </select>
+                {(user?.plan_type === 'free' || user?.plan_type === 'basic') && (
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    Upgrade to Pro for 2K/4K
+                  </p>
+                )}
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-500 uppercase font-medium">Aspect Ratio</label>
