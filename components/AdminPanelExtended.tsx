@@ -151,12 +151,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     console.log('Fetching generations for user:', selectedGenerationUser);
     
     try {
+      // Primero obtener las generaciones
       let query = supabase
         .from('generation_logs')
-        .select(`
-          *,
-          user_profiles:user_id (email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(200);
 
@@ -164,19 +162,50 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
         query = query.eq('user_id', selectedGenerationUser);
       }
 
-      const { data, error } = await query;
+      const { data: genData, error: genError } = await query;
 
-      console.log('Generations data:', data);
-      console.log('Generations error:', error);
+      console.log('Generations data:', genData);
+      console.log('Generations error:', genError);
 
-      if (error) {
-        console.error('Error fetching generations:', error);
-        alert('Error fetching generations: ' + error.message);
-      } else if (data) {
-        setGenerations(data.map(g => ({
+      if (genError) {
+        console.error('Error fetching generations:', genError);
+        alert('Error fetching generations: ' + genError.message);
+        setLoading(false);
+        return;
+      }
+
+      // Si tenemos generaciones, obtener los emails de los usuarios
+      if (genData && genData.length > 0) {
+        // Obtener user_ids únicos
+        const userIds = [...new Set(genData.map(g => g.user_id))];
+        
+        // Obtener los perfiles de usuario
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('user_profiles')
+          .select('id, email')
+          .in('id', userIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+        }
+
+        // Crear un mapa de user_id a email
+        const emailMap: Record<string, string> = {};
+        if (profilesData) {
+          profilesData.forEach(profile => {
+            emailMap[profile.id] = profile.email;
+          });
+        }
+
+        // Combinar los datos
+        const generationsWithEmail = genData.map(g => ({
           ...g,
-          user_email: g.user_profiles?.email
-        })));
+          user_email: emailMap[g.user_id] || 'Unknown'
+        }));
+
+        setGenerations(generationsWithEmail);
+      } else {
+        setGenerations([]);
       }
     } catch (err) {
       console.error('Exception fetching generations:', err);
