@@ -461,6 +461,19 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       return;
     }
 
+    // Check credits before analysis (costs 1 credit)
+    if (!hasEnoughCredits(1)) {
+      alert("INSUFFICIENT CREDITS: You need at least 1 credit to run the analysis. Please upgrade your plan or purchase more credits.");
+      return;
+    }
+
+    // Deduct credits for analysis
+    const creditsUsed = await useCredits(1, `Fusion analysis with model: ${selectedModel.model_name || 'unknown'}`);
+    if (!creditsUsed) {
+      alert("Failed to process credits. Please try again.");
+      return;
+    }
+
     setAppState(AppState.ANALYZING);
     setErrorMsg(null);
     setGeneratedPayload(null);
