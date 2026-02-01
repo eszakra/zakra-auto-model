@@ -14,6 +14,15 @@ serve(async (req) => {
   }
 
   try {
+    // Get the JWT token from the request
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const { apiKey } = await req.json()
     
     if (!apiKey || typeof apiKey !== 'string') {
@@ -34,9 +43,44 @@ serve(async (req) => {
     }
 
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2')
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    
+    // Create client with user's JWT to verify they're admin
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+      global: {
+        headers: {
+          Authorization: authHeader
+        }
+      }
+    })
 
-    const { error } = await supabase
+    // Verify user is admin
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Check if user is admin
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('user_profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile?.is_admin) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Create admin client to update the API key
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey)
+
+    const { error } = await adminClient
       .from('system_config')
       .upsert({ 
         key: 'gemini_api_key', 

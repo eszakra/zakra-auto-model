@@ -165,16 +165,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const fetchCurrentApiKey = async () => {
     try {
       setApiKeyLoading(true);
-      const { data, error } = await supabase.functions.invoke('get-api-key');
+      // Use RPC instead of Edge Function
+      const { data, error } = await supabase.rpc('get_api_key');
       
       if (error) {
         console.error('Error fetching API key:', error);
         setApiKeyMessage({ type: 'error', text: 'Failed to fetch current API key' });
-      } else if (data?.apiKey) {
+      } else if (data) {
         // Mask the API key for display
-        const maskedKey = data.apiKey.substring(0, 10) + '...' + data.apiKey.substring(data.apiKey.length - 4);
+        const maskedKey = data.substring(0, 10) + '...' + data.substring(data.length - 4);
         setApiKey(maskedKey);
-        setCurrentApiKeySource(data.source || 'unknown');
+        setCurrentApiKeySource('database');
       } else {
         setApiKey('');
         setCurrentApiKeySource('');
