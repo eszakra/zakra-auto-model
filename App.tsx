@@ -359,12 +359,15 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
       const fileName = `batch_${Date.now()}_${item.id}.png`;
       const publicUrl = await uploadBase64Image(resultBase64, 'generations', fileName);
-      await supabase.from('generation_history').insert({
+      await supabase.from('generation_logs').insert({
+        user_id: user?.id,
         model_name: selectedModel.model_name,
         image_url: publicUrl,
         prompt: JSON.stringify(item.payload),
         aspect_ratio: selectedAspectRatio,
-        resolution: selectedResolution
+        resolution: selectedResolution,
+        credits_used: 1,
+        status: 'success'
       });
 
       setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'COMPLETED', resultImage: resultBase64 } : q));
@@ -552,17 +555,20 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
   const saveToHistory = async (base64Image: string, payload: any) => {
     try {
-      if (!selectedModel) return;
+      if (!selectedModel || !user) return;
 
       const fileName = `gen_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
       const publicUrl = await uploadBase64Image(base64Image, 'generations', fileName);
 
-      await supabase.from('generation_history').insert({
+      await supabase.from('generation_logs').insert({
+        user_id: user.id,
         model_name: selectedModel.model_name,
         image_url: publicUrl,
         prompt: JSON.stringify(payload),
         aspect_ratio: selectedAspectRatio,
-        resolution: selectedResolution
+        resolution: selectedResolution,
+        credits_used: 1,
+        status: 'success'
       });
       console.log('Saved to history');
     } catch (err) {
