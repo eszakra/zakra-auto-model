@@ -37,6 +37,20 @@ interface FeatureFlag {
   category: string;
 }
 
+interface GenerationLog {
+  id: string;
+  user_id: string;
+  model_name: string;
+  image_url: string;
+  prompt: string;
+  aspect_ratio: string;
+  resolution: string;
+  credits_used: number;
+  status: string;
+  created_at: string;
+  user_email?: string;
+}
+
 interface AdminPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -45,7 +59,7 @@ interface AdminPanelProps {
 export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { flags, isEnabled, updateFlag, loading: flagsLoading } = useFeatureFlags();
-  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'stats' | 'features' | 'apikey'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'stats' | 'features' | 'apikey' | 'generations'>('users');
   
   // Users state
   const [users, setUsers] = useState<UserWithProfile[]>([]);
@@ -72,6 +86,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const [apiKeyMessage, setApiKeyMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   const [currentApiKeySource, setCurrentApiKeySource] = useState<string>('');
 
+  // Generations state
+  const [generations, setGenerations] = useState<GenerationLog[]>([]);
+  const [selectedGenerationUser, setSelectedGenerationUser] = useState<string>('all');
+
   useEffect(() => {
     if (isOpen && user?.is_admin) {
       fetchUsers();
@@ -88,6 +106,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     }
     if (activeTab === 'apikey') {
       fetchCurrentApiKey();
+    }
+    if (activeTab === 'generations') {
+      fetchGenerations();
     }
   }, [activeTab]);
 
@@ -119,6 +140,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       setTransactions(data.map(t => ({
         ...t,
         user_email: t.user_profiles?.email
+      })));
+    }
+    setLoading(false);
+  };
+
+  const fetchGenerations = async () => {
+    setLoading(true);
+    let query = supabase
+      .from('generation_logs')
+      .select(`
+        *,
+        user_profiles:user_id (email)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (selectedGenerationUser !== 'all') {
+      query = query.eq('user_id', selectedGenerationUser);
+    }
+
+    const { data, error } = await query;
+
+    if (!error && data) {
+      setGenerations(data.map(g => ({
+        ...g,
+        user_email: g.user_profiles?.email
       })));
     }
     setLoading(false);
@@ -344,7 +391,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
           {/* Tabs */}
           <div className="border-b border-gray-200">
             <div className="flex">
-              {(['users', 'transactions', 'stats', 'features', 'apikey'] as const).map((tab) => (
+              {(['users', 'transactions', 'generations', 'stats', 'features', 'apikey'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -488,6 +535,96 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'generations' && (
+              <div>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <select
+                      value={selectedGenerationUser}
+                      onChange={(e) => {
+                        setSelectedGenerationUser(e.target.value);
+                        fetchGenerations();
+                      }}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-reed-red"
+                    >
+                      <option value="all">All Users</option>
+                      {users.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.full_name || u.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    onClick={fetchGenerations}
+                    className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-reed-red" />
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Image</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">User</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Model</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Date</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Credits</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {generations.map((g) => (
+                          <tr key={g.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                              <img 
+                                src={g.image_url} 
+                                alt={g.model_name}
+                                className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-sm">{g.user_email}</td>
+                            <td className="px-4 py-3 text-sm">{g.model_name}</td>
+                            <td className="px-4 py-3 text-sm">
+                              {new Date(g.created_at).toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm font-medium text-gray-900">
+                                {g.credits_used}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <a
+                                href={g.image_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-reed-red hover:underline"
+                              >
+                                View
+                              </a>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {generations.length === 0 && (
+                      <div className="text-center py-12 text-gray-500">
+                        No generations found
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

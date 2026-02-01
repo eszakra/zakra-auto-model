@@ -5,7 +5,8 @@ import { AppState, ModeloBase, QueueItem } from './types';
 import ModelModal from './components/ModelModal';
 import HistoryModal from './components/HistoryModal';
 import { useAuth } from './contexts/AuthContext';
-import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers, ScanSearch, X, Check, ArrowLeft, CreditCard, Crown } from 'lucide-react';
+import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers, ScanSearch, X, Check, ArrowLeft, CreditCard, Crown, Shield } from 'lucide-react';
+import { AdminPanel } from './components/AdminPanelExtended';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -32,6 +33,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   const [showModal, setShowModal] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
 
   // --- EDIT/DELETE STATE ---
   const [editingModel, setEditingModel] = useState<ModeloBase | null>(null);
@@ -695,6 +697,17 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
             <Calendar className="w-4 h-4" />
             <span className="hidden sm:inline">History</span>
           </button>
+
+          {/* Admin Button - Only for admins */}
+          {user?.is_admin && (
+            <button
+              onClick={() => setShowAdmin(true)}
+              className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1 transition-colors"
+            >
+              <Shield className="w-4 h-4" />
+              <span className="hidden sm:inline">Admin</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -1220,6 +1233,12 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       <HistoryModal
         isOpen={showHistory}
         onClose={() => setShowHistory(false)}
+      />
+
+      {/* Admin Panel */}
+      <AdminPanel
+        isOpen={showAdmin}
+        onClose={() => setShowAdmin(false)}
       />
     </div>
   );

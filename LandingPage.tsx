@@ -8,7 +8,6 @@ import {
 import App from './App';
 import { useAuth } from './contexts/AuthContext';
 import { LoginPage, RegisterPage } from './components/AuthPages';
-import { AdminPanel } from './components/AdminPanelExtended';
 import { supabase } from './services/supabaseClient';
 
 // Navigation Component
@@ -789,7 +788,6 @@ const LandingPage = () => {
   const [showApp, setShowApp] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
-  const [showAdmin, setShowAdmin] = useState(false);
 
   // Check localStorage on mount to restore app view state
   useEffect(() => {
@@ -900,30 +898,12 @@ const LandingPage = () => {
         />
       )}
       
-      {showAdmin && (
-        <AdminPanel 
-          isOpen={showAdmin} 
-          onClose={() => setShowAdmin(false)} 
-        />
-      )}
-
       <HeroSection onLaunchApp={handleShowApp} />
       <ServicesSection />
       <PricingSection />
       <FAQSection />
       <CTASection />
       <Footer />
-
-      {/* Admin Button (only visible to admins) */}
-      {user?.is_admin && (
-        <button
-          onClick={() => setShowAdmin(true)}
-          className="fixed bottom-6 right-6 z-40 px-4 py-2 bg-gray-900 text-white rounded-lg shadow-lg hover:bg-gray-800 flex items-center gap-2"
-        >
-          <Shield className="w-4 h-4" />
-          Admin
-        </button>
-      )}
     </div>
   );
 };
