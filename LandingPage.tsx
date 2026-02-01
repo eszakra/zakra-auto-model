@@ -452,7 +452,7 @@ const PricingSection = () => {
       name: "Free",
       price: "$0",
       period: "/month",
-      credits: "30",
+      credits: "5",
       nsfw: false,
       features: [
         "Limited trial",
