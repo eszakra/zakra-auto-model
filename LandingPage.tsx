@@ -840,9 +840,15 @@ const LandingPage = () => {
 
   // Handle showing app and saving to localStorage
   const handleShowApp = useCallback(() => {
+    // Verificar si el usuario está autenticado
+    if (!user) {
+      // Si no está autenticado, mostrar modal de login
+      setShowLogin(true);
+      return;
+    }
     setShowApp(true);
     localStorage.setItem('reed_show_app', 'true');
-  }, []);
+  }, [user]);
 
   // Handle going back to landing page
   const handleShowLanding = useCallback(() => {
