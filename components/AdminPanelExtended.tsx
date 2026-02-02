@@ -116,6 +116,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   // Fetch generations when selected user changes
   useEffect(() => {
     if (activeTab === 'generations') {
+      // Limpiar generaciones anteriores inmediatamente para evitar flash de contenido viejo
+      setGenerations([]);
       fetchGenerations();
     }
   }, [selectedGenerationUser]);
