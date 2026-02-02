@@ -299,8 +299,7 @@ const PortfolioSection = () => {
                 : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
             }`}
           >
-            <Sparkles className="w-4 h-4" />
-            Portfolio
+            SFW
           </button>
 
           {/* NSFW Button */}
@@ -313,7 +312,7 @@ const PortfolioSection = () => {
             }`}
           >
             <Flame className="w-4 h-4" />
-            Spicy Content
+            NSFW
           </button>
         </div>
 
