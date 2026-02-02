@@ -1171,7 +1171,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
             <h3 className="text-xl font-bold mb-2 text-[var(--text-primary)]">
               {errorMsg === "CONTENIDO_BLOQUEADO_SEGURIDAD" ? "Content Blocked" :
-                errorMsg === "QUOTA_API_AGOTADA" ? "API Limit Reached" :
+                errorMsg === "QUOTA_API_AGOTADA" ? "High Demand" :
                   "System Error"}
             </h3>
 
@@ -1186,9 +1186,9 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                 </>
               ) : errorMsg === "QUOTA_API_AGOTADA" ? (
                 <>
-                  You have exhausted the free quota of your Gemini API Key.
+                  Our servers are experiencing high demand right now.
                   <br /><br />
-                  <span className="text-[var(--text-primary)] font-medium">Go to Settings and update your API Key to continue.</span>
+                  <span className="text-[var(--text-primary)] font-medium">We're already working on it. Please try again in a few minutes.</span>
                 </>
               ) : (
                 <>
