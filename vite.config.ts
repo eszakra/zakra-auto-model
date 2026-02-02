@@ -18,6 +18,20 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              // Vendor chunks - heavy dependencies
+              'vendor-react': ['react', 'react-dom'],
+              'vendor-supabase': ['@supabase/supabase-js'],
+              'vendor-genai': ['@google/genai'],
+              'vendor-utils': ['jszip', 'file-saver', 'gsap'],
+            }
+          }
+        },
+        chunkSizeWarningLimit: 500,
       }
     };
 });

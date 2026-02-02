@@ -6,172 +6,43 @@
     <title>REED | Elite AI Model Customization Service</title>
     <meta name="description" content="Exclusive AI model customization service for serious creators. NSFW workflows, custom LoRAs, and premium image generation." />
     <link rel="icon" type="image/png" href="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" />
-    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Preconnect to Google Fonts for faster loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              display: ['Space Grotesk', 'sans-serif'],
-            },
-            colors: {
-              reed: {
-                red: '#A11008',
-                'red-light': '#C41E14',
-                'red-dark': '#7A0C06',
-                black: '#0A0A0A',
-                white: '#FFFFFF',
-                gray: {
-                  50: '#FAFAFA',
-                  100: '#F5F5F5',
-                  200: '#E5E5E5',
-                  300: '#D4D4D4',
-                  400: '#A3A3A3',
-                  500: '#737373',
-                  600: '#525252',
-                  700: '#404040',
-                  800: '#262626',
-                  900: '#171717',
-                }
-              }
-            },
-            animation: {
-              'fade-in': 'fadeIn 0.6s ease-out',
-              'slide-up': 'slideUp 0.6s ease-out',
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-            },
-            keyframes: {
-              fadeIn: {
-                '0%': { opacity: '0' },
-                '100%': { opacity: '1' },
-              },
-              slideUp: {
-                '0%': { opacity: '0', transform: 'translateY(20px)' },
-                '100%': { opacity: '1', transform: 'translateY(0)' },
-              },
-            },
-          }
-        }
-      }
-    </script>
+
+    <!-- Preload critical fonts -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="https://fonts.gstatic.com/s/spacegrotesk/v16/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj7oUXskPMBBSSJLm2E.woff2" as="font" type="font/woff2" crossorigin>
+
+    <!-- Load fonts asynchronously -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    </noscript>
+
+    <!-- Critical CSS inline for fast first paint -->
     <style>
-      * {
-        scroll-behavior: smooth;
-      }
-      
-      /* CSS Variables for theming */
+      /* Critical CSS Variables - prevents FOUC */
       :root {
         --bg-primary: #FFFFFF;
         --bg-secondary: #F5F5F5;
-        --bg-tertiary: #FAFAFA;
         --text-primary: #0A0A0A;
-        --text-secondary: #525252;
-        --text-muted: #737373;
-        --border-color: #E5E5E5;
-        --card-bg: #FFFFFF;
-        --card-border: #E5E5E5;
-        --input-bg: #FFFFFF;
-        --input-border: #D4D4D4;
-        --hover-bg: #F5F5F5;
-        --shadow-color: rgba(0, 0, 0, 0.1);
-        --scrollbar-track: #F5F5F5;
-        --scrollbar-thumb: #D4D4D4;
-        --scrollbar-thumb-hover: #A3A3A3;
-        --glass-bg: rgba(255, 255, 255, 0.8);
-        --glass-border: rgba(255, 255, 255, 0.3);
         --accent-red: #A11008;
-        --accent-red-light: #C41E14;
-        --accent-red-dark: #7C0A03;
       }
-
       .dark {
         --bg-primary: #0A0A0A;
         --bg-secondary: #141414;
-        --bg-tertiary: #1A1A1A;
         --text-primary: #FAFAFA;
-        --text-secondary: #A3A3A3;
-        --text-muted: #737373;
-        --border-color: #262626;
-        --card-bg: #141414;
-        --card-border: #262626;
-        --input-bg: #1A1A1A;
-        --input-border: #404040;
-        --hover-bg: #1F1F1F;
-        --shadow-color: rgba(0, 0, 0, 0.5);
-        --scrollbar-track: #1A1A1A;
-        --scrollbar-thumb: #404040;
-        --scrollbar-thumb-hover: #525252;
-        --glass-bg: rgba(20, 20, 20, 0.8);
-        --glass-border: rgba(255, 255, 255, 0.1);
-        --accent-red: #DC2626;
-        --accent-red-light: #EF4444;
-        --accent-red-dark: #B91C1C;
+        --accent-red: #A11008;
       }
-      
       body {
         font-family: 'Inter', sans-serif;
         background-color: var(--bg-primary);
         color: var(--text-primary);
-        transition: background-color 0.3s ease, color 0.3s ease;
-      }
-      
-      .font-display {
-        font-family: 'Space Grotesk', sans-serif;
-      }
-      
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      
-      ::-webkit-scrollbar-track {
-        background: var(--scrollbar-track);
-      }
-      
-      ::-webkit-scrollbar-thumb {
-        background: var(--scrollbar-thumb);
-        border-radius: 4px;
-      }
-      
-      ::-webkit-scrollbar-thumb:hover {
-        background: var(--scrollbar-thumb-hover);
-      }
-      
-      .glass-effect {
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-      }
-      
-      .text-gradient {
-        background: linear-gradient(135deg, var(--accent-red) 0%, var(--accent-red-light) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-      
-      /* Selection */
-      ::selection {
-        background-color: var(--accent-red);
-        color: white;
+        margin: 0;
       }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.3",
-    "lucide-react": "https://esm.sh/lucide-react@0.309.0?deps=react@18.2.0,react-dom@18.2.0",
-    "react": "https://esm.sh/react@18.2.0",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-    "react-dom": "https://esm.sh/react-dom@18.2.0"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
-<link rel="stylesheet" href="/theme-utilities.css">
 </head>
   <body>
     <div id="root"></div>

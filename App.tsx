@@ -1,14 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { supabase, uploadBase64Image } from './services/supabaseClient';
 import { constructPayload, generateIndustrialImage } from './services/geminiService';
 import { AppState, ModeloBase, QueueItem } from './types';
 import ModelModal from './components/ModelModal';
-import HistoryModal from './components/HistoryModal';
 import { useAuth } from './contexts/AuthContext';
 import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers, ScanSearch, X, Check, ArrowLeft, CreditCard, Crown, Shield } from 'lucide-react';
-import { AdminPanel } from './components/AdminPanelExtended';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+
+// Lazy load heavy components
+const HistoryModal = lazy(() => import('./components/HistoryModal'));
+const AdminPanel = lazy(() => import('./components/AdminPanelExtended').then(m => ({ default: m.AdminPanel })));
 
 interface AppProps {
   onBackToLanding?: () => void;
