@@ -105,7 +105,7 @@ const Navigation = ({
                 </button>
                 <button
                   onClick={onRegisterClick}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors shadow-lg shadow-reed-red/25"
                 >
                   Start Free
                   <ArrowRight className="w-4 h-4" />
@@ -230,14 +230,13 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             <button
               onClick={onLaunchApp}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-reed-red text-white text-base font-semibold rounded-xl hover:bg-reed-red-dark transition-all shadow-lg shadow-reed-red/25 hover:shadow-xl hover:shadow-reed-red/30 hover:-translate-y-0.5"
+              className="px-8 py-4 bg-reed-red text-white font-semibold rounded-xl hover:bg-reed-red-dark transition-colors shadow-lg shadow-reed-red/25"
             >
               Start Generating
-              <ArrowRight className="w-5 h-5" />
             </button>
             <a
               href="#services"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-[var(--bg-primary)]/50 backdrop-blur-sm text-[var(--text-primary)] text-base font-semibold rounded-xl border-2 border-[var(--border-color)] hover:border-reed-red/50 hover:bg-reed-red/5 transition-all"
+              className="inline-flex items-center gap-2 px-8 py-4 border-2 border-[var(--border-color)] text-[var(--text-primary)] font-semibold rounded-xl hover:border-[var(--text-muted)] transition-colors"
             >
               View Services
             </a>
@@ -452,7 +451,7 @@ const ServicesSection = () => {
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {workflows.map((workflow) => (
-              <div key={workflow.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl ${
+              <div key={workflow.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
                 workflow.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
               }`}>
                 {workflow.popular && (
@@ -461,7 +460,7 @@ const ServicesSection = () => {
                   </div>
                 )}
                 <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{workflow.name}</h4>
-                <p className="text-[var(--text-secondary)] text-sm mb-4">{workflow.description}</p>
+                <p className="text-[var(--text-secondary)] text-sm mb-4 flex-grow">{workflow.description}</p>
                 <div className="text-3xl font-bold text-[var(--text-primary)] mb-6">{workflow.price}</div>
                 <ul className="space-y-3 mb-6">
                   {workflow.features.map((feature) => (
@@ -471,8 +470,8 @@ const ServicesSection = () => {
                     </li>
                   ))}
                 </ul>
-                <button className="w-full py-3 border-2 border-[var(--border-color)] text-[var(--text-primary)] font-semibold rounded-xl hover:border-reed-red hover:text-reed-red transition-colors">
-                  Request
+                <button className={`w-full py-3 font-semibold rounded-xl transition-colors mt-auto ${workflow.popular ? 'bg-reed-red text-white hover:bg-reed-red-dark' : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'}`}>
+                  {workflow.popular ? 'Get Started' : 'Request'}
                 </button>
               </div>
             ))}
@@ -487,9 +486,9 @@ const ServicesSection = () => {
           </h3>
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
             {loras.map((lora) => (
-              <div key={lora.name} className="bg-[var(--card-bg)] rounded-2xl p-6 border-2 border-[var(--card-border)] hover:border-reed-red transition-all hover:shadow-xl">
+              <div key={lora.name} className="bg-[var(--card-bg)] rounded-2xl p-6 border-2 border-[var(--card-border)] hover:border-reed-red transition-all hover:shadow-xl flex flex-col">
                 <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{lora.name}</h4>
-                <p className="text-[var(--text-secondary)] text-sm mb-4">{lora.description}</p>
+                <p className="text-[var(--text-secondary)] text-sm mb-4 flex-grow">{lora.description}</p>
                 <div className="text-3xl font-bold text-[var(--text-primary)] mb-6">{lora.price}</div>
                 <ul className="space-y-3 mb-6">
                   {lora.features.map((feature) => (
@@ -499,7 +498,7 @@ const ServicesSection = () => {
                     </li>
                   ))}
                 </ul>
-                <button className="w-full py-3 bg-reed-red text-white font-semibold rounded-xl hover:bg-reed-red-dark transition-colors">
+                <button className="w-full py-3 font-semibold rounded-xl bg-reed-red text-white hover:bg-reed-red-dark transition-colors mt-auto">
                   Buy Now
                 </button>
               </div>
@@ -515,7 +514,7 @@ const ServicesSection = () => {
           </h3>
           <div className="grid md:grid-cols-3 gap-6">
             {packages.map((pkg) => (
-              <div key={pkg.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl ${
+              <div key={pkg.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
                 pkg.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
               }`}>
                 {pkg.popular && (
@@ -524,7 +523,7 @@ const ServicesSection = () => {
                   </div>
                 )}
                 <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{pkg.name}</h4>
-                <p className="text-[var(--text-secondary)] text-sm mb-4">{pkg.description}</p>
+                <p className="text-[var(--text-secondary)] text-sm mb-4 flex-grow">{pkg.description}</p>
                 <div className="text-3xl font-bold text-[var(--text-primary)] mb-6">{pkg.price}</div>
                 <ul className="space-y-3 mb-6">
                   {pkg.includes.map((item) => (
@@ -534,11 +533,7 @@ const ServicesSection = () => {
                     </li>
                   ))}
                 </ul>
-                <button className={`w-full py-3 font-semibold rounded-xl transition-colors ${
-                  pkg.popular 
-                    ? 'bg-reed-red text-white hover:bg-reed-red-dark' 
-                    : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'
-                }`}>
+                <button className={`w-full py-3 font-semibold rounded-xl transition-colors mt-auto ${pkg.popular ? 'bg-reed-red text-white hover:bg-reed-red-dark' : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'}`}>
                   {pkg.popular ? 'Get Started' : 'Request'}
                 </button>
               </div>
@@ -644,7 +639,7 @@ const PricingSection = () => {
         {/* Pricing Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {plans.map((plan) => (
-            <div key={plan.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl ${
+            <div key={plan.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
               plan.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
             }`}>
               {plan.popular && (
@@ -652,9 +647,9 @@ const PricingSection = () => {
                   Best Value
                 </div>
               )}
-              
+
               <h3 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{plan.name}</h3>
-              
+
               <div className="flex items-baseline gap-1 mb-4">
                 <span className="text-4xl font-bold text-[var(--text-primary)]">{plan.price}</span>
                 <span className="text-[var(--text-muted)]">{plan.period}</span>
@@ -673,7 +668,7 @@ const PricingSection = () => {
                 </div>
               </div>
 
-              <ul className="space-y-3 mb-6">
+              <ul className="space-y-3 mb-6 flex-grow">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                     <Check className="w-4 h-4 text-reed-red flex-shrink-0" />
@@ -682,12 +677,7 @@ const PricingSection = () => {
                 ))}
               </ul>
 
-              <button className={`w-full py-3 font-semibold rounded-xl transition-colors ${
-                plan.popular 
-                  ? 'bg-reed-red text-white hover:bg-reed-red-dark' 
-                  : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'
-              }`}
-              >
+              <button className={`w-full py-3 font-semibold rounded-xl transition-colors mt-auto ${plan.popular ? 'bg-reed-red text-white hover:bg-reed-red-dark' : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'}`}>
                 {plan.cta}
               </button>
             </div>
@@ -805,14 +795,14 @@ const CTASection = () => {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
             href="#pricing"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white text-reed-red text-base font-semibold rounded-xl hover:bg-gray-100 transition-colors"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-white text-reed-red font-semibold rounded-xl hover:bg-gray-100 transition-colors shadow-lg"
           >
             Join the Beta
             <ArrowRight className="w-5 h-5" />
           </a>
           <a
             href="#services"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-reed-red-dark text-white text-base font-semibold rounded-xl border-2 border-white/30 hover:border-white transition-colors"
+            className="inline-flex items-center gap-2 px-8 py-4 border-2 border-white/30 text-white font-semibold rounded-xl hover:border-white hover:bg-white/10 transition-colors"
           >
             View Services
           </a>
