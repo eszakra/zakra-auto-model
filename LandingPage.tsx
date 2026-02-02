@@ -10,6 +10,8 @@ import { useAuth } from './contexts/AuthContext';
 import { LoginPage, RegisterPage } from './components/AuthPages';
 import { ThemeToggle } from './components/ThemeToggle';
 import { supabase } from './services/supabaseClient';
+import { PortfolioShowcase } from './components/PortfolioShowcase';
+import { HeroBackground } from './components/HeroBackground';
 
 // Navigation Component
 const Navigation = ({ 
@@ -198,11 +200,15 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
   const [spotsRemaining] = useState(50);
 
   return (
-    <section className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-[var(--bg-primary)]">
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
+    <section className="relative min-h-screen flex flex-col justify-between pt-20 overflow-hidden">
+      {/* Animated Background */}
+      <HeroBackground />
+
+      {/* Contenido del hero */}
+      <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 flex-1 flex items-center">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-reed-red/10 rounded-full mb-8 animate-fade-in border border-reed-red/20">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-reed-red/10 rounded-full mb-8 animate-fade-in border border-reed-red/20 backdrop-blur-sm">
             <Flame className="w-4 h-4 text-reed-red animate-pulse" />
             <span className="text-sm font-medium text-reed-red">Exclusive Beta — Only {spotsRemaining} spots available</span>
           </div>
@@ -215,8 +221,8 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg sm:text-xl text-[var(--text-secondary)] max-w-2xl mx-auto mb-10 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            Exclusive for serious creators. Advanced NSFW workflows, custom LoRAs trained by experts, 
+          <p className="text-lg sm:text-xl text-[var(--text-primary)]/80 max-w-2xl mx-auto mb-10 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            Exclusive for serious creators. Advanced NSFW workflows, custom LoRAs trained by experts,
             and premium image generation that multiplies your revenue.
           </p>
 
@@ -224,21 +230,21 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             <button
               onClick={onLaunchApp}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-reed-red text-white text-base font-semibold rounded-xl hover:bg-reed-red-dark transition-all shadow-lg shadow-reed-red/25"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-reed-red text-white text-base font-semibold rounded-xl hover:bg-reed-red-dark transition-all shadow-lg shadow-reed-red/25 hover:shadow-xl hover:shadow-reed-red/30 hover:-translate-y-0.5"
             >
               Start Generating
               <ArrowRight className="w-5 h-5" />
             </button>
             <a
               href="#services"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-[var(--bg-primary)] text-[var(--text-primary)] text-base font-semibold rounded-xl border-2 border-[var(--border-color)] hover:border-[var(--text-muted)] transition-all"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-[var(--bg-primary)]/50 backdrop-blur-sm text-[var(--text-primary)] text-base font-semibold rounded-xl border-2 border-[var(--border-color)] hover:border-reed-red/50 hover:bg-reed-red/5 transition-all"
             >
               View Services
             </a>
           </div>
 
           {/* Trust Indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-[var(--text-muted)] animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-[var(--text-primary)]/70 animate-fade-in" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-reed-red" />
               <span>Privacy Guaranteed</span>
@@ -255,8 +261,8 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
         </div>
       </div>
 
-      {/* Decorative Elements */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--border-color)] to-transparent" />
+      {/* Smooth transition to next section */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-[var(--bg-secondary)] pointer-events-none" />
     </section>
   );
 };
@@ -907,6 +913,7 @@ const LandingPage = () => {
       )}
 
       <HeroSection onLaunchApp={handleShowApp} />
+      <PortfolioShowcase />
       <ServicesSection />
       <PricingSection />
       <FAQSection />
