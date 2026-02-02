@@ -113,6 +113,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     }
   }, [activeTab]);
 
+  // Fetch generations when selected user changes
+  useEffect(() => {
+    if (activeTab === 'generations') {
+      fetchGenerations();
+    }
+  }, [selectedGenerationUser]);
+
   const fetchUsers = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -595,7 +602,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                       value={selectedGenerationUser}
                       onChange={(e) => {
                         setSelectedGenerationUser(e.target.value);
-                        fetchGenerations();
                       }}
                       className="w-full pl-10 pr-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red bg-[var(--bg-primary)] text-[var(--text-primary)]"
                     >
