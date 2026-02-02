@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { usePortfolioImages } from '../hooks/usePortfolioImages';
+import { optimizeImageForCarousel } from '../utils/imageOptimizer';
 
 interface PortfolioShowcaseProps {
   className?: string;
@@ -59,7 +60,7 @@ export const PortfolioShowcase: React.FC<PortfolioShowcaseProps> = ({
                 className="relative flex-shrink-0 w-[260px] h-[320px] rounded-2xl overflow-hidden group"
               >
                 <img
-                  src={image}
+                  src={optimizeImageForCarousel(image)}
                   alt=""
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
@@ -85,7 +86,7 @@ export const PortfolioShowcase: React.FC<PortfolioShowcaseProps> = ({
                 className="relative flex-shrink-0 w-[260px] h-[320px] rounded-2xl overflow-hidden group"
               >
                 <img
-                  src={image}
+                  src={optimizeImageForCarousel(image)}
                   alt=""
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
