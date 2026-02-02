@@ -1008,8 +1008,8 @@ const LandingPage = () => {
 
       <HeroSection onLaunchApp={handleShowApp} />
       <PortfolioSection />
-      <ServicesSection />
       <PricingSection />
+      <ServicesSection />
       <FAQSection />
       <CTASection />
       <Footer />
