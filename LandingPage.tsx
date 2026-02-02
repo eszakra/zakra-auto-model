@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Menu, X, ChevronDown, ChevronUp, Check, Sparkles, 
+import {
+  Menu, X, ChevronDown, ChevronUp, Check, Sparkles,
   Zap, Crown, Shield, Clock, Users, Star, ArrowRight,
   Play, Download, Layers, Cpu, Lock, Mail, Flame,
   User, LogOut, CreditCard, Crown as CrownIcon
@@ -12,6 +12,7 @@ import { ThemeToggle } from './components/ThemeToggle';
 import { supabase } from './services/supabaseClient';
 import { PortfolioShowcase } from './components/PortfolioShowcase';
 import { HeroBackground } from './components/HeroBackground';
+import { PaymentModal } from './components/PaymentModal';
 
 // Navigation Component
 const Navigation = ({ 
@@ -545,16 +546,56 @@ const ServicesSection = () => {
   );
 };
 
+// Plan type for pricing
+interface PricingPlan {
+  id: string;
+  name: string;
+  price: string;
+  priceValue: number;
+  period: string;
+  credits: string;
+  creditsValue: number;
+  nsfw: boolean | string;
+  features: string[];
+  cta: string;
+  popular: boolean;
+}
+
 // Pricing Section (Subscriptions)
-const PricingSection = () => {
+const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
   const { user } = useAuth();
-  
-  const plans = [
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
+
+  const handleSelectPlan = (plan: PricingPlan) => {
+    if (!user) {
+      onLoginClick();
+      return;
+    }
+
+    // Free plan - just activate
+    if (plan.priceValue === 0) {
+      return;
+    }
+
+    setSelectedPlan(plan);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentComplete = () => {
+    // Refresh user data to get updated credits
+    window.location.reload();
+  };
+
+  const plans: PricingPlan[] = [
     {
+      id: "free",
       name: "Free",
       price: "$0",
+      priceValue: 0,
       period: "/month",
       credits: "5",
+      creditsValue: 5,
       nsfw: false,
       features: [
         "Limited trial",
@@ -566,10 +607,13 @@ const PricingSection = () => {
       popular: false
     },
     {
+      id: "basic",
       name: "Basic",
       price: "$19.99",
+      priceValue: 19.99,
       period: "/month",
       credits: "~400",
+      creditsValue: 400,
       nsfw: "Soon",
       features: [
         "Queue priority",
@@ -581,10 +625,13 @@ const PricingSection = () => {
       popular: false
     },
     {
+      id: "pro",
       name: "Pro",
       price: "$39.99",
+      priceValue: 39.99,
       period: "/month",
       credits: "~1200",
+      creditsValue: 1200,
       nsfw: true,
       features: [
         "Advanced styles",
@@ -596,10 +643,13 @@ const PricingSection = () => {
       popular: true
     },
     {
+      id: "premium",
       name: "Premium",
       price: "$59.99",
+      priceValue: 59.99,
       period: "/month",
       credits: "Unlimited",
+      creditsValue: 999999,
       nsfw: "Full",
       features: [
         "VIP: priority custom",
@@ -677,7 +727,10 @@ const PricingSection = () => {
                 ))}
               </ul>
 
-              <button className={`w-full py-3 font-semibold rounded-xl transition-colors mt-auto ${plan.popular ? 'bg-reed-red text-white hover:bg-reed-red-dark' : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'}`}>
+              <button
+                onClick={() => handleSelectPlan(plan)}
+                className={`w-full py-3 font-semibold rounded-xl transition-colors mt-auto ${plan.popular ? 'bg-reed-red text-white hover:bg-reed-red-dark' : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'}`}
+              >
                 {plan.cta}
               </button>
             </div>
@@ -686,12 +739,30 @@ const PricingSection = () => {
 
         {/* Guarantee */}
         <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-500 rounded-full text-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-500 rounded-full text-sm">
             <Shield className="w-4 h-4" />
             14-day guarantee on all plans
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {selectedPlan && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedPlan(null);
+          }}
+          plan={{
+            id: selectedPlan.id,
+            name: selectedPlan.name,
+            price: selectedPlan.priceValue,
+            credits: selectedPlan.creditsValue,
+          }}
+          onPaymentComplete={handlePaymentComplete}
+        />
+      )}
     </section>
   );
 };
@@ -1004,7 +1075,7 @@ const LandingPage = () => {
 
       <HeroSection onLaunchApp={handleShowApp} />
       <PortfolioSection />
-      <PricingSection />
+      <PricingSection onLoginClick={() => setShowLogin(true)} />
       <ServicesSection />
       <FAQSection />
       <CTASection />
