@@ -29,12 +29,14 @@ export const PortfolioShowcase: React.FC<PortfolioShowcaseProps> = ({
     return null;
   }
 
-  // Duplicar imágenes para efecto infinito
-  const allImages = [...images, ...images, ...images];
+  // Dividir imágenes originales en dos grupos diferentes
+  const midPoint = Math.ceil(images.length / 2);
+  const firstHalf = images.slice(0, midPoint);
+  const secondHalf = images.slice(midPoint);
 
-  // Dividir en dos filas
-  const row1 = allImages.slice(0, allImages.length / 2);
-  const row2 = allImages.slice(allImages.length / 2);
+  // Duplicar cada grupo 3 veces para scroll infinito sin cortes
+  const row1Images = [...firstHalf, ...firstHalf, ...firstHalf];
+  const row2Images = [...secondHalf, ...secondHalf, ...secondHalf];
 
   return (
     <section className={`relative py-16 overflow-hidden bg-[var(--bg-secondary)] ${className}`}>
@@ -54,7 +56,7 @@ export const PortfolioShowcase: React.FC<PortfolioShowcaseProps> = ({
               width: 'fit-content',
             }}
           >
-            {row1.map((image, index) => (
+            {row1Images.map((image, index) => (
               <div
                 key={`row1-${index}`}
                 className="relative flex-shrink-0 w-[260px] h-[320px] rounded-2xl overflow-hidden group"
@@ -80,7 +82,7 @@ export const PortfolioShowcase: React.FC<PortfolioShowcaseProps> = ({
               width: 'fit-content',
             }}
           >
-            {row2.map((image, index) => (
+            {row2Images.map((image, index) => (
               <div
                 key={`row2-${index}`}
                 className="relative flex-shrink-0 w-[260px] h-[320px] rounded-2xl overflow-hidden group"
