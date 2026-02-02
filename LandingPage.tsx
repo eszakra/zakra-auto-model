@@ -267,6 +267,100 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
   );
 };
 
+// Portfolio Section with SFW/NSFW Toggle
+const PortfolioSection = () => {
+  const [category, setCategory] = useState<'sfw' | 'nsfw'>('sfw');
+  const [showAgeWarning, setShowAgeWarning] = useState(false);
+
+  const handleNsfwClick = () => {
+    if (category === 'sfw') {
+      setShowAgeWarning(true);
+    } else {
+      setCategory('sfw');
+    }
+  };
+
+  const confirmAge = () => {
+    setShowAgeWarning(false);
+    setCategory('nsfw');
+  };
+
+  return (
+    <section className="relative bg-[var(--bg-secondary)]">
+      {/* Toggle Header */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
+        <div className="flex items-center justify-center gap-2">
+          {/* SFW Button */}
+          <button
+            onClick={() => setCategory('sfw')}
+            className={`inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-l-xl transition-all ${
+              category === 'sfw'
+                ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
+                : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            Portfolio
+          </button>
+
+          {/* NSFW Button */}
+          <button
+            onClick={handleNsfwClick}
+            className={`inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-r-xl transition-all ${
+              category === 'nsfw'
+                ? 'bg-reed-red text-white'
+                : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-reed-red border border-[var(--border-color)] hover:border-reed-red'
+            }`}
+          >
+            <Flame className="w-4 h-4" />
+            Spicy Content
+          </button>
+        </div>
+
+        {category === 'nsfw' && (
+          <p className="text-center text-sm text-[var(--text-muted)] mt-4">
+            You are viewing NSFW content. Must be 18+ to view.
+          </p>
+        )}
+      </div>
+
+      {/* Portfolio Carousel */}
+      <PortfolioShowcase category={category} className="pt-0" />
+
+      {/* Age Verification Modal */}
+      {showAgeWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-[var(--bg-primary)] rounded-2xl p-8 max-w-md mx-4 border border-[var(--border-color)] shadow-2xl">
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 bg-reed-red/10 rounded-full">
+              <Flame className="w-8 h-8 text-reed-red" />
+            </div>
+            <h3 className="text-2xl font-bold text-[var(--text-primary)] text-center mb-3">
+              Age Verification
+            </h3>
+            <p className="text-[var(--text-secondary)] text-center mb-8">
+              This section contains adult content (NSFW). You must be at least 18 years old to continue.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowAgeWarning(false)}
+                className="flex-1 px-6 py-3 border-2 border-[var(--border-color)] text-[var(--text-primary)] font-semibold rounded-xl hover:border-[var(--text-muted)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmAge}
+                className="flex-1 px-6 py-3 bg-reed-red text-white font-semibold rounded-xl hover:bg-reed-red-dark transition-colors"
+              >
+                I am 18+
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
+
 // Services Section
 const ServicesSection = () => {
   const workflows = [
@@ -913,7 +1007,7 @@ const LandingPage = () => {
       )}
 
       <HeroSection onLaunchApp={handleShowApp} />
-      <PortfolioShowcase />
+      <PortfolioSection />
       <ServicesSection />
       <PricingSection />
       <FAQSection />
