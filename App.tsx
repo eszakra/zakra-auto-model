@@ -82,7 +82,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   };
   
   const RESOLUTIONS = getAvailableResolutions();
-  const ASPECT_RATIOS = ['AUTO', '1:1', '4:3', '3:4', '4:5', '16:9', '9:16'];
+  // Gemini 3 Pro Image supported aspect ratios (per official docs)
+  const ASPECT_RATIOS = ['AUTO', '1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'];
 
   // Download handler
   const handleDownload = () => {

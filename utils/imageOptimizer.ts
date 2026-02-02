@@ -41,3 +41,13 @@ export function optimizeImageForCarousel(url: string): string {
     fit: 'cover',
   });
 }
+
+// Smaller/faster version for initial preload
+export function optimizeImageForCarouselFast(url: string): string {
+  return optimizeImage(url, {
+    width: 260,  // 1x size for faster load
+    height: 320,
+    quality: 60, // Lower quality for speed
+    fit: 'cover',
+  });
+}

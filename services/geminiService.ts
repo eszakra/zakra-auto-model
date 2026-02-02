@@ -179,6 +179,15 @@ The person in this image MUST have the EXACT face and identity shown in the refe
   const baseModelBase64 = await ensureBase64(baseModelImageSource);
 
   try {
+    // Build image config for resolution and aspect ratio
+    const imageConfig: any = {};
+    if (imageSize && imageSize !== 'AUTO') {
+      imageConfig.imageSize = imageSize; // '1K', '2K', '4K'
+    }
+    if (aspectRatio && aspectRatio !== 'AUTO') {
+      imageConfig.aspectRatio = aspectRatio; // '1:1', '4:3', '16:9', etc.
+    }
+
     const response = await ai.models.generateContent({
       model: modelId,
       contents: [
@@ -192,10 +201,9 @@ The person in this image MUST have the EXACT face and identity shown in the refe
         }
       ],
       config: {
-        responseModalities: ['Text', 'Image'],
-        // Add resolution and aspect ratio if specified
-        ...(imageSize && { imageSize }),
-        ...(aspectRatio && { aspectRatio })
+        responseModalities: ['TEXT', 'IMAGE'], // Must be uppercase per Gemini API docs
+        // Use imageConfig to specify resolution and aspect ratio
+        ...(Object.keys(imageConfig).length > 0 && { imageConfig })
       }
     });
 

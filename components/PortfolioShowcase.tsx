@@ -1,25 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePortfolioImages } from '../hooks/usePortfolioImages';
-import { optimizeImageForCarousel } from '../utils/imageOptimizer';
+import { optimizeImageForCarousel, optimizeImageForCarouselFast } from '../utils/imageOptimizer';
 
 interface PortfolioShowcaseProps {
   className?: string;
   category?: 'sfw' | 'nsfw';
 }
 
+// Preload first N images for instant display
+const PRELOAD_COUNT = 6;
+
 export const PortfolioShowcase: React.FC<PortfolioShowcaseProps> = ({
   className = '',
   category = 'sfw'
 }) => {
   const [isPaused, setIsPaused] = useState(false);
+  const [imagesReady, setImagesReady] = useState(false);
   const { images, isLoading } = usePortfolioImages({ category });
 
-  // Si no hay imágenes o está cargando, no mostrar nada
-  if (isLoading) {
+  // Preload first images for faster initial render
+  useEffect(() => {
+    if (images.length === 0) return;
+
+    const imagesToPreload = images.slice(0, PRELOAD_COUNT);
+    let loadedCount = 0;
+
+    const preloadImage = (url: string) => {
+      const img = new Image();
+      img.onload = img.onerror = () => {
+        loadedCount++;
+        if (loadedCount >= imagesToPreload.length) {
+          setImagesReady(true);
+        }
+      };
+      img.src = optimizeImageForCarouselFast(url);
+    };
+
+    imagesToPreload.forEach(preloadImage);
+
+    // Fallback: show after 2s even if not all loaded
+    const timeout = setTimeout(() => setImagesReady(true), 2000);
+    return () => clearTimeout(timeout);
+  }, [images]);
+
+  // Memoize image arrays to prevent unnecessary recalculations
+  const { row1Images, row2Images } = useMemo(() => {
+    if (images.length === 0) return { row1Images: [], row2Images: [] };
+
+    const midPoint = Math.ceil(images.length / 2);
+    const firstHalf = images.slice(0, midPoint);
+    const secondHalf = images.slice(midPoint);
+
+    return {
+      row1Images: [...firstHalf, ...firstHalf, ...firstHalf],
+      row2Images: [...secondHalf, ...secondHalf, ...secondHalf],
+    };
+  }, [images]);
+
+  // Show skeleton while loading
+  if (isLoading || (images.length > 0 && !imagesReady)) {
     return (
       <section className={`relative py-16 overflow-hidden bg-[var(--bg-secondary)] ${className}`}>
-        <div className="flex items-center justify-center h-[320px]">
-          <div className="animate-pulse text-[var(--text-muted)]">Loading portfolio...</div>
+        <div className="space-y-4">
+          {/* Skeleton row 1 */}
+          <div className="flex gap-4 overflow-hidden">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex-shrink-0 w-[260px] h-[320px] rounded-2xl bg-[var(--bg-tertiary)] animate-pulse" />
+            ))}
+          </div>
+          {/* Skeleton row 2 */}
+          <div className="flex gap-4 overflow-hidden">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex-shrink-0 w-[260px] h-[320px] rounded-2xl bg-[var(--bg-tertiary)] animate-pulse" />
+            ))}
+          </div>
         </div>
       </section>
     );
@@ -28,15 +82,6 @@ export const PortfolioShowcase: React.FC<PortfolioShowcaseProps> = ({
   if (images.length === 0) {
     return null;
   }
-
-  // Dividir imágenes originales en dos grupos diferentes
-  const midPoint = Math.ceil(images.length / 2);
-  const firstHalf = images.slice(0, midPoint);
-  const secondHalf = images.slice(midPoint);
-
-  // Duplicar cada grupo 3 veces para scroll infinito sin cortes
-  const row1Images = [...firstHalf, ...firstHalf, ...firstHalf];
-  const row2Images = [...secondHalf, ...secondHalf, ...secondHalf];
 
   return (
     <section className={`relative py-16 overflow-hidden bg-[var(--bg-secondary)] ${className}`}>
@@ -65,7 +110,9 @@ export const PortfolioShowcase: React.FC<PortfolioShowcaseProps> = ({
                   src={optimizeImageForCarousel(image)}
                   alt=""
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
+                  loading={index < 6 ? 'eager' : 'lazy'}
+                  decoding={index < 6 ? 'sync' : 'async'}
+                  fetchPriority={index < 3 ? 'high' : 'auto'}
                 />
               </div>
             ))}
@@ -91,7 +138,9 @@ export const PortfolioShowcase: React.FC<PortfolioShowcaseProps> = ({
                   src={optimizeImageForCarousel(image)}
                   alt=""
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
+                  loading={index < 6 ? 'eager' : 'lazy'}
+                  decoding={index < 6 ? 'sync' : 'async'}
+                  fetchPriority={index < 3 ? 'high' : 'auto'}
                 />
               </div>
             ))}
