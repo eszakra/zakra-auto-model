@@ -440,10 +440,16 @@ const ServicesSection = () => {
 
         {/* Workflows */}
         <div className="mb-20">
-          <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] mb-8 flex items-center gap-3">
-            <Layers className="w-6 h-6 text-reed-red" />
-            NSFW Workflows (One-Time)
-          </h3>
+          <div className="flex flex-wrap items-center gap-4 mb-8">
+            <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
+              <Layers className="w-6 h-6 text-reed-red" />
+              NSFW Workflows (One-Time)
+            </h3>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-full text-xs font-semibold text-[var(--text-secondary)]">
+              <Cpu className="w-3.5 h-3.5" />
+              Powered by SDXL
+            </span>
+          </div>
           <div className="grid md:grid-cols-3 gap-6">
             {workflows.map((workflow) => (
               <div key={workflow.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl ${
