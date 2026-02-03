@@ -459,17 +459,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       {/* Credits Modal */}
       {selectedUser && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">
+          <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] p-6 rounded-2xl shadow-2xl w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4 text-[var(--text-primary)]">
               {isRemovingCredits ? 'Remove Credits' : 'Add Credits'}
             </h3>
             <p className="text-[var(--text-secondary)] mb-4">
-              User: <span className="font-semibold">{selectedUser.email}</span><br />
-              Current: <span className="font-semibold">{selectedUser.credits} credits</span>
+              User: <span className="font-semibold text-[var(--text-primary)]">{selectedUser.email}</span><br />
+              Current: <span className="font-semibold text-[var(--text-primary)]">{selectedUser.credits} credits</span>
               {isRemovingCredits && (
                 <>
                   <br />
-                  <span className="text-amber-600">After removal: {Math.max(0, selectedUser.credits - creditAmount)} credits</span>
+                  <span className="text-amber-500">After removal: {Math.max(0, selectedUser.credits - creditAmount)} credits</span>
                 </>
               )}
             </p>
@@ -481,7 +481,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   type="number"
                   value={creditAmount}
                   onChange={(e) => setCreditAmount(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red"
+                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red bg-[var(--bg-secondary)] text-[var(--text-primary)]"
                   min="1"
                   max={isRemovingCredits ? selectedUser.credits : undefined}
                 />
@@ -493,7 +493,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   type="text"
                   value={creditReason}
                   onChange={(e) => setCreditReason(e.target.value)}
-                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red"
+                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
                   placeholder={isRemovingCredits ? "e.g., Refund reversal, Correction" : "e.g., Bonus, Refund, Promotion"}
                 />
               </div>
@@ -505,7 +505,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   setSelectedUser(null);
                   setIsRemovingCredits(false);
                 }}
-                className="flex-1 py-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-secondary)]"
+                className="flex-1 py-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]"
               >
                 Cancel
               </button>
@@ -527,19 +527,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       {/* Plan Change Confirmation Modal */}
       {planChangeUser && newPlanType && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">Change Plan</h3>
+          <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] p-6 rounded-2xl shadow-2xl w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4 text-[var(--text-primary)]">Change Plan</h3>
             <p className="text-[var(--text-secondary)] mb-2">
-              User: <span className="font-semibold">{planChangeUser.email}</span>
+              User: <span className="font-semibold text-[var(--text-primary)]">{planChangeUser.email}</span>
             </p>
             <p className="text-[var(--text-secondary)] mb-4">
-              <span className="text-gray-500">{planChangeUser.plan_type}</span>
+              <span className="text-[var(--text-muted)]">{planChangeUser.plan_type}</span>
               <span className="mx-2">→</span>
               <span className="font-semibold text-reed-red">{newPlanType}</span>
             </p>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-amber-800">
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-4">
+              <p className="text-sm text-amber-500">
                 <strong>Current credits:</strong> {planChangeUser.credits}<br />
                 <strong>New plan credits:</strong> {PLAN_CREDITS[newPlanType] || 0}
               </p>

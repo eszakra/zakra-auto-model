@@ -984,17 +984,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       {/* Credits Modal */}
       {selectedUser && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">
+          <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] p-6 rounded-2xl shadow-2xl w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4 text-[var(--text-primary)]">
               {isRemovingCredits ? 'Remove Credits' : 'Add Credits'}
             </h3>
             <p className="text-[var(--text-secondary)] mb-4">
-              User: <span className="font-semibold">{selectedUser.email}</span><br />
-              Current: <span className="font-semibold">{selectedUser.credits} credits</span>
+              User: <span className="font-semibold text-[var(--text-primary)]">{selectedUser.email}</span><br />
+              Current: <span className="font-semibold text-[var(--text-primary)]">{selectedUser.credits} credits</span>
               {isRemovingCredits && (
                 <>
                   <br />
-                  <span className="text-amber-600">After removal: {Math.max(0, selectedUser.credits - creditAmount)} credits</span>
+                  <span className="text-amber-500">After removal: {Math.max(0, selectedUser.credits - creditAmount)} credits</span>
                 </>
               )}
             </p>
@@ -1006,7 +1006,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   type="number"
                   value={creditAmount}
                   onChange={(e) => setCreditAmount(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red"
+                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red bg-[var(--bg-secondary)] text-[var(--text-primary)]"
                   min="1"
                   max={isRemovingCredits ? selectedUser.credits : undefined}
                 />
@@ -1018,7 +1018,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   type="text"
                   value={creditReason}
                   onChange={(e) => setCreditReason(e.target.value)}
-                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red"
+                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
                   placeholder={isRemovingCredits ? "e.g., Refund reversal, Correction" : "e.g., Bonus, Refund, Promotion"}
                 />
               </div>
@@ -1030,7 +1030,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   setSelectedUser(null);
                   setIsRemovingCredits(false);
                 }}
-                className="flex-1 py-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-secondary)]"
+                className="flex-1 py-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]"
               >
                 Cancel
               </button>
