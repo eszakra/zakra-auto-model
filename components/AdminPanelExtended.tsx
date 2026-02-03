@@ -70,6 +70,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const [selectedUser, setSelectedUser] = useState<UserWithProfile | null>(null);
   const [creditAmount, setCreditAmount] = useState(100);
   const [creditReason, setCreditReason] = useState('');
+  const [isRemovingCredits, setIsRemovingCredits] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalGenerations: 0,
@@ -317,13 +318,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleAddCredits = async () => {
+  const handleAddCredits = async (isRemoving: boolean = false) => {
     if (!selectedUser || creditAmount <= 0) return;
+
+    const actualAmount = isRemoving ? -creditAmount : creditAmount;
+    const defaultDescription = isRemoving ? 'Admin credit removal' : 'Admin credit adjustment';
 
     const { error } = await supabase.rpc('add_credits', {
       p_user_id: selectedUser.id,
-      p_amount: creditAmount,
-      p_description: creditReason || 'Admin credit adjustment',
+      p_amount: actualAmount,
+      p_description: creditReason || defaultDescription,
       p_type: 'admin_adjustment',
     });
 
@@ -332,9 +336,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       setSelectedUser(null);
       setCreditAmount(100);
       setCreditReason('');
-      alert(`Added ${creditAmount} credits to ${selectedUser.email}`);
+      setIsRemovingCredits(false);
+      alert(`${isRemoving ? 'Removed' : 'Added'} ${creditAmount} credits ${isRemoving ? 'from' : 'to'} ${selectedUser.email}`);
     } else {
-      alert('Error adding credits: ' + error.message);
+      alert('Error adjusting credits: ' + error.message);
     }
   };
 
@@ -506,9 +511,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                 className="border border-[var(--border-color)] rounded px-2 py-1 text-sm bg-[var(--bg-primary)] text-[var(--text-primary)]"
                               >
                                 <option value="free">Free</option>
-                                <option value="basic">Basic</option>
+                                <option value="starter">Starter</option>
+                                <option value="creator">Creator</option>
                                 <option value="pro">Pro</option>
-                                <option value="premium">Premium</option>
+                                <option value="studio">Studio</option>
                               </select>
                             </td>
                             <td className="px-4 py-3">
@@ -520,10 +526,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
                                 <button
-                                  onClick={() => setSelectedUser(u)}
+                                  onClick={() => {
+                                    setSelectedUser(u);
+                                    setIsRemovingCredits(false);
+                                  }}
                                   className="flex items-center gap-1 px-3 py-1 bg-reed-red text-white text-sm rounded hover:bg-reed-red-dark"
+                                  title="Add credits"
                                 >
-                                  <Plus className="w-4 h-4" /> Credits
+                                  <Plus className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedUser(u);
+                                    setIsRemovingCredits(true);
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700"
+                                  title="Remove credits"
+                                >
+                                  <Minus className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => {
@@ -916,14 +936,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
         </div>
       </div>
 
-      {/* Add Credits Modal */}
+      {/* Credits Modal */}
       {selectedUser && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
           <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">Add Credits</h3>
+            <h3 className="text-xl font-bold mb-4">
+              {isRemovingCredits ? 'Remove Credits' : 'Add Credits'}
+            </h3>
             <p className="text-[var(--text-secondary)] mb-4">
               User: <span className="font-semibold">{selectedUser.email}</span><br />
               Current: <span className="font-semibold">{selectedUser.credits} credits</span>
+              {isRemovingCredits && (
+                <>
+                  <br />
+                  <span className="text-amber-600">After removal: {Math.max(0, selectedUser.credits - creditAmount)} credits</span>
+                </>
+              )}
             </p>
 
             <div className="space-y-4">
@@ -935,6 +963,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   onChange={(e) => setCreditAmount(parseInt(e.target.value) || 0)}
                   className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red"
                   min="1"
+                  max={isRemovingCredits ? selectedUser.credits : undefined}
                 />
               </div>
 
@@ -945,23 +974,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   value={creditReason}
                   onChange={(e) => setCreditReason(e.target.value)}
                   className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red"
-                  placeholder="e.g., Bonus, Refund, Promotion"
+                  placeholder={isRemovingCredits ? "e.g., Refund reversal, Correction" : "e.g., Bonus, Refund, Promotion"}
                 />
               </div>
             </div>
 
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => setSelectedUser(null)}
+                onClick={() => {
+                  setSelectedUser(null);
+                  setIsRemovingCredits(false);
+                }}
                 className="flex-1 py-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-secondary)]"
               >
                 Cancel
               </button>
               <button
-                onClick={handleAddCredits}
-                className="flex-1 py-2 bg-reed-red text-white rounded-lg hover:bg-reed-red-dark"
+                onClick={() => handleAddCredits(isRemovingCredits)}
+                className={`flex-1 py-2 text-white rounded-lg ${
+                  isRemovingCredits
+                    ? 'bg-gray-600 hover:bg-gray-700'
+                    : 'bg-reed-red hover:bg-reed-red-dark'
+                }`}
               >
-                Add Credits
+                {isRemovingCredits ? 'Remove Credits' : 'Add Credits'}
               </button>
             </div>
           </div>

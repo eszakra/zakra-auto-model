@@ -808,7 +808,7 @@ const FAQSection = () => {
     },
     {
       question: "How much does REED cost?",
-      answer: "We offer options for all budgets: from $47 for a basic LoRA to $997 for complete elite packages. Subscriptions range from $0 (free) to $59.99/month for the Premium plan."
+      answer: "We offer options for all budgets: from $47 for a basic LoRA to $997 for complete elite packages. Subscriptions range from $0 (free) to $199/month for the Studio plan."
     },
     {
       question: "What about my data and privacy?",
