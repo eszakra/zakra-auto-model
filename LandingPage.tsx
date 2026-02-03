@@ -705,7 +705,7 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
         </div>
 
         {/* Pricing Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
           {plans.map((plan) => (
             <div key={plan.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
               plan.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
