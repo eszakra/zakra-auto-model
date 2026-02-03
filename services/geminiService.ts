@@ -136,15 +136,15 @@ export const generateIndustrialImage = async (
   baseModelImageSource: string, // Pass base model image for identity reference
   imageSize?: string, // '1K', '2K', '4K' or undefined for AUTO
   aspectRatio?: string, // '1:1', '4:3', '16:9', etc.
-  userPlan?: string // 'free', 'basic', 'pro', 'premium'
+  userPlan?: string // 'free', 'starter', 'creator', 'pro', 'studio'
 ): Promise<string> => {
 
   if (!apiKey) throw new Error("FALTA_CLAVE_API");
 
   // Validate resolution based on user plan
   const plan = userPlan || 'free';
-  if ((plan === 'free' || plan === 'basic') && (imageSize === '2K' || imageSize === '4K')) {
-    throw new Error("RESOLUTION_NOT_ALLOWED: Your plan only supports up to 1K resolution. Upgrade to Pro or Premium for higher resolutions.");
+  if ((plan === 'free' || plan === 'starter') && (imageSize === '2K' || imageSize === '4K')) {
+    throw new Error("RESOLUTION_NOT_ALLOWED: Your plan only supports up to 1K resolution. Upgrade to Creator or higher for 2K/4K resolutions.");
   }
 
   const ai = new GoogleGenAI({ apiKey });

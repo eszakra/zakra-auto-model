@@ -12,12 +12,13 @@ CREATE TABLE IF NOT EXISTS plans (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Insert default plans
+-- Insert default plans (high margin pricing)
 INSERT INTO plans (name, price_monthly, credits_per_month, features, is_active) VALUES
-  ('Free', 0.00, 5, '{"nsfw": false, "queue": "normal", "resolution": "standard", "support": "basic"}', true),
-  ('Basic', 19.99, 400, '{"nsfw": "soon", "queue": "priority", "resolution": "hd", "support": "email", "guided_prompts": true}', true),
-  ('Pro', 39.99, 1200, '{"nsfw": true, "queue": "priority", "resolution": "4k", "support": "fast", "advanced_styles": true, "beta_access": true}', true),
-  ('Premium', 59.99, 999999, '{"nsfw": "full", "queue": "vip", "resolution": "4k", "support": "1on1", "api_access": true, "exclusive_updates": true}', true)
+  ('Free', 0.00, 3, '{"nsfw": false, "queue": "normal", "resolution": "standard", "support": "community"}', true),
+  ('Starter', 29.00, 50, '{"nsfw": "soon", "queue": "priority", "resolution": "hd", "support": "email", "guided_prompts": true}', true),
+  ('Creator', 59.00, 120, '{"nsfw": true, "queue": "priority", "resolution": "4k", "support": "fast", "advanced_styles": true, "beta_access": true}', true),
+  ('Pro', 99.00, 250, '{"nsfw": true, "queue": "priority", "resolution": "4k", "support": "priority", "custom_presets": true, "early_access": true}', true),
+  ('Studio', 199.00, 600, '{"nsfw": "full", "queue": "vip", "resolution": "4k", "support": "1on1", "api_access": true, "white_label": true}', true)
 ON CONFLICT (name) DO NOTHING;
 
 -- Payments table (crypto payment tracking)

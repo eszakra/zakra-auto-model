@@ -77,7 +77,7 @@ const Navigation = ({
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-secondary)] rounded-full">
                     <CreditCard className="w-4 h-4 text-reed-red" />
                     <span className="text-sm font-medium text-[var(--text-primary)]">
-                      {user.plan_type === 'premium' ? '∞' : user.credits} credits
+                      {user.credits} credits
                     </span>
                   </div>
                   <button
@@ -145,7 +145,7 @@ const Navigation = ({
                 <div className="flex items-center gap-2 px-3 py-2 bg-[var(--bg-secondary)] rounded-lg">
                   <CreditCard className="w-4 h-4 text-reed-red" />
                   <span className="text-sm font-medium text-[var(--text-primary)]">
-                    {user.plan_type === 'premium' ? 'Unlimited' : `${user.credits} credits`}
+                    {user.credits} credits
                   </span>
                 </div>
                 <button
@@ -594,26 +594,26 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
       price: "$0",
       priceValue: 0,
       period: "/month",
-      credits: "5",
-      creditsValue: 5,
+      credits: "3",
+      creditsValue: 3,
       nsfw: false,
       features: [
         "Limited trial",
         "Normal queue",
         "Standard resolution",
-        "Basic support"
+        "Community support"
       ],
       cta: "Start Free",
       popular: false
     },
     {
-      id: "basic",
-      name: "Basic",
-      price: "$19.99",
-      priceValue: 19.99,
+      id: "starter",
+      name: "Starter",
+      price: "$29",
+      priceValue: 29,
       period: "/month",
-      credits: "~400",
-      creditsValue: 400,
+      credits: "50",
+      creditsValue: 50,
       nsfw: "Soon",
       features: [
         "Queue priority",
@@ -621,17 +621,17 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
         "HD resolution",
         "Email support"
       ],
-      cta: "Choose Basic",
+      cta: "Choose Starter",
       popular: false
     },
     {
-      id: "pro",
-      name: "Pro",
-      price: "$39.99",
-      priceValue: 39.99,
+      id: "creator",
+      name: "Creator",
+      price: "$59",
+      priceValue: 59,
       period: "/month",
-      credits: "~1200",
-      creditsValue: 1200,
+      credits: "120",
+      creditsValue: 120,
       nsfw: true,
       features: [
         "Advanced styles",
@@ -639,25 +639,43 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
         "4K resolution",
         "Beta access"
       ],
-      cta: "Choose Pro",
+      cta: "Choose Creator",
       popular: true
     },
     {
-      id: "premium",
-      name: "Premium",
-      price: "$59.99",
-      priceValue: 59.99,
+      id: "pro",
+      name: "Pro",
+      price: "$99",
+      priceValue: 99,
       period: "/month",
-      credits: "Unlimited",
-      creditsValue: 999999,
+      credits: "250",
+      creditsValue: 250,
+      nsfw: true,
+      features: [
+        "All Creator features",
+        "Priority support",
+        "Custom presets",
+        "Early access"
+      ],
+      cta: "Choose Pro",
+      popular: false
+    },
+    {
+      id: "studio",
+      name: "Studio",
+      price: "$199",
+      priceValue: 199,
+      period: "/month",
+      credits: "600",
+      creditsValue: 600,
       nsfw: "Full",
       features: [
-        "VIP: priority custom",
-        "Exclusive updates",
+        "VIP priority queue",
         "1:1 support",
-        "API access"
+        "API access",
+        "White-label ready"
       ],
-      cta: "Choose Premium",
+      cta: "Choose Studio",
       popular: false
     }
   ];
@@ -680,7 +698,7 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
               <CrownIcon className="w-5 h-5 text-reed-red" />
               <span className="text-sm font-medium text-[var(--text-primary)]">
                 Your current plan: <span className="font-bold capitalize">{user.plan_type}</span>
-                {user.plan_type !== 'premium' && ` (${user.credits} credits remaining)`}
+                {user.plan_type !== 'studio' && ` (${user.credits} credits remaining)`}
               </span>
             </div>
           )}

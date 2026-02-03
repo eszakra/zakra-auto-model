@@ -1,35 +1,42 @@
 -- ============================================
--- REED UPDATE: Change Free Credits from 30 to 5
+-- REED: High Margin Pricing Structure
 -- ============================================
--- Run this in Supabase SQL Editor after the main setup
+-- Run this in Supabase SQL Editor
 -- ============================================
 
--- 1. Update the trigger function for new users (5 credits instead of 30)
+-- 1. Update the trigger function for new users (3 credits)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
     INSERT INTO public.user_profiles (id, email, full_name, plan_type, credits)
-    VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name', 'free', 5);
+    VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name', 'free', 3);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 2. Update existing free users to have 5 credits (optional - only if you want to reset existing users)
--- UPDATE public.user_profiles 
--- SET credits = 5 
--- WHERE plan_type = 'free' AND credits = 30;
+-- 2. Update default credits column
+ALTER TABLE public.user_profiles ALTER COLUMN credits SET DEFAULT 3;
 
--- 3. Update feature flag for free credits on register
-UPDATE public.feature_flags 
-SET value = '5'::jsonb 
+-- 3. Update or insert plans with new pricing
+DELETE FROM public.plans WHERE name IN ('Free', 'Basic', 'Starter', 'Creator', 'Pro', 'Premium', 'Studio');
+
+INSERT INTO public.plans (name, price_monthly, credits_per_month, features, is_active) VALUES
+  ('Free', 0.00, 3, '{"nsfw": false, "queue": "normal", "resolution": "standard", "support": "community"}', true),
+  ('Starter', 29.00, 50, '{"nsfw": "soon", "queue": "priority", "resolution": "hd", "support": "email"}', true),
+  ('Creator', 59.00, 120, '{"nsfw": true, "queue": "priority", "resolution": "4k", "support": "fast"}', true),
+  ('Pro', 99.00, 250, '{"nsfw": true, "queue": "priority", "resolution": "4k", "support": "priority"}', true),
+  ('Studio', 199.00, 600, '{"nsfw": "full", "queue": "vip", "resolution": "4k", "support": "1on1", "api_access": true}', true);
+
+-- 4. Update feature flag
+UPDATE public.feature_flags
+SET value = '3'::jsonb
 WHERE key = 'free_credits_on_register';
 
--- 4. Update plans table - Free plan now gives 5 credits
-UPDATE public.plans 
-SET credits_per_month = 5,
-    features = '["5 free generations", "Normal queue", "Standard resolution", "Basic support"]'::jsonb
-WHERE id = 'free';
-
 -- ============================================
--- DONE! All new users will now get 5 free credits
+-- PRICING STRUCTURE:
+-- Free:    $0    / 3 credits   (trial)
+-- Starter: $29   / 50 credits  (83% margin)
+-- Creator: $59   / 120 credits (80% margin)
+-- Pro:     $99   / 250 credits (75% margin)
+-- Studio:  $199  / 600 credits (70% margin)
 -- ============================================

@@ -117,7 +117,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <div className="mt-3 pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-sm">
               <span className="text-[var(--text-muted)]">Credits included</span>
               <span className="text-[var(--text-primary)] font-medium">
-                {plan.credits >= 999999 ? 'Unlimited' : `${plan.credits.toLocaleString()}/month`}
+                {plan.credits.toLocaleString()}/month
               </span>
             </div>
           </div>

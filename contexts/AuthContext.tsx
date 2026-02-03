@@ -6,7 +6,7 @@ export interface UserProfile {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
-  plan_type: 'free' | 'basic' | 'pro' | 'premium';
+  plan_type: 'free' | 'starter' | 'creator' | 'pro' | 'studio';
   credits: number;
   total_generations: number;
   is_admin: boolean;
@@ -167,7 +167,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const hasEnoughCredits = (amount: number = 1): boolean => {
     if (!user) return false;
-    if (user.plan_type === 'premium') return true; // Premium has unlimited
     return user.credits >= amount;
   };
 

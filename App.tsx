@@ -77,10 +77,10 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   // Filter resolutions based on user plan
   const getAvailableResolutions = () => {
     const plan = user?.plan_type || 'free';
-    if (plan === 'free' || plan === 'basic') {
-      return ['AUTO', '1K']; // Free and Basic only get AUTO and 1K
+    if (plan === 'free' || plan === 'starter') {
+      return ['AUTO', '1K']; // Free and Starter only get AUTO and 1K
     }
-    return ['AUTO', '1K', '2K', '4K']; // Pro and Premium get all
+    return ['AUTO', '1K', '2K', '4K']; // Creator, Pro and Studio get all
   };
   
   const RESOLUTIONS = getAvailableResolutions();
@@ -118,7 +118,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   // Reset resolution if user changes plan and selected resolution is not available
   useEffect(() => {
     const plan = user?.plan_type || 'free';
-    if ((plan === 'free' || plan === 'basic') && (selectedResolution === '2K' || selectedResolution === '4K')) {
+    if ((plan === 'free' || plan === 'starter') && (selectedResolution === '2K' || selectedResolution === '4K')) {
       setSelectedResolution('AUTO');
     }
   }, [user?.plan_type, selectedResolution]);
@@ -671,11 +671,12 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
             </div>
           ) : user ? (
             <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-reed-red/10 to-reed-red/5 border border-reed-red/20 rounded-full shadow-sm">
-              {user.plan_type === 'premium' ? (
+              {user.plan_type === 'studio' ? (
                 <>
                   <Crown className="w-5 h-5 text-amber-500" />
-                  <span className="text-sm font-bold text-[var(--text-primary)]">Unlimited</span>
-                  <span className="text-xs text-amber-500 font-medium bg-amber-100 px-2 py-0.5 rounded-full">PREMIUM</span>
+                  <span className="text-sm font-bold text-[var(--text-primary)]">{user.credits}</span>
+                  <span className="text-xs text-[var(--text-muted)]">credits</span>
+                  <span className="text-xs text-amber-500 font-medium bg-amber-100 px-2 py-0.5 rounded-full">STUDIO</span>
                 </>
               ) : (
                 <>
@@ -1032,7 +1033,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-[var(--text-muted)] uppercase font-medium flex items-center gap-1">
                   Resolution
-                  {(user?.plan_type === 'free' || user?.plan_type === 'basic') && (
+                  {(user?.plan_type === 'free' || user?.plan_type === 'starter') && (
                     <span className="text-[10px] bg-amber-100 text-amber-500 px-1.5 py-0.5 rounded">1K max</span>
                   )}
                 </label>
@@ -1045,9 +1046,9 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                     <option key={res} value={res}>{res === 'AUTO' ? 'Auto (Model Chooses)' : res}</option>
                   ))}
                 </select>
-                {(user?.plan_type === 'free' || user?.plan_type === 'basic') && (
+                {(user?.plan_type === 'free' || user?.plan_type === 'starter') && (
                   <p className="text-[10px] text-[var(--text-muted)] mt-1">
-                    Upgrade to Pro for 2K/4K
+                    Upgrade to Creator for 2K/4K
                   </p>
                 )}
               </div>
