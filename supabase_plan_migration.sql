@@ -15,10 +15,10 @@ ADD CONSTRAINT user_profiles_plan_type_check
 CHECK (plan_type = ANY (ARRAY['free'::text, 'starter'::text, 'creator'::text, 'pro'::text, 'studio'::text]));
 
 -- Step 3: Migrate existing users from old plans to new plans
--- premium -> creator (as it's the closest match with NSFW access)
+-- premium -> studio (premium was unlimited, studio is the highest tier)
 -- basic -> starter
 UPDATE public.user_profiles
-SET plan_type = 'creator'
+SET plan_type = 'studio'
 WHERE plan_type = 'premium';
 
 UPDATE public.user_profiles
