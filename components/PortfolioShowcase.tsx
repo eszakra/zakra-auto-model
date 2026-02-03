@@ -63,18 +63,50 @@ export const PortfolioShowcase: React.FC<PortfolioShowcaseProps> = ({
       <section className={`relative py-16 overflow-hidden bg-[var(--bg-secondary)] ${className}`}>
         <div className="space-y-4">
           {/* Skeleton row 1 */}
-          <div className="flex gap-4 overflow-hidden">
+          <div className="flex gap-4 justify-center">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="flex-shrink-0 w-[260px] h-[320px] rounded-2xl bg-[var(--bg-tertiary)] animate-pulse" />
+              <div
+                key={i}
+                className="flex-shrink-0 w-[260px] h-[320px] rounded-2xl overflow-hidden bg-white/[0.03]"
+              >
+                <div className="w-full h-full skeleton-shimmer" />
+              </div>
             ))}
           </div>
           {/* Skeleton row 2 */}
-          <div className="flex gap-4 overflow-hidden">
+          <div className="flex gap-4 justify-center">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="flex-shrink-0 w-[260px] h-[320px] rounded-2xl bg-[var(--bg-tertiary)] animate-pulse" />
+              <div
+                key={i}
+                className="flex-shrink-0 w-[260px] h-[320px] rounded-2xl overflow-hidden bg-white/[0.03]"
+              >
+                <div className="w-full h-full skeleton-shimmer" style={{ animationDelay: `${i * 0.1}s` }} />
+              </div>
             ))}
           </div>
         </div>
+
+        {/* Gradientes laterales */}
+        <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[var(--bg-secondary)] to-transparent pointer-events-none z-10" />
+        <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[var(--bg-secondary)] to-transparent pointer-events-none z-10" />
+
+        <style>{`
+          .skeleton-shimmer {
+            background: linear-gradient(
+              90deg,
+              transparent 0%,
+              rgba(255, 255, 255, 0.04) 50%,
+              transparent 100%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.8s ease-in-out infinite;
+          }
+
+          @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+        `}</style>
       </section>
     );
   }
