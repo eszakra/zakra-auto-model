@@ -43,6 +43,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const [creditAmount, setCreditAmount] = useState(100);
   const [creditReason, setCreditReason] = useState('');
   const [isRemovingCredits, setIsRemovingCredits] = useState(false);
+  // Plan change modal states
+  const [planChangeUser, setPlanChangeUser] = useState<UserWithProfile | null>(null);
+  const [newPlanType, setNewPlanType] = useState<string>('');
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalGenerations: 0,
@@ -158,18 +161,60 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleChangePlan = async (userId: string, newPlan: string) => {
-    const { error } = await supabase.rpc('update_user_plan', {
-      p_user_id: userId,
-      p_plan_type: newPlan,
+  // Credits per plan
+  const PLAN_CREDITS: Record<string, number> = {
+    free: 3,
+    starter: 50,
+    creator: 120,
+    pro: 250,
+    studio: 600,
+  };
+
+  const handlePlanChangeRequest = (user: UserWithProfile, newPlan: string) => {
+    if (newPlan === user.plan_type) return;
+    setPlanChangeUser(user);
+    setNewPlanType(newPlan);
+  };
+
+  const handleChangePlan = async (resetCredits: boolean) => {
+    if (!planChangeUser || !newPlanType) return;
+
+    // Update plan
+    const { error: planError } = await supabase.rpc('update_user_plan', {
+      p_user_id: planChangeUser.id,
+      p_plan_type: newPlanType,
     });
 
-    if (!error) {
-      fetchUsers();
-      alert('Plan updated successfully');
-    } else {
-      alert('Error updating plan: ' + error.message);
+    if (planError) {
+      alert('Error updating plan: ' + planError.message);
+      return;
     }
+
+    // Reset credits if requested
+    if (resetCredits) {
+      const newCredits = PLAN_CREDITS[newPlanType] || 3;
+      const { error: creditError } = await supabase
+        .from('user_profiles')
+        .update({ credits: newCredits })
+        .eq('id', planChangeUser.id);
+
+      if (creditError) {
+        alert('Plan updated but failed to reset credits: ' + creditError.message);
+      } else {
+        // Log the transaction
+        await supabase.from('credit_transactions').insert({
+          user_id: planChangeUser.id,
+          amount: newCredits - planChangeUser.credits,
+          type: 'admin_adjustment',
+          description: `Plan changed to ${newPlanType} - credits reset to ${newCredits}`,
+        });
+      }
+    }
+
+    fetchUsers();
+    setPlanChangeUser(null);
+    setNewPlanType('');
+    alert(`Plan updated to ${newPlanType}${resetCredits ? ` with ${PLAN_CREDITS[newPlanType]} credits` : ''}`);
   };
 
   const filteredUsers = users.filter(u => 
@@ -307,7 +352,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                             <td className="px-4 py-3">
                               <select
                                 value={u.plan_type}
-                                onChange={(e) => handleChangePlan(u.id, e.target.value)}
+                                onChange={(e) => handlePlanChangeRequest(u, e.target.value)}
                                 className="border border-[var(--border-color)] rounded px-2 py-1 text-sm"
                               >
                                 <option value="free">Free</option>
@@ -473,6 +518,58 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 }`}
               >
                 {isRemovingCredits ? 'Remove Credits' : 'Add Credits'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Plan Change Confirmation Modal */}
+      {planChangeUser && newPlanType && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4">Change Plan</h3>
+            <p className="text-[var(--text-secondary)] mb-2">
+              User: <span className="font-semibold">{planChangeUser.email}</span>
+            </p>
+            <p className="text-[var(--text-secondary)] mb-4">
+              <span className="text-gray-500">{planChangeUser.plan_type}</span>
+              <span className="mx-2">→</span>
+              <span className="font-semibold text-reed-red">{newPlanType}</span>
+            </p>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-amber-800">
+                <strong>Current credits:</strong> {planChangeUser.credits}<br />
+                <strong>New plan credits:</strong> {PLAN_CREDITS[newPlanType] || 0}
+              </p>
+            </div>
+
+            <p className="text-sm text-[var(--text-muted)] mb-4">
+              Do you want to reset the credits to match the new plan?
+            </p>
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => handleChangePlan(true)}
+                className="w-full py-3 bg-reed-red text-white rounded-lg hover:bg-reed-red-dark font-medium"
+              >
+                Change Plan + Reset to {PLAN_CREDITS[newPlanType]} credits
+              </button>
+              <button
+                onClick={() => handleChangePlan(false)}
+                className="w-full py-3 border-2 border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-secondary)] font-medium"
+              >
+                Only Change Plan (keep {planChangeUser.credits} credits)
+              </button>
+              <button
+                onClick={() => {
+                  setPlanChangeUser(null);
+                  setNewPlanType('');
+                }}
+                className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              >
+                Cancel
               </button>
             </div>
           </div>
