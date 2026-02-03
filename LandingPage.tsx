@@ -682,7 +682,7 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
 
   return (
     <section id="pricing" className="py-24 bg-[var(--bg-primary)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Section Header */}
         <div className="text-center mb-16">
           <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">Subscriptions</span>
@@ -692,7 +692,7 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
           <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
             SFW now, NSFW coming soon. Choose the plan that best fits your needs.
           </p>
-          
+
           {user && (
             <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)] rounded-full">
               <CrownIcon className="w-5 h-5 text-reed-red" />
@@ -704,11 +704,11 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
           )}
         </div>
 
-        {/* Pricing Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Pricing Grid - All 5 in one row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 items-start">
           {plans.map((plan) => (
-            <div key={plan.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
-              plan.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
+            <div key={plan.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col ${
+              plan.popular ? 'border-reed-red xl:scale-[1.02] xl:z-10 shadow-lg shadow-reed-red/10' : 'border-[var(--card-border)]'
             }`}>
               {plan.popular && (
                 <div className="absolute -top-3 left-6 px-3 py-1 bg-reed-red text-white text-xs font-semibold rounded-full">
@@ -719,7 +719,7 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
               <h3 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{plan.name}</h3>
 
               <div className="flex items-baseline gap-1 mb-4">
-                <span className="text-4xl font-bold text-[var(--text-primary)]">{plan.price}</span>
+                <span className="text-3xl font-bold text-[var(--text-primary)]">{plan.price}</span>
                 <span className="text-[var(--text-muted)]">{plan.period}</span>
               </div>
 
