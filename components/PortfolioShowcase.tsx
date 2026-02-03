@@ -60,7 +60,7 @@ export const PortfolioShowcase: React.FC<PortfolioShowcaseProps> = ({
   // Show skeleton while loading
   if (isLoading || (images.length > 0 && !imagesReady)) {
     return (
-      <section className={`relative py-16 overflow-hidden bg-[var(--bg-secondary)] ${className}`}>
+      <section className={`relative py-16 overflow-hidden bg-[var(--bg-primary)] ${className}`}>
         <div className="space-y-4">
           {/* Skeleton row 1 */}
           <div className="flex gap-4 justify-center">
@@ -116,7 +116,7 @@ export const PortfolioShowcase: React.FC<PortfolioShowcaseProps> = ({
   }
 
   return (
-    <section className={`relative py-16 overflow-hidden bg-[var(--bg-secondary)] ${className}`}>
+    <section className={`relative py-16 overflow-hidden bg-[var(--bg-primary)] ${className}`}>
       {/* Carrusel doble fila */}
       <div
         className="space-y-4"

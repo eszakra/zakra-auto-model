@@ -13,6 +13,7 @@ import { supabase } from './services/supabaseClient';
 import { PortfolioShowcase } from './components/PortfolioShowcase';
 import { HeroBackground } from './components/HeroBackground';
 import { PaymentModal } from './components/PaymentModal';
+import { RevenueShowcase } from './components/RevenueShowcase';
 
 // Navigation Component
 const Navigation = ({ 
@@ -261,8 +262,8 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
         </div>
       </div>
 
-      {/* Smooth transition to next section */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-[var(--bg-secondary)] pointer-events-none" />
+      {/* Subtle fade to carousel */}
+      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-b from-transparent to-[var(--bg-primary)] pointer-events-none z-10" />
     </section>
   );
 };
@@ -286,9 +287,9 @@ const PortfolioSection = () => {
   };
 
   return (
-    <section className="relative bg-[var(--bg-secondary)]">
+    <section className="relative bg-[var(--bg-primary)]">
       {/* Toggle Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6">
         <div className="flex items-center justify-center gap-2">
           {/* SFW Button */}
           <button
@@ -296,7 +297,7 @@ const PortfolioSection = () => {
             className={`inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-l-xl transition-all ${
               category === 'sfw'
                 ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
-                : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
             }`}
           >
             <Sparkles className="w-4 h-4" />
@@ -309,7 +310,7 @@ const PortfolioSection = () => {
             className={`inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-r-xl transition-all ${
               category === 'nsfw'
                 ? 'bg-reed-red text-white'
-                : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-reed-red border border-[var(--border-color)] hover:border-reed-red'
+                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-reed-red border border-[var(--border-color)] hover:border-reed-red'
             }`}
           >
             <Flame className="w-4 h-4" />
@@ -325,7 +326,7 @@ const PortfolioSection = () => {
       </div>
 
       {/* Portfolio Carousel */}
-      <PortfolioShowcase category={category} className="pt-0" />
+      <PortfolioShowcase category={category} className="pt-0 pb-8" />
 
       {/* Age Verification Modal */}
       {showAgeWarning && (
@@ -425,7 +426,7 @@ const ServicesSection = () => {
   ];
 
   return (
-    <section id="services" className="py-24 bg-[var(--bg-secondary)]">
+    <section id="services" className="min-h-screen py-20 lg:py-24 bg-[var(--bg-primary)] scroll-mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
@@ -681,10 +682,10 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
   ];
 
   return (
-    <section id="pricing" className="py-24 bg-[var(--bg-primary)]">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12">
+    <section id="pricing" className="min-h-screen py-20 lg:py-24 bg-[var(--bg-primary)] flex flex-col justify-center scroll-mt-20">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 w-full">
         {/* Section Header */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-12 lg:mb-16">
           <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">Subscriptions</span>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4">
             On-Site Generation
@@ -756,7 +757,7 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
         </div>
 
         {/* Guarantee */}
-        <div className="mt-12 text-center">
+        <div className="mt-12 lg:mt-16 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-500 rounded-full text-sm">
             <Shield className="w-4 h-4" />
             14-day guarantee on all plans
@@ -825,7 +826,7 @@ const FAQSection = () => {
   ];
 
   return (
-    <section id="faq" className="py-24 bg-[var(--bg-secondary)]">
+    <section id="faq" className="min-h-screen py-20 lg:py-24 bg-[var(--bg-primary)] flex flex-col justify-center scroll-mt-20">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
@@ -1065,7 +1066,7 @@ const LandingPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--bg-primary)] transition-colors duration-300 scroll-smooth">
       <ThemeToggle />
       <Navigation
         onLaunchApp={handleShowApp}
@@ -1093,6 +1094,7 @@ const LandingPage = () => {
 
       <HeroSection onLaunchApp={handleShowApp} />
       <PortfolioSection />
+      <RevenueShowcase />
       <PricingSection onLoginClick={() => setShowLogin(true)} />
       <ServicesSection />
       <FAQSection />

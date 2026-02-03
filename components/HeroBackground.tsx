@@ -80,21 +80,13 @@ export const HeroBackground: React.FC<HeroBackgroundProps> = ({ className = '' }
         />
       </div>
 
-      {/* Main glow - bottom center */}
+      {/* Main glow - centered behind title */}
       <div
         ref={glowRef}
-        className="absolute bottom-[-150px] left-1/2 -translate-x-1/2 w-[900px] h-[400px] opacity-[0.1]"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] opacity-[0.05]"
         style={{
-          background: 'radial-gradient(ellipse 100% 100% at 50% 100%, #dc2626 0%, transparent 60%)',
-          filter: 'blur(60px)',
-        }}
-      />
-
-      {/* Smooth transition */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-[200px]"
-        style={{
-          background: 'linear-gradient(to bottom, transparent 0%, var(--bg-secondary) 100%)',
+          background: 'radial-gradient(ellipse 100% 100% at 50% 50%, #dc2626 0%, transparent 70%)',
+          filter: 'blur(100px)',
         }}
       />
     </div>
