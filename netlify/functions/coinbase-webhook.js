@@ -24,6 +24,9 @@ function verifySignature(payload, signature) {
   );
 }
 
+// Valid plan types
+const VALID_PLANS = ['free', 'starter', 'creator', 'pro', 'studio'];
+
 // Update user credits in Supabase
 async function updateUserCredits(userId, credits, paymentMetadata) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
@@ -32,7 +35,31 @@ async function updateUserCredits(userId, credits, paymentMetadata) {
   }
 
   try {
-    // Update user credits
+    // First, get current user credits
+    const getUserResponse = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${userId}&select=credits`, {
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+      }
+    });
+
+    if (!getUserResponse.ok) {
+      console.error('Failed to get current credits:', await getUserResponse.text());
+      return false;
+    }
+
+    const userData = await getUserResponse.json();
+    const currentCredits = userData[0]?.credits || 0;
+    const newCredits = currentCredits + credits;
+
+    // Validate and normalize plan type
+    let planType = paymentMetadata.plan_name?.toLowerCase() || paymentMetadata.plan_id?.toLowerCase() || 'starter';
+    if (!VALID_PLANS.includes(planType)) {
+      console.warn(`Invalid plan type "${planType}", defaulting to "starter"`);
+      planType = 'starter';
+    }
+
+    // Update user credits (ADD to existing, not replace)
     const response = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${userId}`, {
       method: 'PATCH',
       headers: {
@@ -42,8 +69,8 @@ async function updateUserCredits(userId, credits, paymentMetadata) {
         'Prefer': 'return=minimal'
       },
       body: JSON.stringify({
-        credits: credits,
-        plan_type: paymentMetadata.plan_name?.toLowerCase() || 'basic',
+        credits: newCredits,
+        plan_type: planType,
         subscription_status: 'active',
         updated_at: new Date().toISOString()
       })
@@ -64,13 +91,14 @@ async function updateUserCredits(userId, credits, paymentMetadata) {
       },
       body: JSON.stringify({
         user_id: userId,
-        amount: parseInt(paymentMetadata.credits) || 0,
-        type: 'subscription',
-        description: `${paymentMetadata.plan_name} plan subscription via Coinbase`,
+        amount: credits,
+        type: 'purchase',
+        description: `${paymentMetadata.plan_name || planType} plan subscription via Coinbase`,
         metadata: paymentMetadata
       })
     });
 
+    console.log(`Updated user ${userId}: ${currentCredits} + ${credits} = ${newCredits} credits, plan: ${planType}`);
     return true;
   } catch (error) {
     console.error('Error updating credits:', error);
