@@ -1,12 +1,14 @@
 /**
- * Airtable Service - Portfolio Images
+ * Airtable Service - Portfolio Images & Revenue Results
  */
 
 const AIRTABLE_API_TOKEN = import.meta.env.VITE_AIRTABLE_API_TOKEN;
 const AIRTABLE_BASE_ID = import.meta.env.VITE_AIRTABLE_BASE_ID;
-const AIRTABLE_TABLE_NAME = import.meta.env.VITE_AIRTABLE_TABLE_NAME || 'Portfolio';
+const AIRTABLE_PORTFOLIO_TABLE = import.meta.env.VITE_AIRTABLE_TABLE_NAME || 'Portfolio';
+const AIRTABLE_REVENUE_TABLE = import.meta.env.VITE_AIRTABLE_REVENUE_TABLE_NAME || 'Revenue';
 
-const AIRTABLE_API_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_NAME}`;
+const getAirtableUrl = (table: string) => `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${table}`;
+const AIRTABLE_API_URL = getAirtableUrl(AIRTABLE_PORTFOLIO_TABLE);
 
 export interface PortfolioImage {
   id: string;
@@ -58,8 +60,6 @@ export async function fetchPortfolioImages(category?: 'sfw' | 'nsfw'): Promise<P
 
     const params = new URLSearchParams({
       filterByFormula: filterFormula,
-      'sort[0][field]': 'order',
-      'sort[0][direction]': 'asc',
     });
 
     const response = await fetch(`${AIRTABLE_API_URL}?${params}`, {
@@ -89,6 +89,66 @@ export async function fetchPortfolioImages(category?: 'sfw' | 'nsfw'): Promise<P
     return images;
   } catch (error) {
     console.error('Error fetching portfolio images from Airtable:', error);
+    return [];
+  }
+}
+
+// ============================================
+// REVENUE RESULTS
+// ============================================
+
+export interface RevenueResult {
+  id: string;
+  imageUrl: string;
+}
+
+interface RevenueAirtableRecord {
+  id: string;
+  fields: {
+    image?: AirtableAttachment[];
+    active?: boolean;
+  };
+}
+
+interface RevenueAirtableResponse {
+  records: RevenueAirtableRecord[];
+  offset?: string;
+}
+
+export async function fetchRevenueResults(): Promise<RevenueResult[]> {
+  if (!AIRTABLE_API_TOKEN || !AIRTABLE_BASE_ID) {
+    console.warn('Airtable credentials not configured');
+    return [];
+  }
+
+  try {
+    const params = new URLSearchParams({
+      filterByFormula: '{active}=1',
+    });
+
+    const response = await fetch(`${getAirtableUrl(AIRTABLE_REVENUE_TABLE)}?${params}`, {
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Airtable API error: ${response.status}`);
+    }
+
+    const data: RevenueAirtableResponse = await response.json();
+
+    const results: RevenueResult[] = data.records
+      .filter(record => record.fields.image && record.fields.image.length > 0)
+      .map(record => ({
+        id: record.id,
+        imageUrl: record.fields.image![0].thumbnails?.full?.url || record.fields.image![0].url,
+      }));
+
+    return results;
+  } catch (error) {
+    console.error('Error fetching revenue results from Airtable:', error);
     return [];
   }
 }

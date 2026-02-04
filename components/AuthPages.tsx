@@ -173,7 +173,7 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
           </div>
           <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Account Created!</h2>
           <p className="text-[var(--text-secondary)] mb-6">
-            Check your email to verify your account. You got 5 free credits to start!
+            Check your email to verify your account. You got 3 free credits to start!
           </p>
           <button
             onClick={onSwitch}
@@ -199,7 +199,7 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
             <button onClick={onClose} className="text-white/80 hover:text-white"><span className="text-2xl">×</span></button>
           </div>
           <h2 className="text-2xl font-bold mt-4">Create Account</h2>
-          <p className="text-white/80 text-sm">Start with 5 free credits</p>
+          <p className="text-white/80 text-sm">Start with 3 free credits</p>
         </div>
 
         {/* Form */}

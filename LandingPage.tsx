@@ -3,7 +3,7 @@ import {
   Menu, X, ChevronDown, ChevronUp, Check, Sparkles,
   Zap, Crown, Shield, Clock, Users, Star, ArrowRight,
   Play, Download, Layers, Cpu, Lock, Mail, Flame,
-  User, LogOut, CreditCard, Crown as CrownIcon
+  User, LogOut, CreditCard, Crown as CrownIcon, Package
 } from 'lucide-react';
 import App from './App';
 import { useAuth } from './contexts/AuthContext';
@@ -14,16 +14,24 @@ import { PortfolioShowcase } from './components/PortfolioShowcase';
 import { HeroBackground } from './components/HeroBackground';
 import { PaymentModal } from './components/PaymentModal';
 import { RevenueShowcase } from './components/RevenueShowcase';
+import { ServicePaymentModal } from './components/ServicePaymentModal';
+import { ServiceThankYouModal } from './components/ServiceThankYouModal';
+import { MyPurchases } from './components/MyPurchases';
+import { ServiceContent } from './components/ServiceContent';
+import { LoraUploadFlow } from './components/LoraUploadFlow';
+import { WORKFLOWS, LORAS, PACKAGES, ServiceItem, getServiceById } from './services/servicesData';
 
 // Navigation Component
-const Navigation = ({ 
-  onLaunchApp, 
-  onLoginClick, 
-  onRegisterClick 
-}: { 
+const Navigation = ({
+  onLaunchApp,
+  onLoginClick,
+  onRegisterClick,
+  onMyPurchases
+}: {
   onLaunchApp: () => void;
   onLoginClick: () => void;
   onRegisterClick: () => void;
+  onMyPurchases: () => void;
 }) => {
   const { user, signOut } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -81,6 +89,13 @@ const Navigation = ({
                       {user.credits} credits
                     </span>
                   </div>
+                  <button
+                    onClick={onMyPurchases}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:text-reed-red transition-colors"
+                  >
+                    <Package className="w-4 h-4" />
+                    My Purchases
+                  </button>
                   <button
                     onClick={onLaunchApp}
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors shadow-lg shadow-reed-red/25"
@@ -152,6 +167,15 @@ const Navigation = ({
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
+                    onMyPurchases();
+                  }}
+                  className="block w-full text-left text-base font-medium text-[var(--text-secondary)] hover:text-reed-red py-2"
+                >
+                  My Purchases
+                </button>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
                     onLaunchApp();
                   }}
                   className="block w-full text-left text-base font-medium text-reed-red hover:text-reed-red-dark py-2 font-semibold"
@@ -217,15 +241,15 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
 
           {/* Main Headline */}
           <h1 className="font-display text-4xl sm:text-5xl lg:text-7xl font-bold text-[var(--text-primary)] leading-[1.1] mb-6 animate-slide-up">
-            Elite AI Model
+            Generate & Scale
             <br />
-            <span className="text-gradient">Customization Service</span>
+            <span className="text-gradient">Consistent AI Content</span>
           </h1>
 
           {/* Subheadline */}
           <p className="text-lg sm:text-xl text-[var(--text-primary)]/80 max-w-2xl mx-auto mb-10 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            Exclusive for serious creators. Advanced NSFW workflows, custom LoRAs trained by experts,
-            and premium image generation that multiplies your revenue.
+            Generate images directly on our platform or get custom SDXL LoRAs and workflows built for you.
+            Same face, same style, every single time — no more inconsistent results.
           </p>
 
           {/* CTA Buttons */}
@@ -247,16 +271,16 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
           {/* Trust Indicators */}
           <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-[var(--text-primary)]/70 animate-fade-in" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-reed-red" />
+              <span>On-Site Generator</span>
+            </div>
+            <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-reed-red" />
-              <span>Privacy Guaranteed</span>
+              <span>100% Consistent</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-reed-red" />
-              <span>24-48h Delivery</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Star className="w-4 h-4 text-reed-red" />
-              <span>VIP Support</span>
+              <span>24-48h LoRA Delivery</span>
             </div>
           </div>
         </div>
@@ -363,79 +387,18 @@ const PortfolioSection = () => {
 };
 
 // Services Section
-const ServicesSection = () => {
-  const workflows = [
-    {
-      name: "Inpainting Pro",
-      description: "Advanced editing with intelligent masking. Upload and edit/mask quickly with professional results.",
-      price: "$397",
-      features: ["Automatic masking", "Precise editing", "HD export", "Guide included"],
-      popular: false
-    },
-    {
-      name: "ControlNet Poses",
-      description: "Precise poses from references with elite consistency. Full control over composition.",
-      price: "$697",
-      features: ["Exact poses", "Guaranteed consistency", "Multiple angles", "Priority support"],
-      popular: true
-    },
-    {
-      name: "Elite Bundle",
-      description: "Everything included: Inpainting + ControlNet + complete guide + custom prompts.",
-      price: "$997",
-      features: ["Both workflows", "Complete guide", "Exclusive prompts", "1:1 VIP support"],
-      popular: false
-    }
-  ];
-
-  const loras = [
-    {
-      name: "Basic LoRA",
-      description: "Training with 40 images. Good similarity for consistent results.",
-      price: "$47",
-      features: ["40 images", "85%+ similarity", "24h delivery", "1 revision"]
-    },
-    {
-      name: "Advanced LoRA",
-      description: "150 images for hyperrealistic and ultra-detailed results.",
-      price: "$147",
-      features: ["150 images", "Hyperrealistic", "Ultra-detailed", "3 revisions"]
-    }
-  ];
-
-  const packages = [
-    {
-      name: "Starter",
-      description: "Perfect to get started with your custom model.",
-      price: "$297",
-      includes: ["Basic LoRA", "20 generated images", "Base prompts"]
-    },
-    {
-      name: "Pro",
-      description: "The favorite of professional creators.",
-      price: "$597",
-      includes: ["Advanced LoRA", "50 generated images", "Optimized prompts"],
-      popular: true
-    },
-    {
-      name: "Elite",
-      description: "The complete experience for maximum results.",
-      price: "$997",
-      includes: ["Monster LoRA", "100 generated images", "VIP custom prompts"]
-    }
-  ];
-
+const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem) => void }) => {
   return (
-    <section id="services" className="min-h-screen py-20 lg:py-24 bg-[var(--bg-primary)] scroll-mt-20">
+    <section id="services" className="pt-16 pb-24 lg:pt-20 lg:pb-32 bg-[var(--bg-primary)] scroll-mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
           <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">Services</span>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4">
-            Premium Solutions for Creators
+            Done-For-You Services
           </h2>
           <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
-            Each service is designed to maximize the quality and consistency of your content.
+            Don't want to generate yourself? We build it for you — custom SDXL LoRAs, workflows, and full content packs ready to post.
           </p>
         </div>
 
@@ -444,16 +407,16 @@ const ServicesSection = () => {
           <div className="flex flex-wrap items-center gap-4 mb-8">
             <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
               <Layers className="w-6 h-6 text-reed-red" />
-              NSFW Workflows (One-Time)
+              SDXL Workflows (One-Time)
             </h3>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-full text-xs font-semibold text-[var(--text-secondary)]">
               <Cpu className="w-3.5 h-3.5" />
-              Powered by SDXL
+              ComfyUI Ready
             </span>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {workflows.map((workflow) => (
-              <div key={workflow.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
+            {WORKFLOWS.map((workflow) => (
+              <div key={workflow.id} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
                 workflow.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
               }`}>
                 {workflow.popular && (
@@ -472,8 +435,11 @@ const ServicesSection = () => {
                     </li>
                   ))}
                 </ul>
-                <button className={`w-full py-3 font-semibold rounded-xl transition-colors mt-auto ${workflow.popular ? 'bg-reed-red text-white hover:bg-reed-red-dark' : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'}`}>
-                  {workflow.popular ? 'Get Started' : 'Request'}
+                <button
+                  onClick={() => onBuyService(workflow)}
+                  className={`w-full py-3 font-semibold rounded-xl transition-colors mt-auto ${workflow.popular ? 'bg-reed-red text-white hover:bg-reed-red-dark' : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'}`}
+                >
+                  {workflow.popular ? 'Get Started' : 'Buy Now'}
                 </button>
               </div>
             ))}
@@ -484,11 +450,11 @@ const ServicesSection = () => {
         <div className="mb-20">
           <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] mb-8 flex items-center gap-3">
             <Cpu className="w-6 h-6 text-reed-red" />
-            Custom LoRAs
+            Custom SDXL LoRAs
           </h3>
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
-            {loras.map((lora) => (
-              <div key={lora.name} className="bg-[var(--card-bg)] rounded-2xl p-6 border-2 border-[var(--card-border)] hover:border-reed-red transition-all hover:shadow-xl flex flex-col">
+            {LORAS.map((lora) => (
+              <div key={lora.id} className="bg-[var(--card-bg)] rounded-2xl p-6 border-2 border-[var(--card-border)] hover:border-reed-red transition-all hover:shadow-xl flex flex-col">
                 <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{lora.name}</h4>
                 <p className="text-[var(--text-secondary)] text-sm mb-4 flex-grow">{lora.description}</p>
                 <div className="text-3xl font-bold text-[var(--text-primary)] mb-6">{lora.price}</div>
@@ -500,7 +466,10 @@ const ServicesSection = () => {
                     </li>
                   ))}
                 </ul>
-                <button className="w-full py-3 font-semibold rounded-xl bg-reed-red text-white hover:bg-reed-red-dark transition-colors mt-auto">
+                <button
+                  onClick={() => onBuyService(lora)}
+                  className="w-full py-3 font-semibold rounded-xl bg-reed-red text-white hover:bg-reed-red-dark transition-colors mt-auto"
+                >
                   Buy Now
                 </button>
               </div>
@@ -515,8 +484,8 @@ const ServicesSection = () => {
             Complete Custom Packages
           </h3>
           <div className="grid md:grid-cols-3 gap-6">
-            {packages.map((pkg) => (
-              <div key={pkg.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
+            {PACKAGES.map((pkg) => (
+              <div key={pkg.id} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
                 pkg.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
               }`}>
                 {pkg.popular && (
@@ -528,15 +497,18 @@ const ServicesSection = () => {
                 <p className="text-[var(--text-secondary)] text-sm mb-4 flex-grow">{pkg.description}</p>
                 <div className="text-3xl font-bold text-[var(--text-primary)] mb-6">{pkg.price}</div>
                 <ul className="space-y-3 mb-6">
-                  {pkg.includes.map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                  {pkg.features.map((feature) => (
+                    <li key={feature} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                       <Check className="w-4 h-4 text-reed-red flex-shrink-0" />
-                      {item}
+                      {feature}
                     </li>
                   ))}
                 </ul>
-                <button className={`w-full py-3 font-semibold rounded-xl transition-colors mt-auto ${pkg.popular ? 'bg-reed-red text-white hover:bg-reed-red-dark' : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'}`}>
-                  {pkg.popular ? 'Get Started' : 'Request'}
+                <button
+                  onClick={() => onBuyService(pkg)}
+                  className={`w-full py-3 font-semibold rounded-xl transition-colors mt-auto ${pkg.popular ? 'bg-reed-red text-white hover:bg-reed-red-dark' : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'}`}
+                >
+                  {pkg.popular ? 'Get Started' : 'Buy Now'}
                 </button>
               </div>
             ))}
@@ -597,12 +569,11 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
       period: "/month",
       credits: "3",
       creditsValue: 3,
-      nsfw: false,
+      nsfw: "Soon",
       features: [
-        "Limited trial",
-        "Normal queue",
         "Standard resolution",
-        "Community support"
+        "Fixed pose",
+        "Auto-generated prompt"
       ],
       cta: "Start Free",
       popular: false
@@ -617,10 +588,9 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
       creditsValue: 50,
       nsfw: "Soon",
       features: [
-        "Queue priority",
-        "Guided prompts",
-        "HD resolution",
-        "Email support"
+        "1K max resolution",
+        "Editable pose",
+        "Custom prompt editing"
       ],
       cta: "Choose Starter",
       popular: false
@@ -633,12 +603,11 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
       period: "/month",
       credits: "120",
       creditsValue: 120,
-      nsfw: true,
+      nsfw: "Soon",
       features: [
-        "Advanced styles",
-        "Fast support",
         "4K resolution",
-        "Beta access"
+        "Full creative control",
+        "Faster generation"
       ],
       cta: "Choose Creator",
       popular: true
@@ -651,12 +620,11 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
       period: "/month",
       credits: "250",
       creditsValue: 250,
-      nsfw: true,
+      nsfw: "Soon",
       features: [
         "All Creator features",
         "Priority support",
-        "Custom presets",
-        "Early access"
+        "Fastest generation"
       ],
       cta: "Choose Pro",
       popular: false
@@ -669,12 +637,11 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
       period: "/month",
       credits: "600",
       creditsValue: 600,
-      nsfw: "Full",
+      nsfw: "Soon",
       features: [
-        "VIP priority queue",
-        "1:1 support",
-        "API access",
-        "White-label ready"
+        "All Pro features",
+        "1:1 call support",
+        "Maximum resolution"
       ],
       cta: "Choose Studio",
       popular: false
@@ -682,7 +649,7 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
   ];
 
   return (
-    <section id="pricing" className="min-h-screen py-20 lg:py-24 bg-[var(--bg-primary)] flex flex-col justify-center scroll-mt-20">
+    <section id="pricing" className="pt-16 pb-32 lg:pt-20 lg:pb-48 bg-[var(--bg-primary)] scroll-mt-20">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 w-full">
         {/* Section Header */}
         <div className="text-center mb-12 lg:mb-16">
@@ -793,40 +760,40 @@ const FAQSection = () => {
   const faqs = [
     {
       question: "What is REED?",
-      answer: "REED is an elite AI model customization service designed specifically for serious NSFW content creators. We offer advanced workflows, custom LoRA training, and premium image generation with professional-quality results."
+      answer: "REED is an AI image generation platform for creators. You can generate images directly on our site, or hire us to build custom SDXL LoRAs and workflows tailored to your character. The result: every image looks like it belongs to the same person — no more random faces."
+    },
+    {
+      question: "What makes REED different from other AI tools?",
+      answer: "Consistency. Most AI generators give you a different face every time. Our custom SDXL LoRAs and prompt engineering ensure your character looks identical across hundreds of images — same face, same style, any pose or scene."
     },
     {
       question: "How does the service work?",
-      answer: "Simple: choose the service you need (workflow, LoRA, or package), make the payment, and our team of experts starts working on your project. LoRAs are delivered in 24-48h, workflows are immediately downloadable."
+      answer: "Choose what you need (SDXL workflow, LoRA, or full package), send us the reference material, and we handle the rest. LoRAs are delivered in 24-48h, workflows are ready to use in ComfyUI immediately."
     },
     {
-      question: "Do I need additional AI subscriptions?",
-      answer: "No. Our services include everything you need. For on-site generation subscriptions, choose the plan you prefer and start generating immediately without external APIs."
-    },
-    {
-      question: "Can I use my existing AI subscriptions?",
-      answer: "The workflows we sell are designed to work with ComfyUI and can be integrated with your own configurations. However, our LoRAs and custom services don't require additional subscriptions."
+      question: "Do I need my own AI setup?",
+      answer: "For on-site generation, no — just pick a subscription plan and generate directly on our platform. For workflows and LoRAs, you'll use them in ComfyUI on your own machine or cloud setup."
     },
     {
       question: "How much does REED cost?",
-      answer: "We offer options for all budgets: from $47 for a basic LoRA to $997 for complete elite packages. Subscriptions range from $0 (free) to $199/month for the Studio plan."
+      answer: "LoRAs start at $47, workflows at $397, and full packages from $297. On-site generation subscriptions go from free (3 credits) to $199/month (600 credits)."
     },
     {
       question: "What about my data and privacy?",
-      answer: "Privacy is our #1 priority. We never share your data or images with third parties. All processing is done on secure servers and you can request complete deletion of your data at any time."
+      answer: "Your images and data are never shared with anyone. All processing happens on secure servers. You can request complete deletion of your data at any time."
     },
     {
       question: "Is there a guarantee?",
-      answer: "Yes, we offer a 7-14 day guarantee on all our services. If you're not satisfied with the results, we'll refund your money. For LoRAs, we include revisions according to the chosen plan."
+      answer: "Yes. 14-day guarantee on all services. If the results don't meet expectations, we refund you. LoRAs include revisions based on your plan."
     },
     {
-      question: "Is REED open source?",
-      answer: "Some of our workflows are based on open source projects, but the trained LoRAs and custom services are proprietary and exclusive to each client."
+      question: "What model do you use?",
+      answer: "All our LoRAs, workflows, and prompts are built for SDXL (Stable Diffusion XL). We don't build models from scratch — we fine-tune and optimize SDXL to deliver consistent, high-quality results for your specific needs."
     }
   ];
 
   return (
-    <section id="faq" className="min-h-screen py-20 lg:py-24 bg-[var(--bg-primary)] flex flex-col justify-center scroll-mt-20">
+    <section id="faq" className="pt-16 pb-24 lg:pt-20 lg:pb-32 bg-[var(--bg-primary)] scroll-mt-20">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
@@ -876,11 +843,11 @@ const CTASection = () => {
     <section className="py-24 bg-reed-red relative overflow-hidden">
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
-          Ready to take your content to the next level?
+          Start generating consistent content today
         </h2>
         <p className="text-lg text-white/80 mb-10 max-w-2xl mx-auto">
-          Join the elite creators who are already multiplying their revenue with custom AI models.
-          Only 50 spots available for the beta.
+          Generate on our platform or let us build your custom LoRA and workflow.
+          Either way, every image stays on-brand. Only 50 beta spots left.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
@@ -915,8 +882,8 @@ const Footer = () => {
               <span className="font-display font-bold text-xl">REED</span>
             </div>
             <p className="text-[var(--text-secondary)] max-w-sm mb-6">
-              Elite AI model customization service for serious creators. 
-              NSFW workflows, custom LoRAs, and premium generation.
+              AI image generation platform for creators.
+              Generate on-site or get custom SDXL LoRAs and workflows built for you.
             </p>
             <div className="flex items-center gap-4">
               <a href="#" className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
@@ -961,7 +928,7 @@ const Footer = () => {
             © 2026 REED. All rights reserved.
           </p>
           <p className="text-[var(--text-muted)] text-sm">
-            Designed for elite creators.
+            Consistency is everything.
           </p>
         </div>
       </div>
@@ -976,6 +943,16 @@ const LandingPage = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
 
+  // Service purchase states
+  const [showMyPurchases, setShowMyPurchases] = useState(false);
+  const [showServiceContent, setShowServiceContent] = useState(false);
+  const [showLoraUpload, setShowLoraUpload] = useState(false);
+  const [selectedServiceForPayment, setSelectedServiceForPayment] = useState<ServiceItem | null>(null);
+  const [showServicePayment, setShowServicePayment] = useState(false);
+  const [showThankYou, setShowThankYou] = useState(false);
+  const [activePurchaseId, setActivePurchaseId] = useState<string>('');
+  const [activeServiceId, setActiveServiceId] = useState<string>('');
+
   // Check localStorage on mount to restore app view state
   useEffect(() => {
     const savedShowApp = localStorage.getItem('reed_show_app');
@@ -987,17 +964,27 @@ const LandingPage = () => {
   // Handle email confirmation from URL
   useEffect(() => {
     const handleEmailConfirmation = async () => {
-      // Check if there's a hash in the URL (from email confirmation)
-      if (window.location.hash) {
+      const hash = window.location.hash;
+
+      // Only process if hash contains Supabase auth tokens (access_token or type=)
+      // This excludes navigation hashes like #pricing, #services, #faq
+      if (hash && (hash.includes('access_token') || hash.includes('type='))) {
+        // Check if we already processed this confirmation
+        const confirmationProcessed = sessionStorage.getItem('email_confirmation_processed');
+        if (confirmationProcessed) {
+          // Already processed, just clean the URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return;
+        }
+
         try {
-          // Supabase automatically handles the token in the URL hash
-          // We just need to get the session
           const { data, error } = await supabase.auth.getSession();
-          
+
           if (error) {
             console.error('Error getting session:', error);
           } else if (data.session) {
-            console.log('Session obtained successfully:', data);
+            // Mark as processed to avoid showing again
+            sessionStorage.setItem('email_confirmation_processed', 'true');
             // Clear the URL hash
             window.history.replaceState({}, document.title, window.location.pathname);
             // Show success message
@@ -1011,7 +998,7 @@ const LandingPage = () => {
         }
       }
     };
-    
+
     handleEmailConfirmation();
   }, []);
 
@@ -1039,17 +1026,74 @@ const LandingPage = () => {
   // Handle going back to landing page
   const handleShowLanding = useCallback(() => {
     setShowApp(false);
+    setShowMyPurchases(false);
+    setShowServiceContent(false);
+    setShowLoraUpload(false);
     // Don't remove from localStorage so we know user was in app
     localStorage.setItem('reed_show_app', 'false');
+  }, []);
+
+  // Handle buying a service
+  const handleBuyService = useCallback((service: ServiceItem) => {
+    if (!user) {
+      setShowLogin(true);
+      return;
+    }
+    setSelectedServiceForPayment(service);
+    setShowServicePayment(true);
+  }, [user]);
+
+  // After payment is initiated
+  const handlePaymentInitiated = useCallback((serviceId: string) => {
+    setShowServicePayment(false);
+    const service = selectedServiceForPayment || getServiceById(serviceId);
+    if (service) {
+      setSelectedServiceForPayment(service);
+      setShowThankYou(true);
+    }
+  }, [selectedServiceForPayment]);
+
+  // Navigate to My Purchases
+  const handleShowMyPurchases = useCallback(() => {
+    if (!user) {
+      setShowLogin(true);
+      return;
+    }
+    setShowMyPurchases(true);
+    setShowServiceContent(false);
+    setShowLoraUpload(false);
+  }, [user]);
+
+  // Navigate to service content
+  const handleViewContent = useCallback((purchaseId: string, serviceId: string) => {
+    setActivePurchaseId(purchaseId);
+    setActiveServiceId(serviceId);
+    setShowServiceContent(true);
+    setShowMyPurchases(false);
+  }, []);
+
+  // Navigate to LoRA upload
+  const handleUploadPhotos = useCallback((purchaseId: string, serviceId: string) => {
+    setActivePurchaseId(purchaseId);
+    setActiveServiceId(serviceId);
+    setShowLoraUpload(true);
+    setShowMyPurchases(false);
+  }, []);
+
+  // After upload complete
+  const handleUploadComplete = useCallback(() => {
+    setShowLoraUpload(false);
+    setShowMyPurchases(true);
   }, []);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
-        <Navigation 
+        <Navigation
           onLaunchApp={handleShowApp}
           onLoginClick={() => setShowLogin(true)}
           onRegisterClick={() => setShowRegister(true)}
+          onMyPurchases={handleShowMyPurchases}
         />
         <div className="h-screen flex items-center justify-center">
           <div className="text-center">
@@ -1065,6 +1109,46 @@ const LandingPage = () => {
     return <App onBackToLanding={handleShowLanding} />;
   }
 
+  // Service content view
+  if (showServiceContent && activePurchaseId && activeServiceId) {
+    return (
+      <ServiceContent
+        purchaseId={activePurchaseId}
+        serviceId={activeServiceId}
+        onBack={() => {
+          setShowServiceContent(false);
+          setShowMyPurchases(true);
+        }}
+      />
+    );
+  }
+
+  // LoRA upload view
+  if (showLoraUpload && activePurchaseId && activeServiceId) {
+    return (
+      <LoraUploadFlow
+        purchaseId={activePurchaseId}
+        serviceId={activeServiceId}
+        onBack={() => {
+          setShowLoraUpload(false);
+          setShowMyPurchases(true);
+        }}
+        onComplete={handleUploadComplete}
+      />
+    );
+  }
+
+  // My Purchases view
+  if (showMyPurchases) {
+    return (
+      <MyPurchases
+        onBack={handleShowLanding}
+        onViewContent={handleViewContent}
+        onUploadPhotos={handleUploadPhotos}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] transition-colors duration-300 scroll-smooth">
       <ThemeToggle />
@@ -1072,6 +1156,7 @@ const LandingPage = () => {
         onLaunchApp={handleShowApp}
         onLoginClick={() => setShowLogin(true)}
         onRegisterClick={() => setShowRegister(true)}
+        onMyPurchases={handleShowMyPurchases}
       />
 
       {showLogin && (
@@ -1096,10 +1181,46 @@ const LandingPage = () => {
       <PortfolioSection />
       <RevenueShowcase />
       <PricingSection onLoginClick={() => setShowLogin(true)} />
-      <ServicesSection />
+      <ServicesSection onBuyService={handleBuyService} />
       <FAQSection />
       <CTASection />
       <Footer />
+
+      {/* Service Payment Modal */}
+      {selectedServiceForPayment && (
+        <ServicePaymentModal
+          isOpen={showServicePayment}
+          onClose={() => {
+            setShowServicePayment(false);
+            setSelectedServiceForPayment(null);
+          }}
+          service={selectedServiceForPayment}
+          onPaymentInitiated={handlePaymentInitiated}
+        />
+      )}
+
+      {/* Service Thank You Modal */}
+      {selectedServiceForPayment && (
+        <ServiceThankYouModal
+          isOpen={showThankYou}
+          service={selectedServiceForPayment}
+          onClose={() => {
+            setShowThankYou(false);
+            setSelectedServiceForPayment(null);
+          }}
+          onGoToUpload={() => {
+            setShowThankYou(false);
+            // For LoRA/package uploads, we need a purchase ID
+            // Since the webhook hasn't fired yet, we'll go to My Purchases where they can upload later
+            setShowMyPurchases(true);
+          }}
+          onGoToPurchases={() => {
+            setShowThankYou(false);
+            setSelectedServiceForPayment(null);
+            setShowMyPurchases(true);
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -27,6 +27,65 @@ function verifySignature(payload, signature) {
 // Valid plan types
 const VALID_PLANS = ['free', 'starter', 'creator', 'pro', 'studio'];
 
+// Create a service purchase record in Supabase
+async function createServicePurchase(userId, metadata, chargeCode) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    console.error('Supabase credentials not configured');
+    return false;
+  }
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/service_purchases`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        service_id: metadata.service_id,
+        service_name: metadata.service_name,
+        service_category: metadata.service_category,
+        amount: parseFloat(metadata.amount) || 0,
+        currency: 'USD',
+        status: metadata.service_category === 'workflow' ? 'delivered' : 'processing',
+        coinbase_charge_code: chargeCode,
+        metadata: metadata
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Failed to create service purchase:', await response.text());
+      return false;
+    }
+
+    // Log the transaction
+    await fetch(`${SUPABASE_URL}/rest/v1/credit_transactions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        amount: 0,
+        type: 'purchase',
+        description: `Service purchase: ${metadata.service_name} (${metadata.service_category})`,
+        metadata: metadata
+      })
+    });
+
+    console.log(`Created service purchase for user ${userId}: ${metadata.service_name}`);
+    return true;
+  } catch (error) {
+    console.error('Error creating service purchase:', error);
+    return false;
+  }
+}
+
 // Update user credits in Supabase
 async function updateUserCredits(userId, credits, paymentMetadata) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
@@ -140,32 +199,64 @@ exports.handler = async (event) => {
     if (eventType === 'charge:confirmed') {
       const metadata = charge?.metadata || {};
       const userId = metadata.user_id;
-      const credits = parseInt(metadata.credits) || 0;
+      const chargeCode = charge?.code;
 
-      if (userId && credits > 0) {
-        console.log(`Processing payment for user ${userId}: ${credits} credits`);
+      if (!userId) {
+        console.error('Missing user_id in metadata');
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: 'Missing user_id' })
+        };
+      }
 
-        const success = await updateUserCredits(userId, credits, metadata);
+      // Route: service purchase vs subscription
+      if (metadata.purchase_type === 'service') {
+        console.log(`Processing service purchase for user ${userId}: ${metadata.service_name}`);
+
+        const success = await createServicePurchase(userId, metadata, chargeCode);
 
         if (success) {
-          console.log('Credits updated successfully');
+          console.log('Service purchase created successfully');
           return {
             statusCode: 200,
-            body: JSON.stringify({ success: true, message: 'Credits added' })
+            body: JSON.stringify({ success: true, message: 'Service purchase recorded' })
           };
         } else {
-          console.error('Failed to update credits');
+          console.error('Failed to create service purchase');
           return {
             statusCode: 500,
-            body: JSON.stringify({ error: 'Failed to update credits' })
+            body: JSON.stringify({ error: 'Failed to create service purchase' })
           };
         }
       } else {
-        console.error('Missing user_id or credits in metadata');
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ error: 'Missing metadata' })
-        };
+        // Subscription / credits purchase
+        const credits = parseInt(metadata.credits) || 0;
+
+        if (credits > 0) {
+          console.log(`Processing payment for user ${userId}: ${credits} credits`);
+
+          const success = await updateUserCredits(userId, credits, metadata);
+
+          if (success) {
+            console.log('Credits updated successfully');
+            return {
+              statusCode: 200,
+              body: JSON.stringify({ success: true, message: 'Credits added' })
+            };
+          } else {
+            console.error('Failed to update credits');
+            return {
+              statusCode: 500,
+              body: JSON.stringify({ error: 'Failed to update credits' })
+            };
+          }
+        } else {
+          console.error('Missing credits in metadata');
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ error: 'Missing credits' })
+          };
+        }
       }
     }
 
