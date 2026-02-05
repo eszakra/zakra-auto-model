@@ -1394,7 +1394,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
       {/* EDIT NAME MODAL */}
       {editingModel && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4">
           <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl p-6 w-full max-w-md shadow-xl">
             <h3 className="text-lg font-bold mb-4 text-[var(--text-primary)]">Edit Name</h3>
             <input
@@ -1426,7 +1426,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
       {/* DELETE CONFIRMATION MODAL */}
       {deleteConfirmModel && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4">
           <div className="bg-[var(--bg-primary)] border border-red-200 rounded-xl p-6 w-full max-w-md shadow-xl">
             <h3 className="text-lg font-bold mb-4 text-[#a11008]">Confirm Deletion</h3>
             <p className="text-[var(--text-secondary)] mb-2">Are you sure you want to delete the model:</p>
