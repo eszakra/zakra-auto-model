@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
-import { Download, X, Calendar, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Download, X, Calendar, Image as ImageIcon, Loader2, Lock } from 'lucide-react';
 
 interface GenerationRecord {
     id: string;
     created_at: string;
     model_name: string;
     image_url: string;
-    prompt: string;
+    prompt: string | null;
     aspect_ratio: string;
     resolution: string;
 }
@@ -18,9 +19,11 @@ interface HistoryModalProps {
 }
 
 const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose }) => {
+    const { user } = useAuth();
     const [generations, setGenerations] = useState<GenerationRecord[]>([]);
     const [loading, setLoading] = useState(false);
     const [selectedGen, setSelectedGen] = useState<GenerationRecord | null>(null);
+    const isAdmin = user?.is_admin === true;
 
     useEffect(() => {
         if (isOpen) {
@@ -30,16 +33,31 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose }) => {
 
     const fetchHistory = async () => {
         setLoading(true);
-        // Use generation_logs table with user filter (RLS will handle this automatically)
-        const { data, error } = await supabase
-            .from('generation_logs')
-            .select('*')
-            .order('created_at', { ascending: false });
+        try {
+            // Use secure RPC that strips prompt for non-admins
+            const { data, error } = await supabase.rpc('get_generation_history', {
+                p_limit: 200,
+                p_offset: 0
+            });
 
-        if (!error && data) {
-            setGenerations(data as GenerationRecord[]);
-        } else if (error) {
-            console.error('Error fetching history:', error);
+            if (!error && data) {
+                setGenerations(data as GenerationRecord[]);
+            } else if (error) {
+                // Fallback to direct query if RPC doesn't exist yet
+                console.warn('RPC fallback:', error.message);
+                const { data: fallbackData, error: fallbackError } = await supabase
+                    .from('generation_logs')
+                    .select('id, created_at, model_name, image_url, aspect_ratio, resolution')
+                    .order('created_at', { ascending: false })
+                    .limit(200);
+
+                if (!fallbackError && fallbackData) {
+                    // Strip prompt entirely in fallback mode
+                    setGenerations(fallbackData.map(r => ({ ...r, prompt: null })) as GenerationRecord[]);
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching history:', err);
         }
         setLoading(false);
     };
@@ -132,11 +150,10 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose }) => {
                                     <div className="flex gap-6">
                                         <div className="flex-1 space-y-4 overflow-y-auto">
                                             <div>
-                                                <label className="text-xs text-[var(--text-muted)] uppercase font-medium block mb-2">Prompt Used</label>
-                                                <div className="text-xs text-[var(--text-primary)] font-mono leading-relaxed bg-[var(--bg-secondary)] p-3 border border-[var(--border-color)] rounded-lg max-h-40 overflow-y-auto">
-                                                    {selectedGen.prompt ? (
-                                                        selectedGen.prompt.startsWith('{') ? (
-                                                            // Try to parse and display JSON nicely
+                                                <label className="text-xs text-[var(--text-muted)] uppercase font-medium block mb-2">Prompt Data</label>
+                                                {isAdmin && selectedGen.prompt ? (
+                                                    <div className="text-xs text-[var(--text-primary)] font-mono leading-relaxed bg-[var(--bg-secondary)] p-3 border border-[var(--border-color)] rounded-lg max-h-40 overflow-y-auto">
+                                                        {selectedGen.prompt.startsWith('{') ? (
                                                             (() => {
                                                                 try {
                                                                     const parsed = JSON.parse(selectedGen.prompt);
@@ -160,11 +177,14 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose }) => {
                                                             })()
                                                         ) : (
                                                             <p className="whitespace-pre-wrap">{selectedGen.prompt}</p>
-                                                        )
-                                                    ) : (
-                                                        <span className="text-[var(--text-muted)] italic">No prompt data available</span>
-                                                    )}
-                                                </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-3 text-xs text-[var(--text-muted)] bg-[var(--bg-secondary)] p-4 border border-[var(--border-color)] rounded-lg">
+                                                        <Lock size={14} className="text-[var(--text-muted)] flex-shrink-0" />
+                                                        <span>Prompt data is restricted</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
