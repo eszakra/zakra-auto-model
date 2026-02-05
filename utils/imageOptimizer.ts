@@ -13,8 +13,9 @@ interface OptimizeOptions {
 export function optimizeImage(url: string, options: OptimizeOptions = {}): string {
   if (!url) return '';
 
-  // Skip if already optimized or is a data URL
-  if (url.startsWith('data:') || url.includes('wsrv.nl')) {
+  // Skip if already optimized, is a data URL, or is an Airtable temp URL
+  // Airtable CDN URLs are authenticated/temporary and cannot be proxied
+  if (url.startsWith('data:') || url.includes('wsrv.nl') || url.includes('airtable') || url.includes('dl.airtable.com')) {
     return url;
   }
 
