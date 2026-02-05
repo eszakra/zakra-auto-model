@@ -3,6 +3,7 @@ import { supabase, uploadBase64Image } from './services/supabaseClient';
 import { constructPayload, generateIndustrialImage } from './services/geminiService';
 import { AppState, ModeloBase, QueueItem } from './types';
 import ModelModal from './components/ModelModal';
+import OnboardingGuide from './components/OnboardingGuide';
 import { useAuth } from './contexts/AuthContext';
 import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers, ScanSearch, X, Check, ArrowLeft, CreditCard, Crown, Shield, Sparkles, Monitor, Tv, MonitorPlay, Square, RectangleVertical, RectangleHorizontal, Smartphone, ChevronDown } from 'lucide-react';
 import JSZip from 'jszip';
@@ -79,6 +80,9 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   const [aspectDropdownOpen, setAspectDropdownOpen] = useState(false);
   const resolutionDropdownRef = useRef<HTMLDivElement>(null);
   const aspectDropdownRef = useRef<HTMLDivElement>(null);
+
+  // --- ONBOARDING ---
+  const [isOnboarding, setIsOnboarding] = useState(false);
 
   // --- POSE VARIATION (Creator+ only) ---
   const [showPoseVariation, setShowPoseVariation] = useState(false);
@@ -203,6 +207,13 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       }
     }, 5000);
     return () => clearTimeout(timer);
+  }, [user, userLoading]);
+
+  // Initialize onboarding for first-time users
+  useEffect(() => {
+    if (!userLoading && user && !localStorage.getItem('reed_onboarding_done')) {
+      setIsOnboarding(true);
+    }
   }, [user, userLoading]);
 
   // Reset resolution if user changes plan and selected resolution is not available
@@ -843,7 +854,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
             {loadingModels ? (
               <div className="text-sm text-[var(--text-muted)] text-center py-8">Loading models...</div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3" data-onboarding="model-grid">
                 {modelos.map(modelo => (
                   <div
                     key={modelo.id}
@@ -901,7 +912,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         {/* COL 2: REFERENCE & ANALYSIS */}
         <section className="flex flex-col h-full bg-[var(--bg-secondary)] overflow-hidden relative">
           {/* LOCK OVERLAY when no model selected */}
-          {!selectedModel && (
+          {!selectedModel && !isOnboarding && (
             <div className="absolute inset-0 bg-[var(--bg-primary)] z-[100] flex items-center justify-center">
               <div className="text-center">
                 <div className="text-[var(--text-muted)] mb-2"><Layers size={32} className="mx-auto" /></div>
@@ -920,6 +931,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
           <div className="p-4 flex flex-col gap-6">
             {/* DROP ZONE */}
             <div
+              data-onboarding="upload-zone"
               className={`${isBatchMode ? 'h-[500px]' : 'aspect-square'} w-full border-2 border-dashed rounded-xl ${refImage || isBatchMode ? 'border-reed-red bg-reed-red/5' : 'border-[var(--border-color)] hover:border-[var(--text-muted)]'} relative flex flex-col items-center justify-center transition-all group overflow-hidden ${!isBatchMode ? 'cursor-pointer' : ''}`}
               onClick={() => !isBatchMode && fileInputRef.current?.click()}
               onDragOver={handleDragOver}
@@ -979,6 +991,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
             <div className="flex flex-col gap-2">
               {!isBatchMode ? (
                 <button
+                  data-onboarding="analyze-btn"
                   onClick={runAutoAnalysis}
                   disabled={!selectedModel || !refImage || appState === AppState.ANALYZING}
                   className={`w-full py-3 text-sm font-bold uppercase rounded-lg border-2 transition-all
@@ -1018,7 +1031,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
               )}
 
               {/* ANALYSIS STATUS & CUSTOM INSTRUCTIONS */}
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3" data-onboarding="custom-instructions">
                 {/* Analysis Status Card */}
                 <div className={`rounded-lg border p-4 transition-all ${
                   generatedPayload
@@ -1092,7 +1105,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         {/* COL 3: OUTPUT */}
         <section className="flex flex-col h-full bg-[var(--bg-secondary)] overflow-hidden relative">
           {/* LOCK OVERLAY when no payload generated */}
-          {!generatedPayload && !isBatchMode && (
+          {!generatedPayload && !isBatchMode && !isOnboarding && (
             <div className="absolute inset-0 bg-[var(--bg-primary)] z-[100] flex items-center justify-center">
               <div className="text-center">
                 <div className="text-[var(--text-muted)] mb-2"><Cpu size={32} className="mx-auto" /></div>
@@ -1109,7 +1122,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
           </div>
 
           <div className="flex-grow relative min-h-0">
-            <div className="absolute inset-4 border border-[var(--border-color)] bg-[var(--bg-primary)] rounded-xl overflow-hidden">
+            <div className="absolute inset-4 border border-[var(--border-color)] bg-[var(--bg-primary)] rounded-xl overflow-hidden" data-onboarding="output-area">
               {isBatchMode ? (
                 <div className="w-full p-4 grid grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto">
                   {queue.map(q => (
@@ -1176,7 +1189,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
           </div>
 
           {/* FIXED FOOTER CONTROLS */}
-          <div className="p-4 bg-[var(--bg-primary)] border-t border-[var(--border-color)] z-20">
+          <div className="p-4 bg-[var(--bg-primary)] border-t border-[var(--border-color)] z-20" data-onboarding="generate-section">
             {/* DOWNLOAD BUTTONS */}
             {isBatchMode ? (
               <button
@@ -1581,6 +1594,12 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       <AdminPanel
         isOpen={showAdmin}
         onClose={() => setShowAdmin(false)}
+      />
+
+      {/* Onboarding Guide (first-time users only) */}
+      <OnboardingGuide
+        isActive={isOnboarding}
+        onComplete={() => setIsOnboarding(false)}
       />
     </div>
   );

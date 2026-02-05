@@ -1164,7 +1164,8 @@ const LandingPage = () => {
           onSwitch={() => { setShowLogin(false); setShowRegister(true); }}
           onSuccess={() => {
             setShowLogin(false);
-            handleShowApp();
+            setShowApp(true);
+            localStorage.setItem('reed_show_app', 'true');
           }}
         />
       )}
