@@ -584,22 +584,53 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   };
 
   const handleConfirmDelete = async () => {
-    if (!deleteConfirmModel) return;
+    if (!deleteConfirmModel || !user?.id) return;
     setIsDeleting(true);
 
-    const { error } = await supabase
-      .from('saved_models')
-      .delete()
-      .eq('id', deleteConfirmModel.id);
+    try {
+      // First, try to delete with both id and user_id for RLS compatibility
+      const { error, count } = await supabase
+        .from('saved_models')
+        .delete({ count: 'exact' })
+        .eq('id', deleteConfirmModel.id)
+        .eq('user_id', user.id);
 
-    if (error) {
-      alert("ERROR DELETING: " + error.message);
-    } else {
-      fetchModelos();
+      if (error) {
+        alert("ERROR DELETING: " + error.message);
+      } else if (count === 0) {
+        // RLS blocked the delete or model not found - try to fix ownership
+        // This handles models created before user_id was properly set
+        const { error: updateError } = await supabase
+          .from('saved_models')
+          .update({ user_id: user.id })
+          .eq('id', deleteConfirmModel.id)
+          .is('user_id', null);
+
+        if (!updateError) {
+          // Retry delete after fixing ownership
+          const { error: retryError } = await supabase
+            .from('saved_models')
+            .delete()
+            .eq('id', deleteConfirmModel.id)
+            .eq('user_id', user.id);
+
+          if (retryError) {
+            alert("ERROR DELETING: " + retryError.message);
+          }
+        } else {
+          alert("Could not delete this model. Please try again.");
+        }
+      }
+
+      // Always refresh the list
+      await fetchModelos();
       if (selectedModel?.id === deleteConfirmModel.id) {
         setSelectedModel(null);
       }
+    } catch (err: any) {
+      alert("ERROR: " + err.message);
     }
+
     setIsDeleting(false);
     setDeleteConfirmModel(null);
   };
