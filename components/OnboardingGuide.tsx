@@ -16,7 +16,7 @@ const STEPS: Step[] = [
   {
     target: 'model-grid',
     title: 'Choose Your Model',
-    description: 'Select a face model from your library, or create a new one with the + button below.',
+    description: 'This is your model library. Tap "+ Add New Model" to upload a face photo, then select it to get started.',
   },
   {
     target: 'upload-zone',

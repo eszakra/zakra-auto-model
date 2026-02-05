@@ -849,12 +849,12 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
             <button onClick={fetchModelos} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><RefreshCcw size={14} /></button>
           </div>
 
-          <div className="p-4 flex flex-col gap-4">
+          <div className="p-4 flex flex-col gap-4" data-onboarding="model-grid">
             {/* GRID OF MODELS */}
             {loadingModels ? (
               <div className="text-sm text-[var(--text-muted)] text-center py-8">Loading models...</div>
             ) : (
-              <div className="grid grid-cols-2 gap-3" data-onboarding="model-grid">
+              <div className="grid grid-cols-2 gap-3">
                 {modelos.map(modelo => (
                   <div
                     key={modelo.id}
