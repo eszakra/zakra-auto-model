@@ -19,14 +19,25 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
     const [loading, setLoading] = useState(false);
     const extraInputRef = useRef<HTMLInputElement>(null);
 
+    const dataUrlToBlob = (dataUrl: string): Blob => {
+        const [header, base64] = dataUrl.split(',');
+        const mime = header.match(/:(.*?);/)?.[1] || 'image/png';
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return new Blob([bytes], { type: mime });
+    };
+
     const uploadImageToStorage = async (dataUrl: string, prefix: string): Promise<string> => {
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
-        const fileName = `${prefix}_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+        const blob = dataUrlToBlob(dataUrl);
+        const ext = blob.type === 'image/jpeg' ? 'jpg' : 'png';
+        const fileName = `${prefix}_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
 
         const { error: uploadError } = await supabase.storage
             .from('models')
-            .upload(fileName, blob);
+            .upload(fileName, blob, { contentType: blob.type });
 
         if (uploadError) {
             throw new Error("Error uploading image: " + uploadError.message);
