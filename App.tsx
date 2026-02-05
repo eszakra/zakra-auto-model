@@ -1595,11 +1595,13 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         onClose={() => setShowHistory(false)}
       />
 
-      {/* Admin Panel */}
-      <AdminPanel
-        isOpen={showAdmin}
-        onClose={() => setShowAdmin(false)}
-      />
+      {/* Admin Panel - Only loaded for admin users */}
+      {user?.is_admin && (
+        <AdminPanel
+          isOpen={showAdmin}
+          onClose={() => setShowAdmin(false)}
+        />
+      )}
 
       {/* Onboarding Guide (first-time users only) */}
       <OnboardingGuide
