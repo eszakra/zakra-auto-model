@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { Download, X, Calendar, Image as ImageIcon, Loader2, Lock } from 'lucide-react';
+
+// Lazy load prompt viewer - only admin users will trigger this chunk download
+const AdminPromptViewer = lazy(() => import('./AdminPromptViewer'));
 
 interface GenerationRecord {
     id: string;
@@ -43,7 +46,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose }) => {
             if (!error && data) {
                 setGenerations(data as GenerationRecord[]);
             } else if (error) {
-                // Fallback to direct query if RPC doesn't exist yet
+                // Fallback: query without prompt column
                 console.warn('RPC fallback:', error.message);
                 const { data: fallbackData, error: fallbackError } = await supabase
                     .from('generation_logs')
@@ -52,7 +55,6 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose }) => {
                     .limit(200);
 
                 if (!fallbackError && fallbackData) {
-                    // Strip prompt entirely in fallback mode
                     setGenerations(fallbackData.map(r => ({ ...r, prompt: null })) as GenerationRecord[]);
                 }
             }
@@ -152,33 +154,13 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose }) => {
                                             <div>
                                                 <label className="text-xs text-[var(--text-muted)] uppercase font-medium block mb-2">Prompt Data</label>
                                                 {isAdmin && selectedGen.prompt ? (
-                                                    <div className="text-xs text-[var(--text-primary)] font-mono leading-relaxed bg-[var(--bg-secondary)] p-3 border border-[var(--border-color)] rounded-lg max-h-40 overflow-y-auto">
-                                                        {selectedGen.prompt.startsWith('{') ? (
-                                                            (() => {
-                                                                try {
-                                                                    const parsed = JSON.parse(selectedGen.prompt);
-                                                                    return (
-                                                                        <div className="space-y-2">
-                                                                            {parsed.contents?.[0]?.parts?.[0]?.text && (
-                                                                                <div>
-                                                                                    <span className="text-reed-red font-semibold">Main Prompt:</span>
-                                                                                    <p className="mt-1 text-[var(--text-secondary)]">{parsed.contents[0].parts[0].text}</p>
-                                                                                </div>
-                                                                            )}
-                                                                            <details className="mt-2">
-                                                                                <summary className="cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-primary)]">View Full JSON</summary>
-                                                                                <pre className="mt-2 text-[10px] text-[var(--text-muted)] whitespace-pre-wrap">{JSON.stringify(parsed, null, 2)}</pre>
-                                                                            </details>
-                                                                        </div>
-                                                                    );
-                                                                } catch {
-                                                                    return <pre className="whitespace-pre-wrap">{selectedGen.prompt}</pre>;
-                                                                }
-                                                            })()
-                                                        ) : (
-                                                            <p className="whitespace-pre-wrap">{selectedGen.prompt}</p>
-                                                        )}
-                                                    </div>
+                                                    <Suspense fallback={
+                                                        <div className="text-xs text-[var(--text-muted)] bg-[var(--bg-secondary)] p-3 border border-[var(--border-color)] rounded-lg">
+                                                            Loading...
+                                                        </div>
+                                                    }>
+                                                        <AdminPromptViewer prompt={selectedGen.prompt} />
+                                                    </Suspense>
                                                 ) : (
                                                     <div className="flex items-center gap-3 text-xs text-[var(--text-muted)] bg-[var(--bg-secondary)] p-4 border border-[var(--border-color)] rounded-lg">
                                                         <Lock size={14} className="text-[var(--text-muted)] flex-shrink-0" />
