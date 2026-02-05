@@ -3,6 +3,7 @@ export interface ModeloBase {
   created_at: string;
   model_name: string;
   image_url: string;
+  reference_images?: string[]; // Additional face reference URLs
   face_description?: string; // Optional/Ignored in new flow
   hair_description?: string; // Optional/Ignored in new flow
 }

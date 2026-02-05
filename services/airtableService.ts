@@ -1,14 +1,13 @@
 /**
  * Airtable Service - Portfolio Images & Revenue Results
+ * Production: proxied through Netlify function (token stays server-side)
+ * Development: direct API calls using VITE_ env vars
  */
 
-const AIRTABLE_API_TOKEN = import.meta.env.VITE_AIRTABLE_API_TOKEN;
-const AIRTABLE_BASE_ID = import.meta.env.VITE_AIRTABLE_BASE_ID;
-const AIRTABLE_PORTFOLIO_TABLE = import.meta.env.VITE_AIRTABLE_TABLE_NAME || 'Portfolio';
-const AIRTABLE_REVENUE_TABLE = import.meta.env.VITE_AIRTABLE_REVENUE_TABLE_NAME || 'Revenue';
-
-const getAirtableUrl = (table: string) => `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${table}`;
-const AIRTABLE_API_URL = getAirtableUrl(AIRTABLE_PORTFOLIO_TABLE);
+const isDev = import.meta.env.DEV;
+const PROXY_URL = '/.netlify/functions/airtable-proxy';
+const AIRTABLE_TOKEN = import.meta.env.VITE_AIRTABLE_API_TOKEN;
+const AIRTABLE_BASE = import.meta.env.VITE_AIRTABLE_BASE_ID;
 
 export interface PortfolioImage {
   id: string;
@@ -45,37 +44,41 @@ interface AirtableResponse {
   offset?: string;
 }
 
-export async function fetchPortfolioImages(category?: 'sfw' | 'nsfw'): Promise<PortfolioImage[]> {
-  if (!AIRTABLE_API_TOKEN || !AIRTABLE_BASE_ID) {
-    console.warn('Airtable credentials not configured');
-    return [];
-  }
-
-  try {
-    // Build filter formula
+async function airtableFetch(table: string, category?: string): Promise<AirtableResponse> {
+  if (isDev && AIRTABLE_TOKEN && AIRTABLE_BASE) {
+    // Development: direct API call
     let filterFormula = '{active}=1';
-    if (category) {
-      filterFormula = `AND({active}=1,{category}="${category}")`;
+    if (category && table === 'Portfolio') {
+      const safeCategory = category.replace(/[^a-zA-Z]/g, '');
+      filterFormula = `AND({active}=1,{category}="${safeCategory}")`;
     }
+    const queryParams = new URLSearchParams({ filterByFormula: filterFormula });
+    const url = `https://api.airtable.com/v0/${AIRTABLE_BASE}/${table}?${queryParams}`;
 
-    const params = new URLSearchParams({
-      filterByFormula: filterFormula,
-    });
-
-    const response = await fetch(`${AIRTABLE_API_URL}?${params}`, {
+    const response = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${AIRTABLE_API_TOKEN}`,
+        Authorization: `Bearer ${AIRTABLE_TOKEN}`,
         'Content-Type': 'application/json',
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`Airtable API error: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`Airtable error: ${response.status}`);
+    return response.json();
+  } else {
+    // Production: use Netlify proxy
+    const params = new URLSearchParams({ table });
+    if (category) params.set('category', category);
 
-    const data: AirtableResponse = await response.json();
+    const response = await fetch(`${PROXY_URL}?${params}`);
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    return response.json();
+  }
+}
 
-    // Transform Airtable records to our format
+export async function fetchPortfolioImages(category?: 'sfw' | 'nsfw'): Promise<PortfolioImage[]> {
+  try {
+    const data = await airtableFetch('Portfolio', category);
+
     const images: PortfolioImage[] = data.records
       .filter(record => record.fields.image && record.fields.image.length > 0)
       .map(record => ({
@@ -88,7 +91,7 @@ export async function fetchPortfolioImages(category?: 'sfw' | 'nsfw'): Promise<P
 
     return images;
   } catch (error) {
-    console.error('Error fetching portfolio images from Airtable:', error);
+    console.error('Error fetching portfolio images:', error);
     return [];
   }
 }
@@ -110,34 +113,9 @@ interface RevenueAirtableRecord {
   };
 }
 
-interface RevenueAirtableResponse {
-  records: RevenueAirtableRecord[];
-  offset?: string;
-}
-
 export async function fetchRevenueResults(): Promise<RevenueResult[]> {
-  if (!AIRTABLE_API_TOKEN || !AIRTABLE_BASE_ID) {
-    console.warn('Airtable credentials not configured');
-    return [];
-  }
-
   try {
-    const params = new URLSearchParams({
-      filterByFormula: '{active}=1',
-    });
-
-    const response = await fetch(`${getAirtableUrl(AIRTABLE_REVENUE_TABLE)}?${params}`, {
-      headers: {
-        Authorization: `Bearer ${AIRTABLE_API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Airtable API error: ${response.status}`);
-    }
-
-    const data: RevenueAirtableResponse = await response.json();
+    const data = await airtableFetch('Revenue') as { records: RevenueAirtableRecord[] };
 
     const results: RevenueResult[] = data.records
       .filter(record => record.fields.image && record.fields.image.length > 0)
@@ -148,7 +126,7 @@ export async function fetchRevenueResults(): Promise<RevenueResult[]> {
 
     return results;
   } catch (error) {
-    console.error('Error fetching revenue results from Airtable:', error);
+    console.error('Error fetching revenue results:', error);
     return [];
   }
 }

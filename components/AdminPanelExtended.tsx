@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
-import { 
-  Users, CreditCard, TrendingUp, Search, Plus, Minus, 
+import {
+  Users, CreditCard, TrendingUp, Search, Plus, Minus,
   Crown, Shield, X, Loader2, RefreshCw, ToggleLeft, ToggleRight,
   Settings, Zap, Lock, Key, Eye, EyeOff, CheckCircle, AlertTriangle,
-  Image as ImageIcon, Download
+  Image as ImageIcon, Download, Upload, Package, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 interface UserWithProfile {
@@ -52,6 +52,23 @@ interface GenerationLog {
   user_email?: string;
 }
 
+interface LoraOrder {
+  id: string;
+  user_id: string;
+  service_id: string;
+  service_name: string;
+  service_category: string;
+  amount: number;
+  status: 'processing' | 'ready' | 'delivered';
+  photos_uploaded: boolean;
+  download_url: string | null;
+  created_at: string;
+  updated_at: string;
+  metadata: any;
+  user_email?: string;
+  user_name?: string;
+}
+
 interface AdminPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -60,7 +77,7 @@ interface AdminPanelProps {
 export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { flags, isEnabled, updateFlag, loading: flagsLoading } = useFeatureFlags();
-  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'stats' | 'features' | 'apikey' | 'generations'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'orders' | 'transactions' | 'stats' | 'features' | 'apikey' | 'generations'>('users');
   
   // Users state
   const [users, setUsers] = useState<UserWithProfile[]>([]);
@@ -95,6 +112,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const [generations, setGenerations] = useState<GenerationLog[]>([]);
   const [selectedGenerationUser, setSelectedGenerationUser] = useState<string>('all');
 
+  // Orders state
+  const [orders, setOrders] = useState<LoraOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'processing' | 'ready' | 'delivered'>('all');
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [orderPhotos, setOrderPhotos] = useState<Record<string, { name: string; url: string }[]>>({});
+  const [photosLoading, setPhotosLoading] = useState<string | null>(null);
+  const [uploadingLora, setUploadingLora] = useState<string | null>(null);
+  const loraFileInputRef = React.useRef<HTMLInputElement>(null);
+  const [loraUploadTarget, setLoraUploadTarget] = useState<string | null>(null);
+
   useEffect(() => {
     if (isOpen && user?.is_admin) {
       fetchUsers();
@@ -103,6 +131,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   }, [isOpen, user]);
 
   useEffect(() => {
+    if (activeTab === 'orders') {
+      fetchOrders();
+    }
     if (activeTab === 'transactions') {
       fetchTransactions();
     }
@@ -249,6 +280,172 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       activeToday: activeToday || 0,
     });
   };
+
+  // ── Orders functions ──────────────────────────────────────────────────────────
+
+  const fetchOrders = async () => {
+    setOrdersLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('service_purchases')
+        .select('*')
+        .in('service_category', ['lora', 'package'])
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching orders:', error);
+        setOrdersLoading(false);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map((o: any) => o.user_id))];
+        const { data: profiles } = await supabase
+          .from('user_profiles')
+          .select('id, email, full_name')
+          .in('id', userIds);
+
+        const profileMap: Record<string, { email: string; name: string }> = {};
+        if (profiles) {
+          profiles.forEach((p: any) => {
+            profileMap[p.id] = { email: p.email, name: p.full_name || '' };
+          });
+        }
+
+        setOrders(data.map((o: any) => ({
+          ...o,
+          user_email: profileMap[o.user_id]?.email || 'Unknown',
+          user_name: profileMap[o.user_id]?.name || '',
+        })));
+      } else {
+        setOrders([]);
+      }
+    } catch (err) {
+      console.error('Error:', err);
+    }
+    setOrdersLoading(false);
+  };
+
+  const fetchOrderPhotos = async (userId: string, purchaseId: string) => {
+    setPhotosLoading(purchaseId);
+    try {
+      const { data, error } = await supabase.storage
+        .from('lora-uploads')
+        .list(`${userId}/${purchaseId}`, { limit: 100 });
+
+      if (error) {
+        console.error('Error listing photos:', error);
+        setPhotosLoading(null);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const photos = data
+          .filter((f: any) => !f.name.startsWith('.'))
+          .map((f: any) => {
+            const path = `${userId}/${purchaseId}/${f.name}`;
+            const { data: urlData } = supabase.storage
+              .from('lora-uploads')
+              .getPublicUrl(path);
+            return { name: f.name, url: urlData.publicUrl };
+          });
+        setOrderPhotos(prev => ({ ...prev, [purchaseId]: photos }));
+      } else {
+        setOrderPhotos(prev => ({ ...prev, [purchaseId]: [] }));
+      }
+    } catch (err) {
+      console.error('Error:', err);
+    }
+    setPhotosLoading(null);
+  };
+
+  const handleDownloadPhoto = async (userId: string, purchaseId: string, fileName: string) => {
+    const path = `${userId}/${purchaseId}/${fileName}`;
+    const { data, error } = await supabase.storage
+      .from('lora-uploads')
+      .download(path);
+
+    if (error) {
+      alert('Failed to download: ' + error.message);
+      return;
+    }
+
+    const url = URL.createObjectURL(data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadAllPhotos = async (userId: string, purchaseId: string) => {
+    const photos = orderPhotos[purchaseId];
+    if (!photos || photos.length === 0) return;
+
+    for (const photo of photos) {
+      await handleDownloadPhoto(userId, purchaseId, photo.name);
+    }
+  };
+
+  const handleUploadLora = async (purchaseId: string, file: File) => {
+    setUploadingLora(purchaseId);
+    try {
+      const ext = file.name.split('.').pop() || 'safetensors';
+      const path = `${purchaseId}/lora.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('lora-deliveries')
+        .upload(path, file, { contentType: file.type, upsert: true });
+
+      if (uploadError) {
+        alert('Upload failed: ' + uploadError.message);
+        setUploadingLora(null);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('lora-deliveries')
+        .getPublicUrl(path);
+
+      const { error: updateError } = await supabase
+        .from('service_purchases')
+        .update({
+          download_url: urlData.publicUrl,
+          status: 'ready',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', purchaseId);
+
+      if (updateError) {
+        alert('LoRA uploaded but failed to update order: ' + updateError.message);
+      } else {
+        fetchOrders();
+      }
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    }
+    setUploadingLora(null);
+    setLoraUploadTarget(null);
+  };
+
+  const handleOrderStatusChange = async (purchaseId: string, newStatus: string) => {
+    const { error } = await supabase
+      .from('service_purchases')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', purchaseId);
+
+    if (error) {
+      alert('Failed to update status: ' + error.message);
+    } else {
+      fetchOrders();
+    }
+  };
+
+  const filteredOrders = orders.filter(o =>
+    orderStatusFilter === 'all' ? true : o.status === orderStatusFilter
+  );
 
   const fetchFeatureFlags = async () => {
     const { data } = await supabase.from('feature_flags').select('*').order('category');
@@ -483,7 +680,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
           {/* Tabs */}
           <div className="border-b border-[var(--border-color)]">
             <div className="flex">
-              {(['users', 'transactions', 'generations', 'stats', 'features', 'apikey'] as const).map((tab) => (
+              {(['users', 'orders', 'transactions', 'generations', 'stats', 'features', 'apikey'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -493,6 +690,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
+                  {tab === 'orders' && <Package className="w-4 h-4 inline mr-1" />}
                   {tab === 'features' && <Settings className="w-4 h-4 inline mr-1" />}
                   {tab === 'apikey' && <Key className="w-4 h-4 inline mr-1" />}
                   {tab === 'apikey' ? 'API Key' : tab}
@@ -609,6 +807,233 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                     </table>
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'orders' && (
+              <div>
+                {/* Filters */}
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="flex gap-2">
+                    {(['all', 'processing', 'ready', 'delivered'] as const).map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => setOrderStatusFilter(status)}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg capitalize transition-colors ${
+                          orderStatusFilter === status
+                            ? 'bg-reed-red text-white'
+                            : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+                        }`}
+                      >
+                        {status}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex-1" />
+                  <span className="text-sm text-[var(--text-muted)]">
+                    {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''}
+                  </span>
+                  <button
+                    onClick={fetchOrders}
+                    className="p-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-secondary)]"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {ordersLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-reed-red" />
+                  </div>
+                ) : filteredOrders.length === 0 ? (
+                  <div className="text-center py-12 text-[var(--text-muted)]">
+                    <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No orders found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredOrders.map((order) => {
+                      const isExpanded = expandedOrder === order.id;
+                      const photos = orderPhotos[order.id];
+
+                      return (
+                        <div key={order.id} className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl overflow-hidden">
+                          {/* Order header */}
+                          <div className="p-5">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-3 mb-1">
+                                  <h4 className="font-semibold text-[var(--text-primary)] truncate">{order.service_name}</h4>
+                                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                                    order.status === 'processing' ? 'bg-amber-500/10 text-amber-500' :
+                                    order.status === 'ready' ? 'bg-green-500/10 text-green-500' :
+                                    'bg-blue-500/10 text-blue-500'
+                                  }`}>
+                                    {order.status}
+                                  </span>
+                                  {order.photos_uploaded && (
+                                    <span className="px-2 py-0.5 text-[10px] font-medium rounded bg-green-500/10 text-green-500 uppercase">Photos uploaded</span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-[var(--text-secondary)]">
+                                  {order.user_name && <span className="font-medium">{order.user_name} — </span>}
+                                  {order.user_email}
+                                </p>
+                                <div className="flex items-center gap-3 mt-1">
+                                  <p className="text-xs text-[var(--text-muted)]">
+                                    {new Date(order.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })} — ${order.amount}
+                                  </p>
+                                  {order.metadata?.model_name && (
+                                    <span className="px-2 py-0.5 text-[10px] font-medium rounded bg-reed-red/10 text-reed-red uppercase">
+                                      Model: {order.metadata.model_name}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                {/* Status dropdown */}
+                                <select
+                                  value={order.status}
+                                  onChange={(e) => handleOrderStatusChange(order.id, e.target.value)}
+                                  className="border border-[var(--border-color)] rounded-lg px-3 py-2 text-sm bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                                >
+                                  <option value="processing">Processing</option>
+                                  <option value="ready">Ready</option>
+                                  <option value="delivered">Delivered</option>
+                                </select>
+
+                                {/* Expand/collapse */}
+                                <button
+                                  onClick={() => {
+                                    if (isExpanded) {
+                                      setExpandedOrder(null);
+                                    } else {
+                                      setExpandedOrder(order.id);
+                                      if (order.photos_uploaded && !orderPhotos[order.id]) {
+                                        fetchOrderPhotos(order.user_id, order.id);
+                                      }
+                                    }
+                                  }}
+                                  className="p-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-secondary)]"
+                                >
+                                  {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Expanded content */}
+                          {isExpanded && (
+                            <div className="border-t border-[var(--border-color)] p-5 space-y-6">
+                              {/* Reference Photos */}
+                              <div>
+                                <div className="flex items-center justify-between mb-3">
+                                  <h5 className="text-sm font-semibold text-[var(--text-primary)]">Reference Photos</h5>
+                                  {photos && photos.length > 0 && (
+                                    <button
+                                      onClick={() => handleDownloadAllPhotos(order.user_id, order.id)}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-secondary)]"
+                                    >
+                                      <Download className="w-3.5 h-3.5" />
+                                      Download All
+                                    </button>
+                                  )}
+                                </div>
+
+                                {photosLoading === order.id ? (
+                                  <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Loading photos...
+                                  </div>
+                                ) : !order.photos_uploaded ? (
+                                  <p className="text-sm text-[var(--text-muted)]">User has not uploaded photos yet.</p>
+                                ) : photos && photos.length > 0 ? (
+                                  <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                                    {photos.map((photo, i) => (
+                                      <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--border-color)]">
+                                        <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                          <button
+                                            onClick={() => handleDownloadPhoto(order.user_id, order.id, photo.name)}
+                                            className="p-1.5 bg-white rounded-full hover:bg-gray-200"
+                                          >
+                                            <Download className="w-3.5 h-3.5 text-gray-900" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-[var(--text-muted)]">No photos found in storage.</p>
+                                )}
+                              </div>
+
+                              {/* Upload LoRA */}
+                              <div>
+                                <h5 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Upload Finished LoRA</h5>
+
+                                {order.download_url ? (
+                                  <div className="flex items-center gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
+                                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-green-500">LoRA file uploaded</p>
+                                      <p className="text-xs text-[var(--text-muted)] truncate">{order.download_url}</p>
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        setLoraUploadTarget(order.id);
+                                        loraFileInputRef.current?.click();
+                                      }}
+                                      className="px-3 py-1.5 text-xs font-medium border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-secondary)]"
+                                    >
+                                      Replace
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setLoraUploadTarget(order.id);
+                                      loraFileInputRef.current?.click();
+                                    }}
+                                    disabled={uploadingLora === order.id}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors disabled:opacity-50"
+                                  >
+                                    {uploadingLora === order.id ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Uploading...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Upload className="w-4 h-4" />
+                                        Upload LoRA File
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Hidden file input for LoRA upload */}
+                <input
+                  ref={loraFileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file && loraUploadTarget) {
+                      handleUploadLora(loraUploadTarget, file);
+                    }
+                    e.target.value = '';
+                  }}
+                />
               </div>
             )}
 

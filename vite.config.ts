@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => {
         }
       },
       build: {
+        sourcemap: false, // SECURITY: Never expose source maps in production
         rollupOptions: {
           output: {
             manualChunks: {

@@ -95,6 +95,23 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
     });
   };
 
+  const getLoraStatusMessage = (purchase: ServicePurchase) => {
+    if (purchase.service_category !== 'lora' && purchase.service_category !== 'package') return null;
+    if (purchase.status === 'processing' && !purchase.photos_uploaded) {
+      return { text: 'Upload your reference photos so we can start training your LoRA.', color: 'text-amber-500' };
+    }
+    if (purchase.status === 'processing' && purchase.photos_uploaded) {
+      return { text: 'Our team is training your LoRA. This can take up to 3 business days.', color: 'text-amber-500' };
+    }
+    if (purchase.status === 'ready') {
+      return { text: 'Your LoRA is ready! Download it below.', color: 'text-green-500' };
+    }
+    if (purchase.status === 'delivered') {
+      return { text: 'LoRA delivered. You can re-download it anytime.', color: 'text-blue-500' };
+    }
+    return null;
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
       {/* Header */}
@@ -191,6 +208,12 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
                         {serviceData && (
                           <p className="text-sm text-[var(--text-secondary)] mt-2">{serviceData.description}</p>
                         )}
+                        {(() => {
+                          const msg = getLoraStatusMessage(purchase);
+                          return msg ? (
+                            <p className={`text-sm mt-2 font-medium ${msg.color}`}>{msg.text}</p>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
 
@@ -216,10 +239,14 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
                           href={purchase.download_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 border border-green-500/30 text-green-500 text-sm font-medium rounded-lg hover:bg-green-500/10 transition-colors"
+                          className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            purchase.status === 'ready'
+                              ? 'bg-green-500 text-white hover:bg-green-600'
+                              : 'border border-green-500/30 text-green-500 hover:bg-green-500/10'
+                          }`}
                         >
                           <Download className="w-4 h-4" />
-                          Download
+                          Download LoRA
                         </a>
                       )}
                     </div>

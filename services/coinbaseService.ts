@@ -1,10 +1,9 @@
 /**
  * Coinbase Commerce Payment Service
- * Handles crypto payments via Coinbase Commerce API
+ * API calls are proxied through Netlify function to keep API key server-side
  */
 
-const COINBASE_API_KEY = 'fc404e9b-e275-4797-93eb-c9d7c4f9696b';
-const COINBASE_API_URL = 'https://api.commerce.coinbase.com';
+const PROXY_URL = '/.netlify/functions/create-charge';
 
 export interface CoinbaseCharge {
   id: string;
@@ -38,88 +37,33 @@ export interface CreateChargeParams {
 }
 
 /**
- * Create a new charge (payment request) on Coinbase Commerce
+ * Create a new charge (payment request) via server-side proxy
  */
 export async function createCharge(params: CreateChargeParams): Promise<CoinbaseCharge | null> {
   try {
-    const response = await fetch(`${COINBASE_API_URL}/charges`, {
+    const response = await fetch(PROXY_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CC-Api-Key': COINBASE_API_KEY,
-        'X-CC-Version': '2018-03-22',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: params.name,
         description: params.description,
-        pricing_type: 'fixed_price',
-        local_price: {
-          amount: params.amount.toString(),
-          currency: params.currency || 'USD',
-        },
+        amount: params.amount,
         metadata: params.metadata || {},
-        redirect_url: params.redirectUrl || window.location.origin + '?payment=success',
-        cancel_url: params.cancelUrl || window.location.origin + '?payment=cancelled',
       }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('Coinbase Commerce error:', error);
+      console.error('Payment error:', error);
       return null;
     }
 
     const data = await response.json();
     return data.data as CoinbaseCharge;
   } catch (error) {
-    console.error('Error creating Coinbase charge:', error);
+    console.error('Error creating payment:', error);
     return null;
   }
-}
-
-/**
- * Get charge details by ID
- */
-export async function getCharge(chargeId: string): Promise<CoinbaseCharge | null> {
-  try {
-    const response = await fetch(`${COINBASE_API_URL}/charges/${chargeId}`, {
-      headers: {
-        'X-CC-Api-Key': COINBASE_API_KEY,
-        'X-CC-Version': '2018-03-22',
-      },
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = await response.json();
-    return data.data as CoinbaseCharge;
-  } catch (error) {
-    console.error('Error getting charge:', error);
-    return null;
-  }
-}
-
-/**
- * Check if a charge has been completed
- */
-export async function isChargeCompleted(chargeId: string): Promise<{
-  completed: boolean;
-  status: string;
-}> {
-  const charge = await getCharge(chargeId);
-
-  if (!charge) {
-    return { completed: false, status: 'unknown' };
-  }
-
-  const lastStatus = charge.timeline[charge.timeline.length - 1]?.status || 'NEW';
-
-  return {
-    completed: lastStatus === 'COMPLETED',
-    status: lastStatus,
-  };
 }
 
 /**

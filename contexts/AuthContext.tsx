@@ -108,7 +108,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -117,12 +117,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { error };
       }
 
-      // Session and user will be set by onAuthStateChange listener
-      // We just need to wait for the profile to be fetched
-      if (data.user) {
-        await fetchUserProfile(data.user.id);
-      }
-
+      // Session and user will be set automatically by the onAuthStateChange listener
       return { error: null };
     } catch (error) {
       return { error };

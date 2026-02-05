@@ -4,7 +4,7 @@ import { constructPayload, generateIndustrialImage } from './services/geminiServ
 import { AppState, ModeloBase, QueueItem } from './types';
 import ModelModal from './components/ModelModal';
 import { useAuth } from './contexts/AuthContext';
-import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers, ScanSearch, X, Check, ArrowLeft, CreditCard, Crown, Shield } from 'lucide-react';
+import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers, ScanSearch, X, Check, ArrowLeft, CreditCard, Crown, Shield, Sparkles, Monitor, Tv, MonitorPlay, Square, RectangleVertical, RectangleHorizontal, Smartphone, ChevronDown } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -55,8 +55,10 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
   // NEW: Store the generated payload instead of separate inputs
   const [generatedPayload, setGeneratedPayload] = useState<any | null>(null);
-  // NEW: Editable payload string
+  // NEW: Editable payload string (kept for batch mode compatibility)
   const [payloadJsonString, setPayloadJsonString] = useState<string>('');
+  // Custom instructions for generation refinement
+  const [customInstructions, setCustomInstructions] = useState<string>('');
 
   // Sync generatedPayload to the editable string
   useEffect(() => {
@@ -73,6 +75,22 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   // --- RENDER OPTIONS ---
   const [selectedResolution, setSelectedResolution] = useState<string>('AUTO');
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<string>('1:1');
+  const [resolutionDropdownOpen, setResolutionDropdownOpen] = useState(false);
+  const [aspectDropdownOpen, setAspectDropdownOpen] = useState(false);
+  const resolutionDropdownRef = useRef<HTMLDivElement>(null);
+  const aspectDropdownRef = useRef<HTMLDivElement>(null);
+
+  // --- POSE VARIATION (Creator+ only) ---
+  const [showPoseVariation, setShowPoseVariation] = useState(false);
+  const [poseVariationMode, setPoseVariationMode] = useState<'auto' | 'custom'>('auto');
+  const [customPoseText, setCustomPoseText] = useState('');
+  const [isGeneratingVariation, setIsGeneratingVariation] = useState(false);
+
+  // Check if user has pose variation feature (Creator, Pro, Studio)
+  const hasPoseVariationFeature = () => {
+    const plan = user?.plan_type || 'free';
+    return ['creator', 'pro', 'studio'].includes(plan);
+  };
 
   // Filter resolutions based on user plan
   const getAvailableResolutions = () => {
@@ -96,6 +114,78 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Pose Variation handler (Creator+ only)
+  const handlePoseVariation = async () => {
+    if (!generatedImage || !generatedPayload || !selectedModel) {
+      alert("No image to create a variation from");
+      return;
+    }
+
+    if (!hasPoseVariationFeature()) {
+      alert("Pose Variation is available for Creator, Pro, and Studio plans. Please upgrade to access this feature.");
+      return;
+    }
+
+    // Check credits
+    if (!hasEnoughCredits(1)) {
+      alert("INSUFFICIENT CREDITS: You need at least 1 credit to generate a pose variation.");
+      return;
+    }
+
+    const poseDescription = poseVariationMode === 'auto' ? 'auto' : customPoseText;
+    if (poseVariationMode === 'custom' && !customPoseText.trim()) {
+      alert("Please enter a pose description or select Auto mode.");
+      return;
+    }
+
+    setIsGeneratingVariation(true);
+    setShowPoseVariation(false);
+
+    try {
+      const currentKey = getCurrentApiKey();
+      const { generatePoseVariation } = await import('./services/geminiService');
+
+      // Parse the current payload
+      let currentPayload: any;
+      try {
+        currentPayload = JSON.parse(payloadJsonString);
+      } catch {
+        currentPayload = generatedPayload;
+      }
+
+      const result = await generatePoseVariation(
+        currentKey,
+        currentPayload,
+        generatedImage,
+        poseDescription,
+        selectedModel.image_url,
+        selectedResolution === 'AUTO' ? undefined : selectedResolution,
+        selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio,
+        selectedModel.reference_images || []
+      );
+
+      // Update the displayed image
+      setGeneratedImage(result);
+
+      // Deduct credits
+      const creditsUsed = await useCredits(1, `Pose variation with model: ${selectedModel.model_name || 'unknown'}`);
+      if (!creditsUsed) {
+        console.warn('Failed to deduct credits, but variation was generated');
+      }
+
+      // Save to history
+      saveToHistory(result, { ...currentPayload, pose_variation: true, new_pose: poseDescription });
+
+    } catch (error: any) {
+      console.error("Pose variation error:", error);
+      alert("Error generating pose variation: " + error.message);
+    } finally {
+      setIsGeneratingVariation(false);
+      setCustomPoseText('');
+      setPoseVariationMode('auto');
+    }
   };
 
   // --- INITIALIZATION ---
@@ -179,6 +269,20 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     };
   }, []);
 
+  // Click outside handler for custom dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (resolutionDropdownRef.current && !resolutionDropdownRef.current.contains(event.target as Node)) {
+        setResolutionDropdownOpen(false);
+      }
+      if (aspectDropdownRef.current && !aspectDropdownRef.current.contains(event.target as Node)) {
+        setAspectDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const fetchModelos = async () => {
     setLoadingModels(true);
     // Only fetch models for the current user
@@ -214,6 +318,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
     setGeneratedPayload(null);
     setGeneratedImage(null);
+    setCustomInstructions('');
     setAppState(AppState.IDLE);
     setRefImage(null);
 
@@ -268,6 +373,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
     setGeneratedPayload(null);
     setGeneratedImage(null);
+    setCustomInstructions('');
     setAppState(AppState.IDLE);
     setRefImage(null);
 
@@ -299,7 +405,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       const currentKey = getCurrentApiKey();
       const base64Ref = await fileToBase64(item.file);
       const { generateUnifiedPayload } = await import('./services/geminiService');
-      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, base64Ref);
+      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, base64Ref, selectedModel.reference_images || []);
 
       setQueue(prev => prev.map(q => q.id === itemId ? { ...q, status: 'ANALYZED', payload } : q));
     } catch (e: any) {
@@ -353,7 +459,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         selectedModel.image_url,
         selectedResolution === 'AUTO' ? undefined : selectedResolution,
         selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio,
-        user?.plan_type
+        user?.plan_type,
+        selectedModel.reference_images || []
       );
 
       // Deduct credits after successful generation
@@ -507,12 +614,13 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     setAppState(AppState.ANALYZING);
     setErrorMsg(null);
     setGeneratedPayload(null);
+    setCustomInstructions('');
 
     try {
       const currentKey = getCurrentApiKey();
       const { generateUnifiedPayload } = await import('./services/geminiService');
 
-      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, refImage);
+      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, refImage, selectedModel.reference_images || []);
       setGeneratedPayload(payload);
       setAppState(AppState.IDLE);
 
@@ -556,7 +664,9 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         selectedModel?.image_url || "",
         selectedResolution === 'AUTO' ? undefined : selectedResolution,
         selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio,
-        user?.plan_type
+        user?.plan_type,
+        selectedModel?.reference_images || [],
+        customInstructions?.trim() || undefined
       );
       setGeneratedImage(result);
       setAppState(AppState.COMPLETE);
@@ -758,8 +868,13 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                       </button>
                     </div>
 
-                    <div className="aspect-square bg-[var(--bg-secondary)] rounded mb-2 overflow-hidden">
+                    <div className="aspect-square bg-[var(--bg-secondary)] rounded mb-2 overflow-hidden relative">
                       <img src={modelo.image_url} alt={modelo.model_name} className="w-full h-full object-cover" />
+                      {modelo.reference_images && modelo.reference_images.length > 0 && (
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/70 text-white text-[10px] font-medium rounded">
+                          {1 + modelo.reference_images.length} refs
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs font-semibold truncate uppercase text-[var(--text-primary)]">{modelo.model_name}</div>
                   </div>
@@ -870,7 +985,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                     ${(!selectedModel || !refImage) ? 'border-[var(--border-color)] text-[var(--text-muted)]' :
                       appState === AppState.ANALYZING ? 'border-amber-500 text-amber-500 animate-pulse' : 'border-[var(--border-color)] text-[var(--text-secondary)] hover:border-reed-red hover:text-reed-red'}`}
                 >
-                  {appState === AppState.ANALYZING ? 'Analyzing...' : 'Run Fusion Analysis'}
+                  {appState === AppState.ANALYZING ? 'Analyzing...' : 'Analyze & Prepare'}
                 </button>
               ) : (
                 <div className="flex gap-2">
@@ -902,26 +1017,72 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                 </div>
               )}
 
-              {/* JSON DISPLAY */}
-              <div className="flex flex-col gap-1 h-64">
-                <label className="text-xs text-[var(--text-muted)] uppercase flex justify-between">
-                  <span>Generated Payload {isBatchMode && "(Selected Item)"}</span>
-                </label>
-                
-                {isBatchMode ? (
-                  <div className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-3 text-xs font-mono text-[var(--text-secondary)] overflow-auto h-full whitespace-pre-wrap leading-tight">
-                    {selectedQueueId ?
-                      JSON.stringify(queue.find(q => q.id === selectedQueueId)?.payload || { status: queue.find(q => q.id === selectedQueueId)?.status || 'UNKNOWN' }, null, 2)
-                      : "// Select an image to view its payload"}
+              {/* ANALYSIS STATUS & CUSTOM INSTRUCTIONS */}
+              <div className="flex flex-col gap-3">
+                {/* Analysis Status Card */}
+                <div className={`rounded-lg border p-4 transition-all ${
+                  generatedPayload
+                    ? 'bg-green-500/5 border-green-500/30'
+                    : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    {generatedPayload ? (
+                      <>
+                        <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <CheckCircle2 size={20} className="text-green-500" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-[var(--text-primary)]">Analysis Complete</p>
+                          <p className="text-xs text-[var(--text-muted)]">Ready to generate • Scene & identity extracted</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-full bg-[var(--bg-primary)] flex items-center justify-center border border-[var(--border-color)]">
+                          <ScanSearch size={18} className="text-[var(--text-muted)]" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-[var(--text-muted)]">Waiting for Analysis</p>
+                          <p className="text-xs text-[var(--text-muted)]">Upload a reference and click Analyze</p>
+                        </div>
+                      </>
+                    )}
                   </div>
-                ) : (
-                  <textarea
-                    value={payloadJsonString}
-                    onChange={(e) => setPayloadJsonString(e.target.value)}
-                    placeholder="// Waiting for analysis..."
-                    className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-3 text-xs font-mono text-[var(--text-secondary)] overflow-auto h-full whitespace-pre-wrap leading-tight resize-none focus:outline-none focus:border-reed-red transition-colors"
-                    spellCheck={false}
-                  />
+                </div>
+
+                {/* Custom Instructions (Optional) */}
+                {generatedPayload && !isBatchMode && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs text-[var(--text-muted)] uppercase font-medium flex items-center gap-2">
+                      <span>Additional Instructions</span>
+                      <span className="text-[10px] normal-case font-normal bg-[var(--bg-secondary)] px-2 py-0.5 rounded-full border border-[var(--border-color)]">Optional</span>
+                    </label>
+                    <textarea
+                      value={customInstructions}
+                      onChange={(e) => setCustomInstructions(e.target.value)}
+                      placeholder="Add specific changes... e.g., 'Make the lighting warmer', 'Add a slight smile', 'Change background to beach sunset'"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-3 text-sm text-[var(--text-primary)] h-20 resize-none focus:outline-none focus:border-reed-red transition-colors placeholder:text-[var(--text-muted)]/50"
+                      spellCheck={false}
+                    />
+                  </div>
+                )}
+
+                {/* Batch Mode Status */}
+                {isBatchMode && (
+                  <div className="bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] p-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[var(--text-muted)] uppercase font-medium">Batch Progress</span>
+                      <span className="text-[var(--text-primary)] font-bold">
+                        {queue.filter(q => q.status === 'ANALYZED' || q.status === 'COMPLETED').length} / {queue.length} Ready
+                      </span>
+                    </div>
+                    <div className="mt-2 h-1.5 bg-[var(--bg-primary)] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-green-500 transition-all duration-300"
+                        style={{ width: `${(queue.filter(q => q.status === 'ANALYZED' || q.status === 'COMPLETED').length / queue.length) * 100}%` }}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -984,9 +1145,17 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                   ))}
                 </div>
               ) : (
-                <div className="flex-grow w-full h-full flex items-center justify-center">
+                <div className="flex-grow w-full h-full flex items-center justify-center relative">
                   {generatedImage ? (
-                    <img src={generatedImage} alt="Result" className="relative z-10 max-w-full max-h-full object-contain p-4" />
+                    <>
+                      <img src={generatedImage} alt="Result" className={`relative z-10 max-w-full max-h-full object-contain p-4 transition-all duration-300 ${isGeneratingVariation ? 'opacity-30' : ''}`} />
+                      {isGeneratingVariation && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
+                          <Loader2 className="w-10 h-10 text-reed-red animate-spin mb-3" />
+                          <span className="text-sm font-semibold uppercase tracking-wide text-reed-red">Changing Pose...</span>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="text-center">
                       {appState === AppState.GENERATING ? (
@@ -1019,17 +1188,30 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
               </button>
             ) : (
               generatedImage && (
-                <button
-                  onClick={handleDownload}
-                  className="mb-3 w-full py-2 text-sm font-bold tracking-wide uppercase border-2 border-green-500 text-green-500 rounded-lg hover:bg-green-500/10 transition-all"
-                >
-                  Download Image
-                </button>
+                <div className="flex gap-2 mb-3">
+                  <button
+                    onClick={handleDownload}
+                    className="flex-1 py-2 text-sm font-bold tracking-wide uppercase border-2 border-green-500 text-green-500 rounded-lg hover:bg-green-500/10 transition-all"
+                  >
+                    Download
+                  </button>
+                  {hasPoseVariationFeature() && (
+                    <button
+                      onClick={() => setShowPoseVariation(true)}
+                      disabled={isGeneratingVariation}
+                      className="flex-1 py-2 text-sm font-bold tracking-wide uppercase border-2 border-reed-red text-reed-red rounded-lg hover:bg-reed-red/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                    >
+                      <RefreshCcw size={14} />
+                      Change Pose
+                    </button>
+                  )}
+                </div>
               )
             )}
 
             {/* RESOLUTION & ASPECT RATIO SELECTORS */}
             <div className="mb-4 grid grid-cols-2 gap-3">
+              {/* Resolution Dropdown */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-[var(--text-muted)] uppercase font-medium flex items-center gap-1">
                   Resolution
@@ -1037,32 +1219,91 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                     <span className="text-[10px] bg-amber-100 text-amber-500 px-1.5 py-0.5 rounded">1K max</span>
                   )}
                 </label>
-                <select
-                  value={selectedResolution}
-                  onChange={(e) => setSelectedResolution(e.target.value)}
-                  className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-2 text-sm text-[var(--text-primary)] outline-none focus:border-reed-red"
-                >
-                  {RESOLUTIONS.map(res => (
-                    <option key={res} value={res}>{res === 'AUTO' ? 'Auto (Model Chooses)' : res}</option>
-                  ))}
-                </select>
+                <div ref={resolutionDropdownRef} className="relative">
+                  <button
+                    onClick={() => { setResolutionDropdownOpen(!resolutionDropdownOpen); setAspectDropdownOpen(false); }}
+                    className={`w-full bg-[var(--bg-secondary)] border rounded-lg p-2.5 text-sm text-[var(--text-primary)] flex items-center justify-between gap-2 transition-colors ${resolutionDropdownOpen ? 'border-reed-red' : 'border-[var(--border-color)] hover:border-[var(--text-muted)]'}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {selectedResolution === 'AUTO' && <Sparkles size={14} className="text-reed-red" />}
+                      {selectedResolution === '1K' && <Monitor size={14} className="text-blue-400" />}
+                      {selectedResolution === '2K' && <Tv size={14} className="text-green-400" />}
+                      {selectedResolution === '4K' && <MonitorPlay size={14} className="text-purple-400" />}
+                      <span>{selectedResolution === 'AUTO' ? 'Auto' : selectedResolution}</span>
+                    </span>
+                    <ChevronDown size={14} className={`text-[var(--text-muted)] transition-transform ${resolutionDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {resolutionDropdownOpen && (
+                    <div className="absolute bottom-full left-0 right-0 mb-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg shadow-xl z-50 overflow-hidden">
+                      {RESOLUTIONS.map(res => (
+                        <button
+                          key={res}
+                          onClick={() => { setSelectedResolution(res); setResolutionDropdownOpen(false); }}
+                          className={`w-full px-3 py-2.5 text-sm flex items-center gap-2 transition-colors ${selectedResolution === res ? 'bg-reed-red/10 text-reed-red' : 'text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
+                        >
+                          {res === 'AUTO' && <Sparkles size={14} className={selectedResolution === res ? 'text-reed-red' : 'text-reed-red'} />}
+                          {res === '1K' && <Monitor size={14} className={selectedResolution === res ? 'text-reed-red' : 'text-blue-400'} />}
+                          {res === '2K' && <Tv size={14} className={selectedResolution === res ? 'text-reed-red' : 'text-green-400'} />}
+                          {res === '4K' && <MonitorPlay size={14} className={selectedResolution === res ? 'text-reed-red' : 'text-purple-400'} />}
+                          <span className="flex-1 text-left">{res === 'AUTO' ? 'Auto (Model Chooses)' : res}</span>
+                          {selectedResolution === res && <Check size={14} />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {(user?.plan_type === 'free' || user?.plan_type === 'starter') && (
                   <p className="text-[10px] text-[var(--text-muted)] mt-1">
                     Upgrade to Creator for 2K/4K
                   </p>
                 )}
               </div>
+
+              {/* Aspect Ratio Dropdown */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-[var(--text-muted)] uppercase font-medium">Aspect Ratio</label>
-                <select
-                  value={selectedAspectRatio}
-                  onChange={(e) => setSelectedAspectRatio(e.target.value)}
-                  className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-2 text-sm text-[var(--text-primary)] outline-none focus:border-reed-red"
-                >
-                  {ASPECT_RATIOS.map(ratio => (
-                    <option key={ratio} value={ratio}>{ratio === 'AUTO' ? 'Auto (Model Chooses)' : ratio}</option>
-                  ))}
-                </select>
+                <div ref={aspectDropdownRef} className="relative">
+                  <button
+                    onClick={() => { setAspectDropdownOpen(!aspectDropdownOpen); setResolutionDropdownOpen(false); }}
+                    className={`w-full bg-[var(--bg-secondary)] border rounded-lg p-2.5 text-sm text-[var(--text-primary)] flex items-center justify-between gap-2 transition-colors ${aspectDropdownOpen ? 'border-reed-red' : 'border-[var(--border-color)] hover:border-[var(--text-muted)]'}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {selectedAspectRatio === 'AUTO' && <Sparkles size={14} className="text-reed-red" />}
+                      {selectedAspectRatio === '1:1' && <Square size={14} className="text-blue-400" />}
+                      {['2:3', '3:4', '4:5', '9:16'].includes(selectedAspectRatio) && <RectangleVertical size={14} className="text-green-400" />}
+                      {['3:2', '4:3', '5:4', '16:9', '21:9'].includes(selectedAspectRatio) && <RectangleHorizontal size={14} className="text-purple-400" />}
+                      <span>{selectedAspectRatio === 'AUTO' ? 'Auto' : selectedAspectRatio}</span>
+                    </span>
+                    <ChevronDown size={14} className={`text-[var(--text-muted)] transition-transform ${aspectDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {aspectDropdownOpen && (
+                    <div className="absolute bottom-full left-0 right-0 mb-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg shadow-xl z-50 overflow-hidden max-h-64 overflow-y-auto">
+                      {ASPECT_RATIOS.map(ratio => {
+                        const isPortrait = ['2:3', '3:4', '4:5', '9:16'].includes(ratio);
+                        const isLandscape = ['3:2', '4:3', '5:4', '16:9', '21:9'].includes(ratio);
+                        return (
+                          <button
+                            key={ratio}
+                            onClick={() => { setSelectedAspectRatio(ratio); setAspectDropdownOpen(false); }}
+                            className={`w-full px-3 py-2.5 text-sm flex items-center gap-2 transition-colors ${selectedAspectRatio === ratio ? 'bg-reed-red/10 text-reed-red' : 'text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
+                          >
+                            {ratio === 'AUTO' && <Sparkles size={14} className={selectedAspectRatio === ratio ? 'text-reed-red' : 'text-reed-red'} />}
+                            {ratio === '1:1' && <Square size={14} className={selectedAspectRatio === ratio ? 'text-reed-red' : 'text-blue-400'} />}
+                            {isPortrait && <RectangleVertical size={14} className={selectedAspectRatio === ratio ? 'text-reed-red' : 'text-green-400'} />}
+                            {isLandscape && <RectangleHorizontal size={14} className={selectedAspectRatio === ratio ? 'text-reed-red' : 'text-purple-400'} />}
+                            <span className="flex-1 text-left">
+                              {ratio === 'AUTO' ? 'Auto (Model Chooses)' : ratio}
+                              {ratio === '9:16' && <span className="text-[var(--text-muted)] text-xs ml-1">Stories</span>}
+                              {ratio === '16:9' && <span className="text-[var(--text-muted)] text-xs ml-1">Wide</span>}
+                              {ratio === '1:1' && <span className="text-[var(--text-muted)] text-xs ml-1">Square</span>}
+                            </span>
+                            {selectedAspectRatio === ratio && <Check size={14} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1163,6 +1404,103 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       )}
 
 
+
+      {/* POSE VARIATION MODAL (Creator+ only) */}
+      {showPoseVariation && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+          <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <RefreshCcw className="w-5 h-5 text-reed-red" />
+                <h3 className="text-lg font-bold text-[var(--text-primary)]">Pose Variation</h3>
+              </div>
+              <button
+                onClick={() => setShowPoseVariation(false)}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-sm text-[var(--text-secondary)] mb-6">
+              Generate a new version with a different pose. The AI will keep everything else the same — background, lighting, clothing — like photos taken in the same session.
+            </p>
+
+            {/* Mode Selection */}
+            <div className="space-y-3 mb-6">
+              <button
+                onClick={() => setPoseVariationMode('auto')}
+                className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                  poseVariationMode === 'auto'
+                    ? 'border-reed-red bg-reed-red/10'
+                    : 'border-[var(--border-color)] hover:border-[var(--text-muted)]'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    poseVariationMode === 'auto' ? 'border-reed-red' : 'border-[var(--text-muted)]'
+                  }`}>
+                    {poseVariationMode === 'auto' && <div className="w-2 h-2 bg-reed-red rounded-full" />}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-[var(--text-primary)] block">Auto</span>
+                    <span className="text-xs text-[var(--text-muted)]">AI chooses a natural variation</span>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setPoseVariationMode('custom')}
+                className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                  poseVariationMode === 'custom'
+                    ? 'border-reed-red bg-reed-red/10'
+                    : 'border-[var(--border-color)] hover:border-[var(--text-muted)]'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    poseVariationMode === 'custom' ? 'border-reed-red' : 'border-[var(--text-muted)]'
+                  }`}>
+                    {poseVariationMode === 'custom' && <div className="w-2 h-2 bg-reed-red rounded-full" />}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-[var(--text-primary)] block">Custom Pose</span>
+                    <span className="text-xs text-[var(--text-muted)]">Describe the exact pose you want</span>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {/* Custom pose input */}
+            {poseVariationMode === 'custom' && (
+              <div className="mb-6">
+                <label className="text-xs text-[var(--text-muted)] uppercase font-medium block mb-2">
+                  Describe the new pose
+                </label>
+                <textarea
+                  value={customPoseText}
+                  onChange={(e) => setCustomPoseText(e.target.value)}
+                  placeholder="e.g., Looking to the left with a slight smile, hand on hip..."
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-3 text-sm text-[var(--text-primary)] outline-none focus:border-reed-red resize-none h-24"
+                />
+              </div>
+            )}
+
+            {/* Generate Button */}
+            <button
+              onClick={handlePoseVariation}
+              disabled={poseVariationMode === 'custom' && !customPoseText.trim()}
+              className="w-full py-3 bg-reed-red text-white font-bold uppercase text-sm rounded-lg hover:bg-reed-red-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Generate Variation
+            </button>
+
+            <p className="text-xs text-[var(--text-muted)] text-center mt-4">
+              Uses 1 credit
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ERROR MODAL */}
       {appState === AppState.ERROR && (

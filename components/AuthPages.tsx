@@ -28,7 +28,7 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onClose, onSwitch, onSucces
       setError(result.error.message || 'Invalid credentials');
       setLoading(false);
     } else {
-      console.log('Login successful, calling onSuccess');
+      setLoading(false);
       if (onSuccess) {
         onSuccess();
       } else {

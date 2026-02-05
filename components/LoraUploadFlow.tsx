@@ -22,6 +22,7 @@ export const LoraUploadFlow: React.FC<LoraUploadFlowProps> = ({
   const { user } = useAuth();
   const service = getServiceById(serviceId);
   const [step, setStep] = useState<Step>('instructions');
+  const [modelName, setModelName] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -91,10 +92,14 @@ export const LoraUploadFlow: React.FC<LoraUploadFlowProps> = ({
         }
       }
 
-      // Update the purchase record
+      // Update the purchase record with model name and photo count
       const { error: updateError } = await supabase
         .from('service_purchases')
-        .update({ photos_uploaded: true, updated_at: new Date().toISOString() })
+        .update({
+          photos_uploaded: true,
+          metadata: { model_name: modelName.trim(), photo_count: files.length },
+          updated_at: new Date().toISOString()
+        })
         .eq('id', purchaseId)
         .eq('user_id', user.id);
 
@@ -203,7 +208,7 @@ export const LoraUploadFlow: React.FC<LoraUploadFlowProps> = ({
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl mb-8">
+            <div className="flex items-start gap-3 p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl mb-6">
               <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-[var(--text-secondary)]">
                 <span className="font-semibold">Minimum 2 photos required</span> (1 face + 1 body). For best results, we recommend 10-20 high-quality photos with variety.
@@ -211,9 +216,27 @@ export const LoraUploadFlow: React.FC<LoraUploadFlowProps> = ({
               </p>
             </div>
 
+            {/* Model Name */}
+            <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-5 mb-8">
+              <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
+                Model Name <span className="text-reed-red">*</span>
+              </label>
+              <input
+                type="text"
+                value={modelName}
+                onChange={(e) => setModelName(e.target.value)}
+                placeholder="e.g. Sofia, Emma, Alex..."
+                className="w-full px-4 py-3 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red transition-colors bg-[var(--bg-primary)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+              />
+              <p className="text-xs text-[var(--text-muted)] mt-2">
+                Enter the name of the person in the photos. We'll use this to set up the trigger word for your LoRA.
+              </p>
+            </div>
+
             <button
               onClick={() => setStep('upload')}
-              className="w-full py-3 bg-reed-red text-white font-semibold rounded-xl hover:bg-reed-red-dark transition-colors flex items-center justify-center gap-2"
+              disabled={!modelName.trim()}
+              className="w-full py-3 bg-reed-red text-white font-semibold rounded-xl hover:bg-reed-red-dark transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Continue to Upload
               <ArrowRight className="w-4 h-4" />
@@ -314,6 +337,10 @@ export const LoraUploadFlow: React.FC<LoraUploadFlowProps> = ({
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-[var(--text-muted)]">Service:</span>
                   <span className="font-medium text-[var(--text-primary)]">{service?.name}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[var(--text-muted)]">Model Name:</span>
+                  <span className="font-medium text-[var(--text-primary)]">{modelName}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-[var(--text-muted)]">Photos:</span>

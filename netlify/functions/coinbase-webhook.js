@@ -178,15 +178,21 @@ exports.handler = async (event) => {
     const signature = event.headers['x-cc-webhook-signature'];
     const payload = event.body;
 
-    // Verify signature (skip in development if secret not set)
-    if (COINBASE_WEBHOOK_SECRET && signature) {
-      if (!verifySignature(payload, signature)) {
-        console.error('Invalid webhook signature');
-        return {
-          statusCode: 401,
-          body: JSON.stringify({ error: 'Invalid signature' })
-        };
-      }
+    // SECURITY: Always verify webhook signature - NEVER skip
+    if (!COINBASE_WEBHOOK_SECRET) {
+      console.error('CRITICAL: COINBASE_WEBHOOK_SECRET not configured - rejecting webhook');
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Webhook secret not configured' })
+      };
+    }
+
+    if (!signature || !verifySignature(payload, signature)) {
+      console.error('Invalid or missing webhook signature');
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ error: 'Invalid signature' })
+      };
     }
 
     const webhookEvent = JSON.parse(payload);

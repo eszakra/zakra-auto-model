@@ -223,7 +223,6 @@ const Navigation = ({
 
 // Hero Section
 const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
-  const [spotsRemaining] = useState(50);
 
   return (
     <section className="relative min-h-screen flex flex-col justify-between pt-20 overflow-hidden">
@@ -236,7 +235,7 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-reed-red/10 rounded-full mb-8 animate-fade-in border border-reed-red/20 backdrop-blur-sm">
             <Flame className="w-4 h-4 text-reed-red animate-pulse" />
-            <span className="text-sm font-medium text-reed-red">Exclusive Beta — Only {spotsRemaining} spots available</span>
+            <span className="text-sm font-medium text-reed-red">Same Face, Every Shot — No More Inconsistency</span>
           </div>
 
           {/* Main Headline */}
@@ -505,10 +504,10 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
                   ))}
                 </ul>
                 <button
-                  onClick={() => onBuyService(pkg)}
-                  className={`w-full py-3 font-semibold rounded-xl transition-colors mt-auto ${pkg.popular ? 'bg-reed-red text-white hover:bg-reed-red-dark' : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'}`}
+                  disabled
+                  className="w-full py-3 font-semibold rounded-xl transition-colors mt-auto border-2 border-[var(--border-color)] text-[var(--text-muted)] cursor-not-allowed opacity-60"
                 >
-                  {pkg.popular ? 'Get Started' : 'Buy Now'}
+                  Coming Soon
                 </button>
               </div>
             ))}
@@ -572,7 +571,7 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
       nsfw: "Soon",
       features: [
         "Standard resolution",
-        "Fixed pose",
+        "Single pose per generation",
         "Auto-generated prompt"
       ],
       cta: "Start Free",
@@ -589,8 +588,8 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
       nsfw: "Soon",
       features: [
         "1K max resolution",
-        "Editable pose",
-        "Custom prompt editing"
+        "Single pose per generation",
+        "Custom instructions"
       ],
       cta: "Choose Starter",
       popular: false
@@ -605,9 +604,9 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
       creditsValue: 120,
       nsfw: "Soon",
       features: [
-        "4K resolution",
-        "Full creative control",
-        "Faster generation"
+        "Up to 4K resolution",
+        "Pose Variation included",
+        "Full creative control"
       ],
       cta: "Choose Creator",
       popular: true
@@ -623,8 +622,8 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
       nsfw: "Soon",
       features: [
         "All Creator features",
-        "Priority support",
-        "Fastest generation"
+        "Pose Variation included",
+        "Priority support"
       ],
       cta: "Choose Pro",
       popular: false
@@ -640,8 +639,8 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
       nsfw: "Soon",
       features: [
         "All Pro features",
-        "1:1 call support",
-        "Maximum resolution"
+        "Pose Variation included",
+        "1:1 call support"
       ],
       cta: "Choose Studio",
       popular: false
@@ -847,14 +846,14 @@ const CTASection = () => {
         </h2>
         <p className="text-lg text-white/80 mb-10 max-w-2xl mx-auto">
           Generate on our platform or let us build your custom LoRA and workflow.
-          Either way, every image stays on-brand. Only 50 beta spots left.
+          Either way, every image stays on-brand. Join thousands of creators already scaling.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
             href="#pricing"
             className="inline-flex items-center gap-2 px-8 py-4 bg-white text-reed-red font-semibold rounded-xl hover:bg-gray-100 transition-colors shadow-lg"
           >
-            Join the Beta
+            Get Started
             <ArrowRight className="w-5 h-5" />
           </a>
           <a
