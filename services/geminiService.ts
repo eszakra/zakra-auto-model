@@ -37,7 +37,6 @@ export const generateUnifiedPayload = async (
 ): Promise<ZakraPayload> => {
   if (!apiKey) throw new Error("FALTA_CLAVE_API");
 
-  console.log("Gemini Payload Gen using key length:", apiKey.length);
   const ai = new GoogleGenAI({ apiKey });
   // Using Gemini 3.0 Pro for payload/text generation
   const modelId = 'gemini-3-pro-preview';
@@ -114,8 +113,6 @@ IMPORTANT: Write naturally and specifically, not generically. The result must lo
     }
     imageParts.push({ inlineData: { mimeType: 'image/jpeg', data: cleanRef } });
 
-    console.log(`Sending ${totalModelImages} model image(s) + 1 reference image to Gemini`);
-
     const response = await ai.models.generateContent({
       model: modelId,
       contents: [
@@ -136,7 +133,6 @@ IMPORTANT: Write naturally and specifically, not generically. The result must lo
 
     // Check for Safety Block
     if (candidate?.finishReason === 'SAFETY') {
-      console.error("PAYLOAD_GEN_BLOCKED: SAFETY");
       throw new Error("CONTENIDO_BLOQUEADO_SEGURIDAD");
     }
 
@@ -146,8 +142,6 @@ IMPORTANT: Write naturally and specifically, not generically. The result must lo
     return JSON.parse(text) as ZakraPayload;
 
   } catch (error: any) {
-    console.error("PAYLOAD_GEN_ERROR:", error);
-
     // Handle Quota/Token Errors (429)
     if (error.message?.includes('429') || error.status === 429 || error.message?.includes('Quota exceeded')) {
       throw new Error("QUOTA_API_AGOTADA");
@@ -210,8 +204,6 @@ CRITICAL: This must look like a real photograph, NOT CGI. Realistic skin with vi
 The person in this image MUST have the EXACT face and identity shown in the reference image provided.
   `.trim();
 
-  console.log("Image Generation Prompt:", imagePrompt);
-
   // Prepare base model image for identity reference
   const baseModelBase64 = await ensureBase64(baseModelImageSource);
 
@@ -241,8 +233,6 @@ The person in this image MUST have the EXACT face and identity shown in the refe
       modelImageParts.push({ inlineData: { mimeType: 'image/jpeg', data: extra } });
     }
 
-    console.log(`Generating with ${1 + extraImages.length} model reference image(s)`);
-
     const response = await ai.models.generateContent({
       model: modelId,
       contents: [
@@ -268,7 +258,6 @@ The person in this image MUST have the EXACT face and identity shown in the refe
 
     // Check for Safety Block
     if (candidate?.finishReason === 'SAFETY') {
-      console.error("IMAGE_GEN_BLOCKED: SAFETY");
       throw new Error("CONTENIDO_BLOQUEADO_SEGURIDAD");
     }
 
@@ -277,7 +266,6 @@ The person in this image MUST have the EXACT face and identity shown in the refe
       if (parts) {
         for (const part of parts) {
           if (part.inlineData && part.inlineData.data) {
-            console.log("IMAGE DATA RECEIVED!");
             return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
           }
         }
@@ -287,8 +275,6 @@ The person in this image MUST have the EXACT face and identity shown in the refe
     throw new Error("NO_IMAGE_DATA_RECEIVED");
 
   } catch (error: any) {
-    console.error("ZAKRA_GEN_ERROR:", error);
-
     // Handle Quota/Token Errors (429)
     if (error.message?.includes('429') || error.status === 429 || error.message?.includes('Quota exceeded')) {
       throw new Error("QUOTA_API_AGOTADA");
@@ -371,8 +357,6 @@ CRITICAL REQUIREMENTS:
 4. NO changes to background, lighting, clothing, or environment - ONLY the pose/expression changes
   `.trim();
 
-  console.log("Pose Variation Prompt:", imagePrompt);
-
   try {
     const imageConfig: any = {};
     if (imageSize && imageSize !== 'AUTO') {
@@ -392,8 +376,6 @@ CRITICAL REQUIREMENTS:
     }
     // Last: the generated image we want to vary (for scene/background consistency)
     imageParts.push({ inlineData: { mimeType: 'image/jpeg', data: generatedImageBase64 } });
-
-    console.log(`Pose variation: ${1 + extraModelImages.length} model refs + 1 generated image reference`);
 
     const response = await ai.models.generateContent({
       model: modelId,
@@ -415,7 +397,6 @@ CRITICAL REQUIREMENTS:
     const candidate = response.candidates?.[0];
 
     if (candidate?.finishReason === 'SAFETY') {
-      console.error("POSE_VAR_BLOCKED: SAFETY");
       throw new Error("CONTENIDO_BLOQUEADO_SEGURIDAD");
     }
 
@@ -424,7 +405,6 @@ CRITICAL REQUIREMENTS:
       if (parts) {
         for (const part of parts) {
           if (part.inlineData && part.inlineData.data) {
-            console.log("POSE VARIATION IMAGE RECEIVED!");
             return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
           }
         }
@@ -434,8 +414,6 @@ CRITICAL REQUIREMENTS:
     throw new Error("NO_IMAGE_DATA_RECEIVED");
 
   } catch (error: any) {
-    console.error("POSE_VAR_ERROR:", error);
-
     if (error.message?.includes('429') || error.status === 429 || error.message?.includes('Quota exceeded')) {
       throw new Error("QUOTA_API_AGOTADA");
     }
