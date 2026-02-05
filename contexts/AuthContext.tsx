@@ -99,6 +99,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { error };
       }
 
+      // Detect duplicate email: Supabase returns a "fake" user with empty identities
+      // when email confirmation is enabled and the email already exists
+      if (data?.user?.identities && data.user.identities.length === 0) {
+        return {
+          error: { message: 'This email is already registered. Please sign in instead.' }
+        };
+      }
+
       // Profile will be created automatically by the trigger
       return { error: null };
     } catch (error) {

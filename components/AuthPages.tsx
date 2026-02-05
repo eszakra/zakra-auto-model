@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
-import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
 interface AuthPageProps {
   onClose: () => void;
@@ -10,106 +10,76 @@ interface AuthPageProps {
 }
 
 // Translate Supabase auth errors to user-friendly messages
-function getLoginErrorMessage(error: any): { message: string; type: 'error' | 'warning' | 'info' } {
+function getLoginErrorMessage(error: any): string {
   const msg = error?.message?.toLowerCase() || '';
 
   if (msg.includes('email not confirmed')) {
-    return {
-      message: 'Your email has not been verified yet. Please check your inbox (and spam folder) for the verification link we sent you.',
-      type: 'warning'
-    };
+    return 'EMAIL_NOT_VERIFIED';
   }
   if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
-    return {
-      message: 'Incorrect email or password. Please try again.',
-      type: 'error'
-    };
+    return 'The email or password you entered is incorrect.';
   }
   if (msg.includes('too many requests') || msg.includes('rate limit')) {
-    return {
-      message: 'Too many login attempts. Please wait a few minutes before trying again.',
-      type: 'warning'
-    };
+    return 'Too many attempts. Please wait a moment and try again.';
   }
   if (msg.includes('user not found')) {
-    return {
-      message: 'No account found with this email. Please sign up first.',
-      type: 'error'
-    };
+    return 'No account found with this email.';
   }
   if (msg.includes('network') || msg.includes('fetch')) {
-    return {
-      message: 'Connection error. Please check your internet and try again.',
-      type: 'error'
-    };
+    return 'Unable to connect. Please check your internet connection.';
   }
 
-  return { message: error?.message || 'An error occurred. Please try again.', type: 'error' };
+  return error?.message || 'Something went wrong. Please try again.';
 }
 
 function getRegisterErrorMessage(error: any): string {
   const msg = error?.message?.toLowerCase() || '';
 
-  if (msg.includes('already registered') || msg.includes('already been registered')) {
+  if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('already registered')) {
     return 'This email is already registered. Please sign in instead.';
   }
   if (msg.includes('password') && msg.includes('least')) {
-    return 'Password must be at least 6 characters long.';
+    return 'Password must be at least 6 characters.';
   }
   if (msg.includes('valid email') || msg.includes('invalid email')) {
     return 'Please enter a valid email address.';
   }
   if (msg.includes('too many requests') || msg.includes('rate limit')) {
-    return 'Too many attempts. Please wait a few minutes before trying again.';
+    return 'Too many attempts. Please wait a moment and try again.';
   }
   if (msg.includes('network') || msg.includes('fetch')) {
-    return 'Connection error. Please check your internet and try again.';
+    return 'Unable to connect. Please check your internet connection.';
   }
 
-  return error?.message || 'Error creating account. Please try again.';
+  return error?.message || 'Something went wrong. Please try again.';
 }
-
-// Alert component with different styles
-const AuthAlert: React.FC<{ message: string; type: 'error' | 'warning' | 'info' }> = ({ message, type }) => {
-  const styles = {
-    error: 'bg-red-50 border-red-200 text-[#a11008] dark:bg-red-950/30 dark:border-red-800 dark:text-red-400',
-    warning: 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400',
-    info: 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-400',
-  };
-  const icons = {
-    error: <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />,
-    warning: <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />,
-    info: <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />,
-  };
-
-  return (
-    <div className={`p-3 border rounded-lg text-sm flex items-start gap-2 ${styles[type]}`}>
-      {icons[type]}
-      <span>{message}</span>
-    </div>
-  );
-};
 
 export const LoginPage: React.FC<AuthPageProps> = ({ onClose, onSwitch, onSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [alert, setAlert] = useState<{ message: string; type: 'error' | 'warning' | 'info' } | null>(null);
-  const [resendingEmail, setResendingEmail] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendDone, setResendDone] = useState(false);
   const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setAlert(null);
-    setResendSuccess(false);
+    setError('');
+    setShowVerificationMessage(false);
+    setResendDone(false);
 
     const result = await signIn(email, password);
     
     if (result.error) {
-      const errorInfo = getLoginErrorMessage(result.error);
-      setAlert(errorInfo);
+      const msg = getLoginErrorMessage(result.error);
+      if (msg === 'EMAIL_NOT_VERIFIED') {
+        setShowVerificationMessage(true);
+      } else {
+        setError(msg);
+      }
       setLoading(false);
     } else {
       setLoading(false);
@@ -122,33 +92,20 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onClose, onSwitch, onSucces
   };
 
   const handleResendVerification = async () => {
-    if (!email) {
-      setAlert({ message: 'Please enter your email address first.', type: 'warning' });
-      return;
-    }
-    setResendingEmail(true);
+    if (!email) return;
+    setResending(true);
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email,
-      });
-      if (error) {
-        setAlert({ message: 'Could not resend verification email. Please try again later.', type: 'error' });
-      } else {
-        setResendSuccess(true);
-        setAlert({ message: 'Verification email sent! Please check your inbox and spam folder.', type: 'info' });
-      }
+      await supabase.auth.resend({ type: 'signup', email });
+      setResendDone(true);
     } catch {
-      setAlert({ message: 'Could not resend verification email.', type: 'error' });
+      // Silent fail
     }
-    setResendingEmail(false);
+    setResending(false);
   };
 
-  const isEmailNotConfirmed = alert?.message?.includes('verified') || alert?.message?.includes('verification');
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-[var(--bg-primary)] rounded-2xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md bg-[var(--bg-primary)] rounded-2xl shadow-2xl overflow-hidden border border-[var(--border-color)]">
         {/* Header */}
         <div className="bg-reed-red p-6 text-white">
           <div className="flex items-center justify-between">
@@ -156,7 +113,7 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onClose, onSwitch, onSucces
               <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-6 w-auto brightness-0 invert" />
               <span className="font-bold text-lg">REED</span>
             </div>
-            <button onClick={onClose} className="text-white/80 hover:text-white"><span className="text-2xl">&times;</span></button>
+            <button onClick={onClose} className="text-white/80 hover:text-white text-2xl leading-none">&times;</button>
           </div>
           <h2 className="text-2xl font-bold mt-4">Welcome Back</h2>
           <p className="text-white/80 text-sm">Sign in to continue generating</p>
@@ -164,22 +121,49 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onClose, onSwitch, onSucces
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {alert && <AuthAlert message={alert.message} type={alert.type} />}
+          {/* Error message */}
+          {error && (
+            <div className="flex items-center gap-2.5 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <span className="text-sm text-red-500">{error}</span>
+            </div>
+          )}
 
-          {/* Show resend verification button when email not confirmed */}
-          {isEmailNotConfirmed && !resendSuccess && (
-            <button
-              type="button"
-              onClick={handleResendVerification}
-              disabled={resendingEmail}
-              className="w-full py-2 text-sm font-medium text-reed-red border border-reed-red rounded-lg hover:bg-reed-red/5 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {resendingEmail ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
-              ) : (
-                <><Mail className="w-4 h-4" /> Resend Verification Email</>
-              )}
-            </button>
+          {/* Email not verified state */}
+          {showVerificationMessage && (
+            <div className="rounded-lg border border-[var(--border-color)] overflow-hidden">
+              <div className="p-4 bg-[var(--bg-secondary)]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Mail className="w-4 h-4 text-reed-red" />
+                  <span className="text-sm font-semibold text-[var(--text-primary)]">Email verification required</span>
+                </div>
+                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  We sent a verification link to <span className="text-[var(--text-primary)] font-medium">{email}</span>. 
+                  Please check your inbox and spam folder, then click the link to activate your account.
+                </p>
+              </div>
+              <div className="px-4 py-3 border-t border-[var(--border-color)] bg-[var(--bg-primary)]">
+                {resendDone ? (
+                  <div className="flex items-center gap-2 text-xs text-green-500">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Verification email sent!</span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resending}
+                    className="flex items-center gap-2 text-xs text-reed-red hover:text-reed-red-dark transition-colors disabled:opacity-50"
+                  >
+                    {resending ? (
+                      <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending...</>
+                    ) : (
+                      <><RefreshCw className="w-3.5 h-3.5" /> Resend verification email</>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
           )}
 
           <div>
@@ -268,29 +252,6 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
       setError(getRegisterErrorMessage(result.error));
       setLoading(false);
     } else {
-      // Check if Supabase returned a "fake" success for duplicate email
-      // When email confirmation is enabled, Supabase returns a user with empty identities
-      // for already-registered emails (to prevent email enumeration)
-      // We detect this by trying to check the user data
-      const { data } = await supabase.auth.getSession();
-      
-      // If there's no session after signup, it could mean:
-      // 1. Email needs verification (normal) - show success
-      // 2. Email already exists (Supabase fake success) - we can't easily tell
-      // So we check user_profiles to see if this email already exists
-      const { data: existingProfile } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('email', email.toLowerCase().trim())
-        .maybeSingle();
-
-      if (existingProfile && !data.session) {
-        // Email already registered - the signup was a no-op
-        setError('This email is already registered. Please sign in instead, or check your inbox for the verification email.');
-        setLoading(false);
-        return;
-      }
-
       setSuccess(true);
       setLoading(false);
     }
@@ -298,43 +259,61 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
 
   if (success) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div className="w-full max-w-md bg-[var(--bg-primary)] rounded-2xl shadow-2xl p-8 text-center">
-          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="w-8 h-8 text-green-600 dark:text-green-400" />
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="w-full max-w-md bg-[var(--bg-primary)] rounded-2xl shadow-2xl overflow-hidden border border-[var(--border-color)]">
+          {/* Success Header */}
+          <div className="p-8 text-center">
+            <div className="w-14 h-14 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-5">
+              <CheckCircle2 className="w-7 h-7 text-green-500" />
+            </div>
+            <h2 className="text-xl font-bold text-[var(--text-primary)] mb-1">Check Your Email</h2>
+            <p className="text-sm text-[var(--text-muted)]">
+              We sent a verification link to
+            </p>
+            <p className="text-sm text-[var(--text-primary)] font-semibold mt-1">{email}</p>
           </div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Check Your Email</h2>
-          <p className="text-[var(--text-secondary)] mb-2">
-            We sent a verification link to:
-          </p>
-          <p className="text-[var(--text-primary)] font-semibold mb-4">{email}</p>
-          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-6 text-left">
-            <div className="flex items-start gap-2 text-sm text-amber-800 dark:text-amber-400">
-              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium">Important:</p>
-                <ul className="mt-1 space-y-1 text-xs">
-                  <li>Check your <strong>spam/junk folder</strong> if you don't see it</li>
-                  <li>Click the link in the email to activate your account</li>
-                  <li>You'll receive <strong>3 free credits</strong> once verified</li>
-                </ul>
+
+          {/* Instructions */}
+          <div className="px-8 pb-4">
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-[10px] font-bold text-[var(--text-muted)]">1</span>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)]">Open the email and click the verification link</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-[10px] font-bold text-[var(--text-muted)]">2</span>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)]">Check your spam folder if you don't see it</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-[10px] font-bold text-[var(--text-muted)]">3</span>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)]">Come back and sign in to get your <span className="font-semibold text-[var(--text-primary)]">3 free credits</span></p>
               </div>
             </div>
           </div>
-          <button
-            onClick={onSwitch}
-            className="w-full py-3 bg-reed-red text-white font-semibold rounded-lg hover:bg-reed-red-dark transition-colors"
-          >
-            Go to Sign In
-          </button>
+
+          {/* Action */}
+          <div className="p-8 pt-4">
+            <button
+              onClick={onSwitch}
+              className="w-full py-3 bg-reed-red text-white font-semibold rounded-lg hover:bg-reed-red-dark transition-colors"
+            >
+              Go to Sign In
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-[var(--bg-primary)] rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md bg-[var(--bg-primary)] rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto border border-[var(--border-color)]">
         {/* Header */}
         <div className="bg-reed-red p-6 text-white">
           <div className="flex items-center justify-between">
@@ -342,7 +321,7 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
               <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-6 w-auto brightness-0 invert" />
               <span className="font-bold text-lg">REED</span>
             </div>
-            <button onClick={onClose} className="text-white/80 hover:text-white"><span className="text-2xl">&times;</span></button>
+            <button onClick={onClose} className="text-white/80 hover:text-white text-2xl leading-none">&times;</button>
           </div>
           <h2 className="text-2xl font-bold mt-4">Create Account</h2>
           <p className="text-white/80 text-sm">Start with 3 free credits</p>
@@ -350,7 +329,12 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && <AuthAlert message={error} type="error" />}
+          {error && (
+            <div className="flex items-center gap-2.5 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <span className="text-sm text-red-500">{error}</span>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Full Name</label>
