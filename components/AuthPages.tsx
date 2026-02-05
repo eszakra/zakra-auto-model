@@ -220,6 +220,66 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onClose, onSwitch, onSucces
   );
 };
 
+// Generate a device fingerprint (no external library needed)
+function getDeviceFingerprint(): string {
+  const components = [
+    screen.width + 'x' + screen.height,
+    screen.colorDepth,
+    new Date().getTimezoneOffset(),
+    navigator.language,
+    navigator.hardwareConcurrency || 0,
+    navigator.maxTouchPoints || 0,
+    navigator.platform || '',
+    // Canvas fingerprint
+    (() => {
+      try {
+        const c = document.createElement('canvas');
+        const ctx = c.getContext('2d');
+        if (!ctx) return '';
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillText('fp', 2, 2);
+        return c.toDataURL().slice(-50);
+      } catch { return ''; }
+    })(),
+  ];
+  // Simple hash
+  const str = components.join('|');
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return 'fp_' + Math.abs(hash).toString(36);
+}
+
+async function checkSignupAllowed(fingerprint: string): Promise<{ allowed: boolean; message?: string }> {
+  try {
+    const res = await fetch('/.netlify/functions/signup-guard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'check', fingerprint }),
+    });
+    if (!res.ok) return { allowed: true }; // On error, don't block
+    return await res.json();
+  } catch {
+    return { allowed: true }; // On network error, don't block
+  }
+}
+
+async function logSignupAttempt(fingerprint: string, email: string): Promise<void> {
+  try {
+    await fetch('/.netlify/functions/signup-guard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'log', fingerprint, email }),
+    });
+  } catch {
+    // Silent fail
+  }
+}
+
 export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -246,12 +306,25 @@ export const RegisterPage: React.FC<AuthPageProps> = ({ onClose, onSwitch }) => 
     setLoading(true);
     setError('');
 
+    // Step 1: Check rate limit (IP + fingerprint)
+    const fingerprint = getDeviceFingerprint();
+    const guard = await checkSignupAllowed(fingerprint);
+    
+    if (!guard.allowed) {
+      setError(guard.message || 'Too many accounts created. Please try again later.');
+      setLoading(false);
+      return;
+    }
+
+    // Step 2: Attempt signup
     const result = await signUp(email, password, fullName);
     
     if (result.error) {
       setError(getRegisterErrorMessage(result.error));
       setLoading(false);
     } else {
+      // Step 3: Log successful signup attempt
+      await logSignupAttempt(fingerprint, email);
       setSuccess(true);
       setLoading(false);
     }
