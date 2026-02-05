@@ -144,6 +144,13 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       return;
     }
 
+    // CRITICAL: Deduct credits BEFORE generating (not after)
+    const creditsUsed = await useCredits(1, `Pose variation with model: ${selectedModel.model_name || 'unknown'}`);
+    if (!creditsUsed) {
+      alert("Failed to process credits. Please try again.");
+      return;
+    }
+
     setIsGeneratingVariation(true);
     setShowPoseVariation(false);
 
@@ -172,12 +179,6 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
       // Update the displayed image
       setGeneratedImage(result);
-
-      // Deduct credits
-      const creditsUsed = await useCredits(1, `Pose variation with model: ${selectedModel.model_name || 'unknown'}`);
-      if (!creditsUsed) {
-        console.warn('Failed to deduct credits, but variation was generated');
-      }
 
       // Save to history
       saveToHistory(result, { ...currentPayload, pose_variation: true, new_pose: poseDescription });
@@ -461,6 +462,12 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         throw new Error("Insufficient credits. Please upgrade your plan or purchase more credits.");
       }
 
+      // CRITICAL: Deduct credits BEFORE generating (not after)
+      const creditsUsed = await useCredits(1, `Batch generation with model: ${selectedModel.model_name || 'unknown'}`);
+      if (!creditsUsed) {
+        throw new Error("Failed to process credits. Please try again.");
+      }
+
       const currentKey = getCurrentApiKey();
       const { generateIndustrialImage } = await import('./services/geminiService');
 
@@ -473,12 +480,6 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         user?.plan_type,
         selectedModel.reference_images || []
       );
-
-      // Deduct credits after successful generation
-      const creditsUsed = await useCredits(1, `Batch generation with model: ${selectedModel.model_name || 'unknown'}`);
-      if (!creditsUsed) {
-        console.warn('Failed to deduct credits, but image was generated');
-      }
 
       const fileName = `batch_${Date.now()}_${item.id}.png`;
       const publicUrl = await uploadBase64Image(resultBase64, 'generations', fileName);
@@ -663,6 +664,13 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       return;
     }
 
+    // CRITICAL: Deduct credits BEFORE generating (not after)
+    const creditsUsed = await useCredits(1, `Generated image with model: ${selectedModel?.model_name || 'unknown'}`);
+    if (!creditsUsed) {
+      alert("Failed to process credits. Please try again.");
+      return;
+    }
+
     setAppState(AppState.GENERATING);
     setErrorMsg(null);
     const currentKey = getCurrentApiKey();
@@ -682,12 +690,6 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       setGeneratedImage(result);
       setAppState(AppState.COMPLETE);
 
-      // Deduct credits after successful generation
-      const creditsUsed = await useCredits(1, `Generated image with model: ${selectedModel?.model_name || 'unknown'}`);
-      if (!creditsUsed) {
-        console.warn('Failed to deduct credits, but image was generated');
-      }
-
       saveToHistory(result, finalPayload);
 
     } catch (error: any) {
@@ -698,6 +700,9 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       } else {
         setErrorMsg(error.message);
       }
+      // NOTE: Credit is NOT refunded on generation failure.
+      // This prevents abuse (users could force errors to get free generations).
+      // If needed, admin can manually refund via admin panel.
     }
   };
 
