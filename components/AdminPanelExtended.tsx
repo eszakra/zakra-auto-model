@@ -143,19 +143,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     if (activeTab === 'apikey') {
       fetchCurrentApiKey();
     }
-    if (activeTab === 'generations') {
-      fetchGenerations();
-    }
+    // generations se maneja en el useEffect de abajo que observa ambos
   }, [activeTab]);
 
-  // Fetch generations when selected user changes
+  // Fetch generations when tab is active AND/OR selected user changes
   useEffect(() => {
     if (activeTab === 'generations') {
       // Limpiar generaciones anteriores inmediatamente para evitar flash de contenido viejo
       setGenerations([]);
       fetchGenerations();
     }
-  }, [selectedGenerationUser]);
+  }, [activeTab, selectedGenerationUser]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -792,7 +790,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                   onClick={() => {
                                     setSelectedGenerationUser(u.id);
                                     setActiveTab('generations');
-                                    fetchGenerations();
                                   }}
                                   className="flex items-center gap-1 px-3 py-1 border border-[var(--border-color)] text-[var(--text-primary)] text-sm rounded hover:bg-[var(--hover-bg)]"
                                   title="View generations"
