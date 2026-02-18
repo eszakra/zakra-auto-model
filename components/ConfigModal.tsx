@@ -33,9 +33,9 @@ const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, onSave }) =>
 
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
-              <label className="text-xs text-zakra-grey uppercase tracking-wider">> API_ENDPOINT_URL</label>
-              <input 
-                type="text" 
+              <label className="text-xs text-zakra-grey uppercase tracking-wider">{'>'} API_ENDPOINT_URL</label>
+              <input
+                type="text"
                 disabled
                 value="https://api.zakra.ai/v1/nano-banana-pro"
                 className="w-full bg-zinc-900 border border-zinc-700 p-3 text-xs text-zinc-500 font-mono outline-none cursor-not-allowed"
@@ -43,9 +43,9 @@ const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, onSave }) =>
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-xs text-zakra-grey uppercase tracking-wider">> API_KEY_OVERRIDE</label>
-              <input 
-                type="password" 
+              <label className="text-xs text-zakra-grey uppercase tracking-wider">{'>'} API_KEY_OVERRIDE</label>
+              <input
+                type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="ENTER_KEY_MATRIX..."
@@ -53,13 +53,13 @@ const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, onSave }) =>
               />
               <p className="text-[10px] text-zinc-600 uppercase">
                 * LEAVE EMPTY TO USE ENVIRONMENT VARIABLES.
-                <br/>
+                <br />
                 * <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noreferrer" className="underline hover:text-white">BILLING DOCS REFERENCE</a>
               </p>
             </div>
           </div>
 
-          <button 
+          <button
             onClick={handleSave}
             className="w-full border border-zinc-600 py-3 text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors"
           >
