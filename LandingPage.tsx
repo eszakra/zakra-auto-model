@@ -20,6 +20,9 @@ import { MyPurchases } from './components/MyPurchases';
 import { ServiceContent } from './components/ServiceContent';
 import { LoraUploadFlow } from './components/LoraUploadFlow';
 import { WORKFLOWS, LORAS, PACKAGES, ServiceItem, getServiceById } from './services/servicesData';
+import { usePortfolioImages } from './hooks/usePortfolioImages';
+import { optimizeImageForCarousel } from './utils/imageOptimizer';
+
 
 // Navigation Component
 const Navigation = ({
@@ -221,77 +224,267 @@ const Navigation = ({
   );
 };
 
-// Hero Section
+// Hero Section - Featured Image Showcase: text left, big rotating portfolio image right
 const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
+  const { images, isLoading } = usePortfolioImages({ category: 'sfw' });
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Take first 6 best images for the hero rotation
+  const heroImages = images.slice(0, 6);
+
+  // Auto-rotate images every 4 seconds with crossfade
+  useEffect(() => {
+    if (heroImages.length <= 1) return;
+    const interval = setInterval(() => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
+        setIsTransitioning(false);
+      }, 600); // fade duration
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [heroImages.length]);
 
   return (
-    <section className="relative min-h-screen flex flex-col justify-between pt-20 overflow-hidden">
-      {/* Animated Background */}
+    <section className="relative min-h-screen flex items-center overflow-hidden">
+      {/* Animated grid background */}
       <HeroBackground />
 
-      {/* Contenido del hero */}
-      <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 flex-1 flex items-center">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-reed-red/10 rounded-full mb-8 animate-fade-in border border-reed-red/20 backdrop-blur-sm">
-            <Flame className="w-4 h-4 text-reed-red animate-pulse" />
-            <span className="text-sm font-medium text-reed-red">Same Face, Every Shot — No More Inconsistency</span>
+      <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-14 lg:pt-24 lg:pb-16">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+
+          {/* Left - Text content */}
+          <div className="text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-reed-red/10 rounded-full mb-6 animate-fade-in border border-reed-red/20 backdrop-blur-sm">
+              <Flame className="w-4 h-4 text-reed-red animate-pulse" />
+              <span className="text-sm font-medium text-reed-red">NSFW AI Agency — Same Face, Every Shot</span>
+            </div>
+
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-bold text-[var(--text-primary)] leading-[1.08] mb-6 animate-slide-up">
+              Generate & Scale{' '}
+              <span className="text-gradient">Consistent AI Content</span>
+            </h1>
+
+            <p className="text-lg sm:text-xl text-[var(--text-secondary)] max-w-xl mx-auto lg:mx-0 mb-8 animate-slide-up leading-relaxed" style={{ animationDelay: '0.1s' }}>
+              On-site AI generator + custom SDXL LoRAs & workflows built for your character.
+              Same face, same style, every single time.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3 mb-10 animate-slide-up" style={{ animationDelay: '0.15s' }}>
+              <button
+                onClick={onLaunchApp}
+                className="px-8 py-4 bg-reed-red text-white font-semibold rounded-xl hover:bg-reed-red-dark transition-all shadow-lg shadow-reed-red/25 hover:shadow-xl hover:shadow-reed-red/30 hover:-translate-y-0.5 text-base"
+              >
+                Start Generating
+              </button>
+              <a
+                href="#services"
+                className="inline-flex items-center gap-2 px-8 py-4 border-2 border-[var(--border-color)] text-[var(--text-primary)] font-semibold rounded-xl hover:border-reed-red hover:text-reed-red transition-all text-base"
+              >
+                View Services
+                <ArrowRight className="w-4 h-4" />
+              </a>
+            </div>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-3 gap-4 max-w-md mx-auto lg:mx-0 animate-fade-in" style={{ animationDelay: '0.25s' }}>
+              <div className="text-center lg:text-left">
+                <div className="text-3xl sm:text-4xl font-bold text-reed-red">4K+</div>
+                <div className="text-xs text-[var(--text-muted)] font-medium mt-1">Max Resolution</div>
+              </div>
+              <div className="text-center lg:text-left">
+                <div className="text-3xl sm:text-4xl font-bold text-reed-red">100%</div>
+                <div className="text-xs text-[var(--text-muted)] font-medium mt-1">Face Consistency</div>
+              </div>
+              <div className="text-center lg:text-left">
+                <div className="text-3xl sm:text-4xl font-bold text-reed-red">24h</div>
+                <div className="text-xs text-[var(--text-muted)] font-medium mt-1">LoRA Delivery</div>
+              </div>
+            </div>
           </div>
 
-          {/* Main Headline */}
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-7xl font-bold text-[var(--text-primary)] leading-[1.1] mb-6 animate-slide-up">
-            Generate & Scale
-            <br />
-            <span className="text-gradient">Consistent AI Content</span>
-          </h1>
+          {/* Right - Featured image showcase (constrained size) */}
+          <div className="flex justify-center lg:justify-end animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="w-full max-w-sm sm:max-w-md lg:max-w-lg">
+            {/* Main featured image */}
+            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl shadow-black/30">
+              {isLoading || heroImages.length === 0 ? (
+                <div className="w-full h-full bg-[var(--bg-secondary)] animate-pulse" />
+              ) : (
+                <>
+                  <img
+                    src={optimizeImageForCarousel(heroImages[currentImageIndex])}
+                    alt="AI generated content by REED"
+                    className={`w-full h-full object-cover transition-opacity duration-500 ease-in-out ${
+                      isTransitioning ? 'opacity-0' : 'opacity-100'
+                    }`}
+                  />
+                  {/* Subtle gradient overlay at bottom */}
+                  <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/40 to-transparent" />
+                  
+                  {/* Image indicator dots */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                    {heroImages.slice(0, 6).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setIsTransitioning(true);
+                          setTimeout(() => {
+                            setCurrentImageIndex(i);
+                            setIsTransitioning(false);
+                          }, 300);
+                        }}
+                        className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                          i === currentImageIndex
+                            ? 'bg-white w-6'
+                            : 'bg-white/40 hover:bg-white/70'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
 
-          {/* Subheadline */}
-          <p className="text-lg sm:text-xl text-[var(--text-primary)]/80 max-w-2xl mx-auto mb-10 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            Generate images directly on our platform or get custom SDXL LoRAs and workflows built for you.
-            Same face, same style, every single time — no more inconsistent results.
-          </p>
+              {/* Corner badge */}
+              <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 bg-black/50 backdrop-blur-md rounded-full">
+                <div className="w-2 h-2 bg-reed-red rounded-full animate-pulse" />
+                <span className="text-xs font-medium text-white/90">AI Generated</span>
+              </div>
+            </div>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            <button
-              onClick={onLaunchApp}
-              className="px-8 py-4 bg-reed-red text-white font-semibold rounded-xl hover:bg-reed-red-dark transition-colors shadow-lg shadow-reed-red/25"
-            >
-              Start Generating
-            </button>
-            <a
-              href="#services"
-              className="inline-flex items-center gap-2 px-8 py-4 border-2 border-[var(--border-color)] text-[var(--text-primary)] font-semibold rounded-xl hover:border-[var(--text-muted)] transition-colors"
-            >
-              View Services
-            </a>
+            {/* Thumbnail strip below main image */}
+            {heroImages.length > 1 && (
+              <div className="hidden sm:flex gap-1.5 mt-3 w-full">
+                {heroImages.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setIsTransitioning(true);
+                      setTimeout(() => {
+                        setCurrentImageIndex(i);
+                        setIsTransitioning(false);
+                      }, 300);
+                    }}
+                    className={`relative flex-1 min-w-0 aspect-square rounded-lg overflow-hidden transition-all duration-300 ${
+                      i === currentImageIndex
+                        ? 'ring-2 ring-reed-red ring-offset-1 ring-offset-[var(--bg-primary)] scale-105'
+                        : 'opacity-50 hover:opacity-80'
+                    }`}
+                  >
+                    <img
+                      src={optimizeImageForCarousel(img)}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+            </div>
           </div>
 
-          {/* Trust Indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-[var(--text-primary)]/70 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-reed-red" />
-              <span>On-Site Generator</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-reed-red" />
-              <span>100% Consistent</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-reed-red" />
-              <span>24-48h LoRA Delivery</span>
-            </div>
-          </div>
         </div>
       </div>
-
-      {/* Subtle fade to carousel */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-b from-transparent to-[var(--bg-primary)] pointer-events-none z-10" />
     </section>
   );
 };
 
-// Portfolio Section with SFW/NSFW Toggle
+// Trust Marquee Bar - Scrolling infinite bar (like Lummia's top bar)
+const TrustMarquee = () => {
+  const items = [
+    { icon: <Shield className="w-3.5 h-3.5" />, text: 'SAME FACE EVERY SHOT' },
+    { icon: <Sparkles className="w-3.5 h-3.5" />, text: 'ON-SITE AI GENERATOR' },
+    { icon: <Clock className="w-3.5 h-3.5" />, text: '24-48H LORA DELIVERY' },
+    { icon: <Users className="w-3.5 h-3.5" />, text: 'TRUSTED BY CREATORS' },
+    { icon: <Zap className="w-3.5 h-3.5" />, text: '100% CONSISTENT RESULTS' },
+    { icon: <Lock className="w-3.5 h-3.5" />, text: 'PRIVATE & SECURE' },
+  ];
+
+  return (
+    <div className="relative bg-reed-red overflow-hidden py-2.5 z-30">
+      <div className="flex animate-marquee whitespace-nowrap">
+        {[...items, ...items, ...items, ...items].map((item, i) => (
+          <div key={i} className="inline-flex items-center gap-2 mx-8 text-white/90 text-xs font-bold uppercase tracking-widest flex-shrink-0">
+            {item.icon}
+            <span>{item.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Category Cards Section - 3 big cards explaining what REED does
+const CategorySection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void; onViewServices: () => void }) => {
+  const categories = [
+    {
+      title: 'AI Generator',
+      subtitle: 'Do it yourself',
+      description: 'Generate images directly on our website. Upload a face, pick a pose, click generate. That simple.',
+      icon: <Sparkles className="w-6 h-6" />,
+      action: onLaunchApp,
+      cta: 'Try Generator',
+    },
+    {
+      title: 'Custom LoRAs',
+      subtitle: 'We train your AI model',
+      description: 'Send us photos of a face. We train a custom AI model that generates that exact person in any pose or scene.',
+      icon: <Cpu className="w-6 h-6" />,
+      action: onViewServices,
+      cta: 'See LoRA Plans',
+    },
+    {
+      title: 'SDXL Workflows',
+      subtitle: 'Ready-made templates',
+      description: 'Pre-built generation workflows for ComfyUI. Download, load your model, and start producing images immediately.',
+      icon: <Layers className="w-6 h-6" />,
+      action: onViewServices,
+      cta: 'View Workflows',
+    },
+  ];
+
+  return (
+    <section className="py-16 lg:py-24 bg-[var(--bg-primary)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-3">3 Ways to Use REED</span>
+          <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--text-primary)] mb-3">
+            Pick How You Want to
+            <span className="text-gradient"> Create</span>
+          </h2>
+          <p className="text-[var(--text-secondary)] text-base max-w-xl mx-auto">
+            Generate images yourself, get a custom AI model trained on your face, or buy ready-made workflows.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-5">
+          {categories.map((cat) => (
+            <button
+              key={cat.title}
+              onClick={cat.action}
+              className="group relative bg-[var(--card-bg)] rounded-2xl p-7 border border-[var(--card-border)] text-left transition-all hover:border-reed-red/50 hover:shadow-xl hover:-translate-y-1"
+            >
+              <div className="w-11 h-11 bg-reed-red/10 rounded-xl flex items-center justify-center mb-4 text-reed-red group-hover:bg-reed-red group-hover:text-white transition-all">
+                {cat.icon}
+              </div>
+              <p className="text-[10px] font-bold text-reed-red uppercase tracking-widest mb-1.5">{cat.subtitle}</p>
+              <h3 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{cat.title}</h3>
+              <p className="text-sm text-[var(--text-secondary)] mb-5 leading-relaxed">{cat.description}</p>
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-reed-red group-hover:gap-3 transition-all">
+                {cat.cta}
+                <ArrowRight className="w-4 h-4" />
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Portfolio Section with SFW/NSFW Toggle - now with section heading
 const PortfolioSection = () => {
   const [category, setCategory] = useState<'sfw' | 'nsfw'>('sfw');
   const [showAgeWarning, setShowAgeWarning] = useState(false);
@@ -310,14 +503,25 @@ const PortfolioSection = () => {
   };
 
   return (
-    <section className="relative bg-[var(--bg-primary)]">
-      {/* Toggle Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6">
+    <section id="portfolio" className="relative bg-[var(--bg-secondary)] pt-14 lg:pt-20 scroll-mt-20">
+      {/* Section heading + toggle */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        <div className="text-center mb-6">
+          <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-3">Portfolio</span>
+          <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--text-primary)] mb-2">
+            See What AI Can
+            <span className="text-gradient"> Generate</span>
+          </h2>
+          <p className="text-[var(--text-secondary)] text-base max-w-lg mx-auto">
+            Every image below is AI-generated. Same face, different poses, different scenes — 100% consistent.
+          </p>
+        </div>
+
+        {/* Toggle */}
         <div className="flex items-center justify-center gap-2">
-          {/* SFW Button */}
           <button
             onClick={() => setCategory('sfw')}
-            className={`inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-l-xl transition-all ${
+            className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-l-xl transition-all ${
               category === 'sfw'
                 ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
                 : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
@@ -326,11 +530,9 @@ const PortfolioSection = () => {
             <Sparkles className="w-4 h-4" />
             SFW
           </button>
-
-          {/* NSFW Button */}
           <button
             onClick={handleNsfwClick}
-            className={`inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-r-xl transition-all ${
+            className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-r-xl transition-all ${
               category === 'nsfw'
                 ? 'bg-reed-red text-white'
                 : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-reed-red border border-[var(--border-color)] hover:border-reed-red'
@@ -342,8 +544,8 @@ const PortfolioSection = () => {
         </div>
 
         {category === 'nsfw' && (
-          <p className="text-center text-sm text-[var(--text-muted)] mt-4">
-            You are viewing NSFW content. Must be 18+ to view.
+          <p className="text-center text-xs text-[var(--text-muted)] mt-3">
+            Viewing NSFW content. Must be 18+.
           </p>
         )}
       </div>
@@ -392,12 +594,13 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">Services</span>
+          <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">We Build It For You</span>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4">
-            Done-For-You Services
+            Done-For-You
+            <span className="text-gradient"> Services</span>
           </h2>
           <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
-            Don't want to generate yourself? We build it for you — custom SDXL LoRAs, workflows, and full content packs ready to post.
+            Don't want to set anything up? We build your custom AI model, production workflows, and full content packs — ready to use.
           </p>
         </div>
 
@@ -652,12 +855,13 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 w-full">
         {/* Section Header */}
         <div className="text-center mb-12 lg:mb-16">
-          <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">Subscriptions</span>
+          <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">Monthly Plans</span>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4">
-            On-Site Generation
+            Generate Images
+            <span className="text-gradient"> On Our Platform</span>
           </h2>
           <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
-            SFW now, NSFW coming soon. Choose the plan that best fits your needs.
+            Pick a plan, get credits, and start generating AI images directly on REED. No setup required.
           </p>
 
           {user && (
@@ -796,12 +1000,13 @@ const FAQSection = () => {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">FAQ</span>
+          <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">Got Questions?</span>
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--text-primary)] mb-4">
-            Frequently Asked Questions
+            Frequently Asked
+            <span className="text-gradient"> Questions</span>
           </h2>
           <p className="text-lg text-[var(--text-secondary)]">
-            Everything you need to know about our services.
+            Everything you need to know before getting started with REED.
           </p>
         </div>
 
@@ -842,11 +1047,11 @@ const CTASection = () => {
     <section className="py-24 bg-reed-red relative overflow-hidden">
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
-          Start generating consistent content today
+          Ready to Start?
         </h2>
         <p className="text-lg text-white/80 mb-10 max-w-2xl mx-auto">
-          Generate on our platform or let us build your custom LoRA and workflow.
-          Either way, every image stays on-brand. Join thousands of creators already scaling.
+          Generate images on our platform or let us build everything for you.
+          Same face, same character, every single image. Start free — no credit card needed.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
@@ -1177,13 +1382,39 @@ const LandingPage = () => {
         />
       )}
 
+      {/* 1. Hero - Featured image showcase: text left, big rotating image right */}
       <HeroSection onLaunchApp={handleShowApp} />
-      <PortfolioSection />
+
+      {/* 2. Trust marquee bar */}
+      <TrustMarquee />
+
+      {/* 3. Real Creator Results - social proof early */}
       <RevenueShowcase />
-      <PricingSection onLoginClick={() => setShowLogin(true)} />
+
+      {/* 4. Full portfolio with SFW/NSFW toggle */}
+      <PortfolioSection />
+
+      {/* 6. What we do - 3 category cards */}
+      <CategorySection
+        onLaunchApp={handleShowApp}
+        onViewServices={() => {
+          document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' });
+        }}
+      />
+
+      {/* 7. Services (done-for-you) */}
       <ServicesSection onBuyService={handleBuyService} />
+
+      {/* 8. Pricing (subscriptions) */}
+      <PricingSection onLoginClick={() => setShowLogin(true)} />
+
+      {/* 9. FAQ */}
       <FAQSection />
+
+      {/* 10. Final CTA */}
       <CTASection />
+
+      {/* 11. Footer */}
       <Footer />
 
       {/* Service Payment Modal */}

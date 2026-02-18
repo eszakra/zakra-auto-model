@@ -10,22 +10,22 @@ export const HeroBackground: React.FC<HeroBackgroundProps> = ({ className = '' }
   const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Glow breathing
+    // Glow breathing animation
     if (glowRef.current) {
       gsap.to(glowRef.current, {
-        scale: 1.05,
-        opacity: 0.12,
-        duration: 6,
+        scale: 1.12,
+        opacity: 0.22,
+        duration: 5,
         repeat: -1,
         yoyo: true,
         ease: 'sine.inOut',
       });
     }
 
-    // Grid subtle movement
+    // Grid subtle drift
     if (gridRef.current) {
       gsap.to(gridRef.current, {
-        y: -5,
+        y: -4,
         duration: 4,
         repeat: -1,
         yoyo: true,
@@ -42,51 +42,68 @@ export const HeroBackground: React.FC<HeroBackgroundProps> = ({ className = '' }
 
   return (
     <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
-      {/* Base */}
+      {/* Base background */}
       <div className="absolute inset-0 bg-[var(--bg-primary)]" />
 
-      {/* Perspective Grid */}
+      {/* Full-height perspective grid covering entire hero */}
       <div
         ref={gridRef}
-        className="absolute bottom-0 left-0 right-0 h-[60%]"
+        className="absolute inset-0"
         style={{
-          perspective: '600px',
-          perspectiveOrigin: '50% 0%',
+          perspective: '800px',
+          perspectiveOrigin: '50% 40%',
         }}
       >
         <div
-          className="absolute inset-0 origin-top"
+          className="absolute inset-0 origin-center"
           style={{
-            transform: 'rotateX(50deg)',
+            transform: 'rotateX(45deg) translateZ(-50px)',
             background: `
               repeating-linear-gradient(
                 90deg,
                 transparent,
-                transparent 99px,
-                rgba(220, 38, 38, 0.12) 99px,
-                rgba(220, 38, 38, 0.12) 100px
+                transparent 79px,
+                rgba(220, 38, 38, 0.12) 79px,
+                rgba(220, 38, 38, 0.12) 80px
               ),
               repeating-linear-gradient(
                 0deg,
                 transparent,
-                transparent 99px,
-                rgba(220, 38, 38, 0.12) 99px,
-                rgba(220, 38, 38, 0.12) 100px
+                transparent 79px,
+                rgba(220, 38, 38, 0.12) 79px,
+                rgba(220, 38, 38, 0.12) 80px
               )
             `,
-            maskImage: 'linear-gradient(to bottom, transparent 0%, black 20%, black 60%, transparent 100%)',
-            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 20%, black 60%, transparent 100%)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.3) 15%, black 40%, black 70%, rgba(0,0,0,0.4) 85%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.3) 15%, black 40%, black 70%, rgba(0,0,0,0.4) 85%, transparent 100%)',
           }}
         />
       </div>
 
-      {/* Main glow - centered behind title */}
+      {/* Main centered glow - big, visible red atmosphere */}
       <div
         ref={glowRef}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] opacity-[0.05]"
+        className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[800px] opacity-[0.18]"
         style={{
-          background: 'radial-gradient(ellipse 100% 100% at 50% 50%, #dc2626 0%, transparent 70%)',
-          filter: 'blur(100px)',
+          background: 'radial-gradient(ellipse 70% 60% at 50% 50%, #dc2626 0%, rgba(220, 38, 38, 0.5) 25%, rgba(220, 38, 38, 0.15) 50%, transparent 70%)',
+          filter: 'blur(60px)',
+        }}
+      />
+
+      {/* Accent glow behind the image area (right side) */}
+      <div
+        className="absolute top-[40%] right-[8%] w-[500px] h-[500px] opacity-[0.10]"
+        style={{
+          background: 'radial-gradient(circle, #dc2626 0%, rgba(220, 38, 38, 0.3) 40%, transparent 65%)',
+          filter: 'blur(70px)',
+        }}
+      />
+
+      {/* Subtle top-edge vignette to blend nav area */}
+      <div
+        className="absolute top-0 left-0 right-0 h-32"
+        style={{
+          background: 'linear-gradient(to bottom, var(--bg-primary) 0%, transparent 100%)',
         }}
       />
     </div>
