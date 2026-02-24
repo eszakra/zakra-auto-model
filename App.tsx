@@ -1158,9 +1158,9 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
           </div>
 
           <div className="flex-grow relative min-h-0">
-            <div className="absolute inset-4 border border-[var(--border-color)] bg-[var(--bg-primary)] rounded-xl overflow-hidden" data-onboarding="output-area">
+            <div className="absolute inset-4 border border-[var(--border-color)] bg-[var(--bg-primary)] rounded-xl overflow-hidden flex flex-col" data-onboarding="output-area">
               {isBatchMode ? (
-                <div className="w-full p-4 grid grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto">
+                <div className="w-full p-4 grid grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto flex-grow">
                   {queue.map(q => (
                     <div key={q.id} className="flex flex-col gap-1 group relative">
                       <div
