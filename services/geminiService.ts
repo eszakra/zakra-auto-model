@@ -64,9 +64,9 @@ export const generateUnifiedPayload = async (
     : `- IMAGE 2 (REFERENCE): Extract EVERYTHING ELSE (pose, expression, clothing, background, lighting, accessories).`;
 
   const prompt = `
-You are an expert prompt engineer creating JSON payloads for AI image generation.
+You are an expert visual analysis specialist and prompt engineer with 15+ years of experience in photography, digital art, and AI image generation. You excel at deconstructing every visual element and translating them into precise technical specifications.
 
-TASK: Analyze the provided images and create a detailed JSON payload that FUSES them.
+TASK: Analyze the provided images and create a comprehensive JSON payload that FUSES them.
 
 RULES:
 ${modelImageRule}
@@ -74,33 +74,132 @@ ${refImageRule}
 - The goal is to generate an image of the BASE MODEL person IN the REFERENCE scene.
 
 CRITICAL QUALITY REQUIREMENT:
-The final image MUST look like a real, candid photograph. NEVER describe anything that would make it look:
+The final image MUST look like a real, candid photograph taken with an iPhone or high-end smartphone. NEVER describe anything that would make it look:
 - CGI or computer-generated
 - Plastic, waxy, or airbrushed skin
 - Overly smooth or artificial
 - Like a 3D render or video game
+- "AI smooth" or overly perfect (real photos have natural variation)
 
 ALWAYS emphasize: realistic skin texture with visible pores, natural imperfections, authentic lighting, genuine spontaneous moment.
 
-OUTPUT FORMAT (JSON ONLY, NO MARKDOWN):
+ANALYSIS RULES:
+- Hair: Measure exact length using body reference points. Identify specific cut style by name. Note texture AND quality. Capture natural imperfections (flyaways, frizz, uneven sections). AVOID describing hair as "perfect" - real hair has variation.
+- Hands: Describe EACH hand separately with exact position. Note if visible or hidden. Document finger positions and tension level. Assess naturalness.
+- Facial expression: Capture exact mouth position, quantify smile intensity, note eye expression, assess genuine vs posed quality.
+- Background: Catalog EVERY visible object with position. For plants identify species. Analyze wall material (painted drywall vs concrete vs brick). Document floor type, spatial depth layers.
+- Lighting: Distinguish dramatic directional vs flat even. Assess shadow edge quality (harsh vs soft), density, placement. Note if ambient fill is present. This is CRITICAL for recreation.
+- Color: Extract dominant colors with hex values. Identify temperature (warm/cool), saturation level, and contrast.
+
+OUTPUT FORMAT (JSON ONLY, NO MARKDOWN, NO BACKTICKS):
 {
-  "prompt_type": "[Describe the type of photo based on REFERENCE, e.g., 'candid indoor smartphone selfie', 'professional studio portrait']",
-  "main_composition": "[Describe the scene/action from REFERENCE in natural language]",
+  "prompt_type": "[Type of photo from REFERENCE: 'candid indoor smartphone selfie', 'professional studio portrait', 'outdoor natural light portrait', etc.]",
+  "main_composition": "[Describe scene/action from REFERENCE. Include: rule applied (rule of thirds/center/symmetry), focal points, visual hierarchy, how eye moves through image]",
   "subject": {
-    "description": "[Describe the person using ONLY the BASE MODEL images' facial features: eye color/shape, skin tone, nose, lips, jawline, age, ethnicity. Be specific like 'striking light green/hazel almond-shaped eyes, defined dark arched eyebrows, realistic skin texture with warm undertones']",
-    "hair": "[Describe hair from BASE MODEL images: color, texture, length, style. Be specific like 'Extra long, sleek, straight dark chocolate brown hair (deep chestnut, warm tones) with a precise middle part']",
-    "clothing": "[Describe clothing from REFERENCE in detail]",
-    "pose_and_expression": "[Describe exact pose and facial expression from REFERENCE, e.g., 'Looking up at the camera with a wide, playful smile showing teeth']",
-    "accessories": "[Describe any accessories visible in REFERENCE]"
+    "description": "[FROM BASE MODEL ONLY: eye color/shape, skin tone with undertones, nose shape, lip shape, jawline, age estimate, ethnicity. Be hyper-specific: 'striking light green/hazel almond-shaped eyes, defined dark arched eyebrows, warm olive skin with visible pores and natural texture']",
+    "hair": "[FROM BASE MODEL: color with undertones, texture, length, style. e.g., 'Extra long sleek straight dark chocolate brown hair (deep chestnut, warm tones) with precise middle part']",
+    "clothing": "[FROM REFERENCE: detailed clothing description including fabric type, fit, color, condition]",
+    "pose_and_expression": "[FROM REFERENCE: exact body pose AND facial expression combined]",
+    "accessories": "[FROM REFERENCE: any accessories visible, or 'none']",
+    "hair_detailed": {
+      "length": "[Exact length using body reference: pixie/short/chin-length/shoulder-length/mid-back/long/very long]",
+      "cut": "[Specific style name: blunt bob/layered/shaggy/undercut/fade/tapered/disconnected]",
+      "texture": "[Natural pattern: straight/wavy (loose waves/s-waves)/curly (tight curls)/coily]",
+      "texture_quality": "[Strand quality: smooth/coarse/fine/thick/thin]",
+      "natural_imperfections": "[Observable variation: flyaways/frizz/uneven sections/growth patterns/cowlicks - be honest, real hair is not perfect]",
+      "styling": "[Current state: sleek/tousled/wet look/blow-dried/natural/messy. Include: degree of styling, product visibility, movement quality]",
+      "part": "[Exact location: center/side/deep side/no part/zigzag]",
+      "volume": "[Root lift and fullness: flat/moderate volume/voluminous]",
+      "details": "[Specific features: bangs type, face-framing layers, buzzed sections, faded areas, length variations]"
+    },
+    "facial_expression": {
+      "mouth": "[Exact position: closed smile/open smile/slight smile/neutral/serious/pursed]",
+      "smile_intensity": "[Degree: no smile/subtle/moderate/broad/wide]",
+      "eyes": "[Expression: direct gaze/looking away/squinting/wide/relaxed/intense]",
+      "eyebrows": "[Position: raised/neutral/furrowed/relaxed]",
+      "overall_emotion": "[Tone: happy/content/serious/playful/confident/approachable/warm]",
+      "authenticity": "[Quality: genuine/posed/candid/formal/natural]"
+    },
+    "hands_and_gestures": {
+      "left_hand": "[Exact position: touching face/holding object/resting/in pocket/behind back/not visible]",
+      "right_hand": "[Exact position: touching face/holding object/resting/in pocket/behind back/not visible]",
+      "finger_positions": "[Specific: relaxed/gripping/spread/interlaced/curled/pointing]",
+      "hand_tension": "[Observable: relaxed/tense/natural/posed/rigid]",
+      "interaction": "[What hands are doing: holding phone/touching hair/on hip/crossed/clasped/gesturing]",
+      "naturalness": "[Assessment: organic casual gesture/deliberately posed/caught mid-motion/static formal]"
+    },
+    "body_positioning": {
+      "posture": "[Exact: standing/sitting/leaning/lying]",
+      "angle": "[Relative to camera: facing camera/45 degree turn/profile/back to camera]",
+      "weight_distribution": "[Balance: leaning left/right/centered/shifted]",
+      "shoulders": "[Position: level/tilted/rotated/hunched/back]"
+    }
   },
   "environment": {
-    "background": "[Describe background from REFERENCE in rich detail]"
+    "background": "[Rich description of background from REFERENCE]",
+    "setting_type": "[indoor/outdoor/studio/natural environment - specific location type]",
+    "spatial_depth": "[shallow/medium/deep - describe depth layers: foreground, midground, background elements]",
+    "wall_surface": {
+      "material": "[Exact base: painted drywall/concrete/brick/wood paneling/tile/plaster]",
+      "texture": "[Tactile quality: perfectly smooth/slightly textured/rough/patterned]",
+      "finish": "[Sheen: matte/satin/glossy/flat]",
+      "color": "[Specific with undertones: warm gray/cool blue-gray/off-white/cream]",
+      "features": "[ALL observable details: clean/water stains/streaks/cracks/patches/fixtures/artwork]",
+      "condition": "[State: pristine/aged/weathered/industrial/residential]"
+    },
+    "floor_surface": {
+      "material": "[Exact type: hardwood/tile/carpet/concrete/grass]",
+      "color": "[Specific color]",
+      "pattern": "[If present: solid/checkered/herringbone]"
+    },
+    "objects_catalog": "[List EVERY visible object with position and depth layer: 'monstera plant - left background, wooden shelf - right midground, etc.']"
   },
-  "lighting_and_atmosphere": "[Describe lighting and mood from REFERENCE]",
+  "lighting_and_atmosphere": "[General lighting mood description - kept for backwards compatibility]",
+  "lighting_detailed": {
+    "type": "[Source: natural window light/artificial/mixed/studio/practical lights]",
+    "direction": "[Where from: front/45-degree side/90-degree side/back/top/diffused from above]",
+    "directionality": "[How focused: highly directional (strong shadows)/moderately directional/diffused/omni-directional]",
+    "quality": "[Character: hard light/soft light/dramatic/even/gradient/sculpted]",
+    "intensity": "[Level: bright/moderate/low/moody/high-key/low-key]",
+    "contrast_ratio": "[Shadow-to-highlight: high contrast (dramatic)/medium contrast/low contrast (flat)]",
+    "shadows": {
+      "type": "[Edge quality: harsh defined edges/soft gradual edges/minimal/dramatic/absent]",
+      "density": "[Depth: deep black/gray/transparent/faint]",
+      "placement": "[Where: under subject/on wall/from objects/cast patterns]"
+    },
+    "highlights": {
+      "treatment": "[Style: blown out/preserved/subtle/dramatic/specular]",
+      "placement": "[Where light hits: on face/hair/clothing/background]"
+    },
+    "ambient_fill": "[present/absent - is there secondary fill light reducing shadows?]",
+    "light_temperature": "[Color cast: warm golden/neutral/cool blue]"
+  },
+  "color_profile": {
+    "dominant_colors": [
+      {"color": "[Name]", "hex": "[#hexcode]", "role": "[background/accent/primary subject]"}
+    ],
+    "temperature": "[Overall: warm/cool/neutral]",
+    "saturation": "[Level: highly saturated/moderate/desaturated]",
+    "contrast": "[Visual: high contrast/medium contrast/low contrast/soft]"
+  },
+  "technical_specs": {
+    "style": "[realistic/hyperrealistic/stylized/minimalist]",
+    "texture": "[Image texture: smooth/grainy/sharp/soft/glossy/matte]",
+    "sharpness": "[Focus: tack sharp/slightly soft/deliberately soft/bokeh effect]",
+    "grain": "[Noise: none/film grain/digital noise/intentional grain]",
+    "depth_of_field": "[DOF: shallow (blurred background)/medium/deep (everything sharp) - describe subject isolation]",
+    "perspective": "[Viewpoint: straight on/low angle/high angle/dutch angle/eye level]"
+  },
   "technical_quality": "[ALWAYS include: 'Raw photograph quality, realistic skin texture with visible pores and natural imperfections, sharp focus, natural depth of field, authentic lighting, NO CGI, NO plastic skin, NO artificial smoothing']"
 }
 
-IMPORTANT: Write naturally and specifically, not generically. The result must look like a real photo, not AI-generated.
+IMPORTANT: 
+- Write naturally and hyper-specifically, not generically. Every field must contain meaningful detailed analysis.
+- Use precise technical terminology for lighting, color, and composition.
+- The result must be indistinguishable from a real photograph.
+- For hair and skin: describe natural variation and imperfections - avoid "AI perfect" descriptions.
+- For background: be exhaustive - catalog every visible element with position.
+- For lighting: the shadow and highlight analysis is CRITICAL for maintaining quality across pose variations.
    `;
 
   try {
@@ -185,23 +284,109 @@ export const generateIndustrialImage = async (
     ? `\n\nADDITIONAL REFINEMENTS (apply subtly while maintaining photorealism):\n${customInstructions.trim()}`
     : '';
 
+  // Build enhanced sections from v2 fields (with fallback to v1)
+  const hairSection = payload.subject.hair_detailed
+    ? `HAIR (DETAILED):
+  - Length & Cut: ${payload.subject.hair_detailed.length}, ${payload.subject.hair_detailed.cut}
+  - Texture: ${payload.subject.hair_detailed.texture} (${payload.subject.hair_detailed.texture_quality})
+  - Natural Imperfections: ${payload.subject.hair_detailed.natural_imperfections}
+  - Styling: ${payload.subject.hair_detailed.styling}
+  - Part: ${payload.subject.hair_detailed.part} | Volume: ${payload.subject.hair_detailed.volume}
+  - Details: ${payload.subject.hair_detailed.details}`
+    : `HAIR: ${payload.subject.hair}`;
+
+  const expressionSection = payload.subject.facial_expression
+    ? `FACIAL EXPRESSION:
+  - Mouth: ${payload.subject.facial_expression.mouth} (smile intensity: ${payload.subject.facial_expression.smile_intensity})
+  - Eyes: ${payload.subject.facial_expression.eyes}
+  - Eyebrows: ${payload.subject.facial_expression.eyebrows}
+  - Emotion: ${payload.subject.facial_expression.overall_emotion} (${payload.subject.facial_expression.authenticity})`
+    : '';
+
+  const handsSection = payload.subject.hands_and_gestures
+    ? `HANDS & GESTURES:
+  - Left hand: ${payload.subject.hands_and_gestures.left_hand}
+  - Right hand: ${payload.subject.hands_and_gestures.right_hand}
+  - Fingers: ${payload.subject.hands_and_gestures.finger_positions}
+  - Tension: ${payload.subject.hands_and_gestures.hand_tension}
+  - Interaction: ${payload.subject.hands_and_gestures.interaction}
+  - Naturalness: ${payload.subject.hands_and_gestures.naturalness}`
+    : '';
+
+  const bodySection = payload.subject.body_positioning
+    ? `BODY POSITION:
+  - Posture: ${payload.subject.body_positioning.posture}
+  - Angle: ${payload.subject.body_positioning.angle}
+  - Weight: ${payload.subject.body_positioning.weight_distribution}
+  - Shoulders: ${payload.subject.body_positioning.shoulders}`
+    : '';
+
+  const lightingSection = payload.lighting_detailed
+    ? `LIGHTING (DETAILED):
+  - Type: ${payload.lighting_detailed.type} | Direction: ${payload.lighting_detailed.direction}
+  - Directionality: ${payload.lighting_detailed.directionality}
+  - Quality: ${payload.lighting_detailed.quality} | Intensity: ${payload.lighting_detailed.intensity}
+  - Contrast Ratio: ${payload.lighting_detailed.contrast_ratio}
+  - Shadows: ${payload.lighting_detailed.shadows.type}, density: ${payload.lighting_detailed.shadows.density}, placement: ${payload.lighting_detailed.shadows.placement}
+  - Highlights: ${payload.lighting_detailed.highlights.treatment}, on: ${payload.lighting_detailed.highlights.placement}
+  - Ambient Fill: ${payload.lighting_detailed.ambient_fill}
+  - Light Temperature: ${payload.lighting_detailed.light_temperature}`
+    : `LIGHTING: ${payload.lighting_and_atmosphere}`;
+
+  const colorSection = payload.color_profile
+    ? `COLOR PROFILE:
+  - Dominant Colors: ${payload.color_profile.dominant_colors.map(c => `${c.color} (${c.hex}, ${c.role})`).join(', ')}
+  - Temperature: ${payload.color_profile.temperature}
+  - Saturation: ${payload.color_profile.saturation}
+  - Contrast: ${payload.color_profile.contrast}`
+    : '';
+
+  const backgroundSection = payload.environment.wall_surface
+    ? `BACKGROUND: ${payload.environment.background}
+ENVIRONMENT DETAILS:
+  - Setting: ${payload.environment.setting_type || 'unspecified'}
+  - Spatial Depth: ${payload.environment.spatial_depth || 'unspecified'}
+  - Wall: ${payload.environment.wall_surface.material}, ${payload.environment.wall_surface.texture}, ${payload.environment.wall_surface.finish} finish, color: ${payload.environment.wall_surface.color}, condition: ${payload.environment.wall_surface.condition}${payload.environment.wall_surface.features !== 'clean' ? `, features: ${payload.environment.wall_surface.features}` : ''}
+  ${payload.environment.floor_surface ? `- Floor: ${payload.environment.floor_surface.material}, ${payload.environment.floor_surface.color}${payload.environment.floor_surface.pattern ? `, ${payload.environment.floor_surface.pattern}` : ''}` : ''}
+  ${payload.environment.objects_catalog ? `- Objects: ${payload.environment.objects_catalog}` : ''}`
+    : `BACKGROUND: ${payload.environment.background}`;
+
+  const techSpecsSection = payload.technical_specs
+    ? `TECHNICAL SPECS:
+  - Style: ${payload.technical_specs.style}
+  - Texture: ${payload.technical_specs.texture} | Sharpness: ${payload.technical_specs.sharpness}
+  - Grain: ${payload.technical_specs.grain}
+  - Depth of Field: ${payload.technical_specs.depth_of_field}
+  - Perspective: ${payload.technical_specs.perspective}`
+    : '';
+
   const imagePrompt = `
-Generate a photorealistic image with these EXACT specifications:
+Generate a photorealistic image with these EXACT specifications. This must look like a real photograph taken with an iPhone or high-end camera.
 
 SUBJECT: ${payload.subject.description}
-HAIR: ${payload.subject.hair}
+${hairSection}
 CLOTHING: ${payload.subject.clothing}
 POSE & EXPRESSION: ${payload.subject.pose_and_expression}
+${expressionSection ? `${expressionSection}` : ''}
 ${payload.subject.accessories ? `ACCESSORIES: ${payload.subject.accessories}` : ''}
+${handsSection ? `${handsSection}` : ''}
+${bodySection ? `${bodySection}` : ''}
 
 SCENE: ${payload.main_composition}
-BACKGROUND: ${payload.environment.background}
-LIGHTING: ${payload.lighting_and_atmosphere}
+${backgroundSection}
+${lightingSection}
+${colorSection ? `${colorSection}` : ''}
+${techSpecsSection ? `${techSpecsSection}` : ''}
 
 QUALITY: ${payload.technical_quality}${customSection}
 
-CRITICAL: This must look like a real photograph, NOT CGI. Realistic skin with visible pores, natural lighting, authentic moment.
-The person in this image MUST have the EXACT face and identity shown in the reference image provided.
+CRITICAL REQUIREMENTS:
+1. This must look like a REAL photograph, NOT CGI. Realistic skin with visible pores, natural imperfections, authentic lighting.
+2. The person MUST have the EXACT face and identity shown in the reference image provided.
+3. Maintain the exact color temperature, saturation, and contrast described above.
+4. Reproduce the lighting direction, shadow quality, and highlight placement precisely.
+5. Hair must show natural variation - flyaways, texture inconsistencies, not "AI perfect" smoothness.
+6. Hands must look natural with correct finger anatomy and relaxed positioning.
   `.trim();
 
   // Prepare base model image for identity reference
@@ -325,36 +510,110 @@ export const generatePoseVariation = async (
     ? "a natural, slightly different pose and expression (as if taken moments later in the same photoshoot)"
     : newPoseDescription;
 
-  // Build the pose variation prompt - emphasizes keeping EVERYTHING the same except pose
+  // Build enhanced sections for pose variation (re-inject all quality-critical details)
+  const pv_hairSection = originalPayload.subject.hair_detailed
+    ? `  - Hair Length & Cut: ${originalPayload.subject.hair_detailed.length}, ${originalPayload.subject.hair_detailed.cut}
+  - Hair Texture: ${originalPayload.subject.hair_detailed.texture} (${originalPayload.subject.hair_detailed.texture_quality})
+  - Hair Imperfections: ${originalPayload.subject.hair_detailed.natural_imperfections}
+  - Hair Styling: ${originalPayload.subject.hair_detailed.styling}
+  - Hair Part: ${originalPayload.subject.hair_detailed.part} | Volume: ${originalPayload.subject.hair_detailed.volume}`
+    : `  - Hair: ${originalPayload.subject.hair}`;
+
+  const pv_lightingSection = originalPayload.lighting_detailed
+    ? `LIGHTING (MUST REPLICATE EXACTLY):
+  - Type: ${originalPayload.lighting_detailed.type}
+  - Direction: ${originalPayload.lighting_detailed.direction}
+  - Directionality: ${originalPayload.lighting_detailed.directionality}
+  - Quality: ${originalPayload.lighting_detailed.quality} | Intensity: ${originalPayload.lighting_detailed.intensity}
+  - Contrast Ratio: ${originalPayload.lighting_detailed.contrast_ratio}
+  - Shadows: ${originalPayload.lighting_detailed.shadows.type}, density: ${originalPayload.lighting_detailed.shadows.density}, placement: ${originalPayload.lighting_detailed.shadows.placement}
+  - Highlights: ${originalPayload.lighting_detailed.highlights.treatment} on ${originalPayload.lighting_detailed.highlights.placement}
+  - Ambient Fill: ${originalPayload.lighting_detailed.ambient_fill}
+  - Light Temperature: ${originalPayload.lighting_detailed.light_temperature}
+  NOTE: Shadows will naturally shift with the new pose, but maintain the SAME light source position, quality, temperature, and contrast ratio.`
+    : `LIGHTING: ${originalPayload.lighting_and_atmosphere}`;
+
+  const pv_colorSection = originalPayload.color_profile
+    ? `COLOR PROFILE (MUST MATCH EXACTLY):
+  - Dominant Colors: ${originalPayload.color_profile.dominant_colors.map(c => `${c.color} (${c.hex}, ${c.role})`).join(', ')}
+  - Temperature: ${originalPayload.color_profile.temperature}
+  - Saturation: ${originalPayload.color_profile.saturation}
+  - Contrast: ${originalPayload.color_profile.contrast}
+  NOTE: The color grading, temperature, and saturation MUST be identical to the original.`
+    : '';
+
+  const pv_backgroundSection = originalPayload.environment.wall_surface
+    ? `BACKGROUND (MUST BE IDENTICAL):
+  - Setting: ${originalPayload.environment.setting_type || originalPayload.environment.background}
+  - Spatial Depth: ${originalPayload.environment.spatial_depth || 'as in reference'}
+  - Wall: ${originalPayload.environment.wall_surface.material}, ${originalPayload.environment.wall_surface.texture}, ${originalPayload.environment.wall_surface.finish} finish, color: ${originalPayload.environment.wall_surface.color}${originalPayload.environment.wall_surface.features !== 'clean' ? `, features: ${originalPayload.environment.wall_surface.features}` : ''}
+  ${originalPayload.environment.floor_surface ? `- Floor: ${originalPayload.environment.floor_surface.material}, ${originalPayload.environment.floor_surface.color}` : ''}
+  ${originalPayload.environment.objects_catalog ? `- Objects: ${originalPayload.environment.objects_catalog}` : ''}
+  - Full description: ${originalPayload.environment.background}`
+    : `BACKGROUND (MUST BE IDENTICAL): ${originalPayload.environment.background}`;
+
+  const pv_techSpecs = originalPayload.technical_specs
+    ? `TECHNICAL SPECS (MUST MATCH):
+  - Style: ${originalPayload.technical_specs.style}
+  - Texture: ${originalPayload.technical_specs.texture} | Sharpness: ${originalPayload.technical_specs.sharpness}
+  - Grain: ${originalPayload.technical_specs.grain}
+  - Depth of Field: ${originalPayload.technical_specs.depth_of_field}
+  - Perspective: ${originalPayload.technical_specs.perspective}`
+    : '';
+
+  // Build the pose variation prompt - comprehensive quality preservation
   const imagePrompt = `
-POSE VARIATION REQUEST - Generate the SAME photo with a DIFFERENT POSE.
+POSE VARIATION REQUEST - Generate the SAME photo with a DIFFERENT POSE while maintaining IDENTICAL quality.
 
-REFERENCE IMAGE (provided): This is the original generated image. You MUST maintain:
-- EXACT same background, setting, and environment
-- EXACT same lighting, shadows, and atmosphere
-- EXACT same clothing and accessories
-- EXACT same person (face, hair, skin tone) - use the model reference images
-- EXACT same camera angle and framing
-- EXACT same overall mood and style
+You are looking at TWO types of reference images:
+1. MODEL REFERENCE (face/identity images): Use these to maintain the EXACT same person identity
+2. ORIGINAL GENERATED IMAGE (last image): This is the photo we want to recreate with a different pose
 
-ONLY CHANGE: The person's pose and expression to: ${poseInstruction}
+WHAT MUST STAY IDENTICAL (copy from the original image):
+- Background, setting, environment, every object in its exact position
+- Clothing, accessories, fabric texture and fit
+- The person's face, skin tone, hair color and style
+- Camera angle, framing, and perspective
+- Overall mood, atmosphere, and image quality
 
-ORIGINAL SCENE DETAILS (for reference):
-- Scene: ${originalPayload.main_composition}
-- Background: ${originalPayload.environment.background}
-- Lighting: ${originalPayload.lighting_and_atmosphere}
-- Clothing: ${originalPayload.subject.clothing}
-${originalPayload.subject.accessories ? `- Accessories: ${originalPayload.subject.accessories}` : ''}
+WHAT CHANGES: The person's pose and expression to: ${poseInstruction}
 
-SUBJECT IDENTITY (from model reference images):
-- Face: ${originalPayload.subject.description}
-- Hair: ${originalPayload.subject.hair}
+═══════════════════════════════════════
+SUBJECT IDENTITY (from model references):
+  - Face: ${originalPayload.subject.description}
+${pv_hairSection}
+  - Clothing: ${originalPayload.subject.clothing}
+  ${originalPayload.subject.accessories ? `- Accessories: ${originalPayload.subject.accessories}` : ''}
 
-CRITICAL REQUIREMENTS:
-1. This must look like the NEXT FRAME in the same photoshoot - same everything except the pose
-2. Maintain photorealistic quality: ${originalPayload.technical_quality}
-3. The result must be indistinguishable from a real photograph
-4. NO changes to background, lighting, clothing, or environment - ONLY the pose/expression changes
+NEW POSE/EXPRESSION:
+  - ${poseInstruction}
+  ${isAutoPose ? '- Hands should be in a natural, relaxed position appropriate for the new pose' : ''}
+
+═══════════════════════════════════════
+SCENE: ${originalPayload.main_composition}
+
+${pv_backgroundSection}
+
+${pv_lightingSection}
+
+${pv_colorSection ? `${pv_colorSection}` : ''}
+
+${pv_techSpecs ? `${pv_techSpecs}` : ''}
+
+═══════════════════════════════════════
+QUALITY REQUIREMENTS:
+${originalPayload.technical_quality}
+
+CRITICAL RULES FOR QUALITY PRESERVATION:
+1. This must look like the NEXT FRAME in the same photoshoot — same everything except the pose.
+2. The image must be indistinguishable from a real photograph taken with an iPhone or high-end camera.
+3. SKIN: Realistic texture with visible pores, natural imperfections, warm undertones — NO plastic, NO airbrushed, NO CGI look.
+4. HAIR: Must show natural variation — flyaways, texture inconsistencies, movement. NOT "AI smooth" perfect hair.
+5. HANDS: Must have correct anatomy with natural finger positions. Relaxed, organic placement — NOT stiff or malformed.
+6. LIGHTING CONSISTENCY: The light source position, quality, temperature, and contrast ratio must remain IDENTICAL. Only the shadows on the subject shift naturally with the new pose.
+7. COLOR CONSISTENCY: The color temperature, saturation level, and overall color grading must be EXACTLY the same as the original.
+8. BACKGROUND: Must be pixel-level similar — same wall texture, same objects, same spatial depth.
+9. DO NOT degrade image quality, sharpness, or detail level from the original.
   `.trim();
 
   try {
