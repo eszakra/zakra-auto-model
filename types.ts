@@ -143,6 +143,7 @@ export interface QueueItem {
   status: 'PENDING' | 'ANALYZING' | 'ANALYZED' | 'GENERATING' | 'COMPLETED' | 'ERROR';
   payload?: any;
   resultImage?: string;
+  resultUrl?: string; // Public Supabase URL (used for ZIP download instead of base64)
   error?: string;
 }
 

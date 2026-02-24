@@ -494,7 +494,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         status: 'success'
       });
 
-      setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'COMPLETED', resultImage: resultBase64 } : q));
+      setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'COMPLETED', resultImage: resultBase64, resultUrl: publicUrl } : q));
 
     } catch (e: any) {
       console.error(e);
@@ -516,36 +516,57 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     });
   };
 
+  const [zipProgress, setZipProgress] = useState('');
+
   const handleDownloadBatchZip = async () => {
-    const zip = new JSZip();
-    const completedItems = queue.filter(q => q.status === 'COMPLETED' && q.resultImage);
+    const completedItems = queue.filter(q => q.status === 'COMPLETED' && (q.resultUrl || q.resultImage));
     if (completedItems.length === 0) {
       alert("No completed images to download");
       return;
     }
-    
+
     try {
-      completedItems.forEach((item, index) => {
-        let imgData = item.resultImage!;
-        
-        // Check if it's a data URL (base64 with prefix)
-        if (imgData.includes(',')) {
-          imgData = imgData.split(',')[1];
-        }
-        
-        // Check if it's already base64 without prefix
-        if (!imgData) {
-          console.error(`Empty image data for item ${index}`);
-          return;
-        }
-        
-        zip.file(`reed_batch_${index + 1}.png`, imgData, { base64: true });
+      setZipProgress(`Preparing 0/${completedItems.length}...`);
+      const zip = new JSZip();
+      const BATCH_SIZE = 5; // Process 5 images at a time to avoid memory issues
+
+      for (let i = 0; i < completedItems.length; i += BATCH_SIZE) {
+        const batch = completedItems.slice(i, i + BATCH_SIZE);
+
+        await Promise.all(batch.map(async (item, batchIdx) => {
+          const idx = i + batchIdx;
+          try {
+            // Prefer URL download (much lighter on memory) over base64
+            if (item.resultUrl) {
+              const response = await fetch(item.resultUrl);
+              if (!response.ok) throw new Error(`HTTP ${response.status}`);
+              const blob = await response.blob();
+              zip.file(`reed_batch_${idx + 1}.png`, blob);
+            } else if (item.resultImage) {
+              // Fallback: use base64 from memory
+              let imgData = item.resultImage;
+              if (imgData.includes(',')) imgData = imgData.split(',')[1];
+              if (imgData) zip.file(`reed_batch_${idx + 1}.png`, imgData, { base64: true });
+            }
+          } catch (err) {
+            console.error(`Failed to add image ${idx + 1} to ZIP:`, err);
+          }
+        }));
+
+        setZipProgress(`Preparing ${Math.min(i + BATCH_SIZE, completedItems.length)}/${completedItems.length}...`);
+      }
+
+      setZipProgress('Compressing ZIP...');
+      const content = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 1 } // Fast compression, less memory
       });
-      
-      const content = await zip.generateAsync({ type: 'blob' });
       saveAs(content, `reed_batch_${Date.now()}.zip`);
+      setZipProgress('');
     } catch (error) {
       console.error('Error creating ZIP:', error);
+      setZipProgress('');
       alert('Error creating ZIP file. Please try again.');
     }
   };
@@ -1230,10 +1251,14 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
             {isBatchMode ? (
               <button
                 onClick={handleDownloadBatchZip}
-                disabled={!queue.some(q => q.status === 'COMPLETED')}
-                className="mb-3 w-full py-2 text-sm font-bold tracking-wide uppercase border-2 border-blue-500 text-blue-600 rounded-lg hover:bg-blue-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!queue.some(q => q.status === 'COMPLETED') || !!zipProgress}
+                className="mb-3 w-full py-2 text-sm font-bold tracking-wide uppercase border-2 border-blue-500 text-blue-600 rounded-lg hover:bg-blue-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Download Batch ZIP
+                {zipProgress ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> {zipProgress}</>
+                ) : (
+                  `Download Batch ZIP (${queue.filter(q => q.status === 'COMPLETED').length} images)`
+                )}
               </button>
             ) : (
               generatedImage && (
