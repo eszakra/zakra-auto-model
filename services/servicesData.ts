@@ -5,6 +5,9 @@ export interface ServiceItem {
   description: string;
   price: string;
   priceValue: number;
+  originalPrice?: string;
+  originalPriceValue?: number;
+  discountPercent?: string;
   features: string[];
   popular: boolean;
   category: 'workflow' | 'lora' | 'package';
@@ -16,8 +19,11 @@ export const WORKFLOWS: ServiceItem[] = [
     slug: "inpainting-pro",
     name: "Inpainting Pro",
     description: "SDXL inpainting workflow with intelligent masking. Edit specific areas while keeping the rest of the image consistent.",
-    price: "$397",
-    priceValue: 397,
+    price: "$197",
+    priceValue: 197,
+    originalPrice: "$397",
+    originalPriceValue: 397,
+    discountPercent: "50% OFF",
     features: ["Automatic masking", "Consistent edits", "HD export", "Setup guide included"],
     popular: false,
     category: "workflow"
@@ -27,8 +33,11 @@ export const WORKFLOWS: ServiceItem[] = [
     slug: "controlnet-poses",
     name: "ControlNet Poses",
     description: "SDXL workflow with ControlNet for exact pose replication. Same face, same style, any pose you need.",
-    price: "$697",
-    priceValue: 697,
+    price: "$297",
+    priceValue: 297,
+    originalPrice: "$697",
+    originalPriceValue: 697,
+    discountPercent: "57% OFF",
     features: ["Exact pose control", "Face consistency", "Multiple angles", "Priority support"],
     popular: true,
     category: "workflow"
@@ -38,8 +47,11 @@ export const WORKFLOWS: ServiceItem[] = [
     slug: "elite-bundle",
     name: "Elite Bundle",
     description: "Both workflows + our optimized prompt library. The complete SDXL toolkit for professional content creation.",
-    price: "$997",
-    priceValue: 997,
+    price: "$497",
+    priceValue: 497,
+    originalPrice: "$997",
+    originalPriceValue: 997,
+    discountPercent: "50% OFF",
     features: ["Both workflows", "Prompt library", "Custom presets", "1:1 VIP support"],
     popular: false,
     category: "workflow"

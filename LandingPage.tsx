@@ -606,6 +606,15 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
 
         {/* Workflows */}
         <div className="mb-20">
+          {/* Launch Sale Banner */}
+          <div className="mb-6 py-2 px-4 bg-gradient-to-r from-[#A11008]/10 via-[#A11008]/5 to-transparent border-l-2 border-[#A11008] rounded-r-lg">
+            <p className="text-sm font-medium text-[var(--text-primary)] flex items-center gap-2">
+              <span className="inline-block w-2 h-2 bg-[#A11008] rounded-full animate-pulse"></span>
+              <span className="text-[#A11008] font-semibold">Launch Sale</span>
+              <span className="text-[var(--text-secondary)]">—</span>
+              <span>Limited time pricing on all SDXL workflows</span>
+            </p>
+          </div>
           <div className="flex flex-wrap items-center gap-4 mb-8">
             <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
               <Layers className="w-6 h-6 text-reed-red" />
@@ -626,9 +635,19 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
                     Most Popular
                   </div>
                 )}
+                {workflow.discountPercent && (
+                  <div className="absolute -top-3 right-6 px-2.5 py-1 bg-[#A11008]/10 border border-[#A11008]/30 text-[#A11008] text-xs font-bold rounded-full">
+                    {workflow.discountPercent}
+                  </div>
+                )}
                 <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{workflow.name}</h4>
                 <p className="text-[var(--text-secondary)] text-sm mb-4 flex-grow">{workflow.description}</p>
-                <div className="text-3xl font-bold text-[var(--text-primary)] mb-6">{workflow.price}</div>
+                <div className="mb-6">
+                  {workflow.originalPrice && (
+                    <div className="text-lg text-[var(--text-secondary)]/50 line-through mb-1">{workflow.originalPrice}</div>
+                  )}
+                  <div className="text-3xl font-bold text-[#A11008]">{workflow.price}</div>
+                </div>
                 <ul className="space-y-3 mb-6">
                   {workflow.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
