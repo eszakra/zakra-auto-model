@@ -23,8 +23,8 @@ exports.handler = async (event) => {
     }
 
     // Validate amount matches known service prices (anti-tampering)
-    // Updated: SDXL Workflows promo prices: $197, $297, $497 (was $397, $697, $997)
-    const validPrices = [29, 47, 59, 99, 147, 197, 199, 297, 497, 597];
+    // Updated: SDXL Workflows promo: $197, $297, $497 | LoRAs promo: $19, $67
+    const validPrices = [19, 29, 59, 67, 99, 197, 199, 297, 497, 597];
     if (!validPrices.includes(body.amount)) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Invalid price' }) };
     }

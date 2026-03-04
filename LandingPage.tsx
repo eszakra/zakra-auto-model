@@ -606,15 +606,6 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
 
         {/* Workflows */}
         <div className="mb-20">
-          {/* Launch Sale Banner */}
-          <div className="mb-6 py-2 px-4 bg-gradient-to-r from-[#A11008]/10 via-[#A11008]/5 to-transparent border-l-2 border-[#A11008] rounded-r-lg">
-            <p className="text-sm font-medium text-[var(--text-primary)] flex items-center gap-2">
-              <span className="inline-block w-2 h-2 bg-[#A11008] rounded-full animate-pulse"></span>
-              <span className="text-[#A11008] font-semibold">Launch Sale</span>
-              <span className="text-[var(--text-secondary)]">—</span>
-              <span>Limited time pricing on all SDXL workflows</span>
-            </p>
-          </div>
           <div className="flex flex-wrap items-center gap-4 mb-8">
             <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
               <Layers className="w-6 h-6 text-reed-red" />
@@ -624,10 +615,15 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
               <Cpu className="w-3.5 h-3.5" />
               ComfyUI Ready
             </span>
+            {/* Launch Sale Badge */}
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-reed-red/10 border border-reed-red/30 rounded-full text-xs font-semibold text-reed-red">
+              <span className="w-1.5 h-1.5 bg-reed-red rounded-full animate-pulse"></span>
+              Launch Sale
+            </span>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {WORKFLOWS.map((workflow) => (
-              <div key={workflow.id} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
+              <div key={workflow.id} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col overflow-hidden ${
                 workflow.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
               }`}>
                 {workflow.popular && (
@@ -635,19 +631,26 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
                     Most Popular
                   </div>
                 )}
-                {workflow.discountPercent && (
-                  <div className="absolute -top-3 right-6 px-2.5 py-1 bg-[#A11008]/10 border border-[#A11008]/30 text-[#A11008] text-xs font-bold rounded-full">
-                    {workflow.discountPercent}
-                  </div>
-                )}
                 <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{workflow.name}</h4>
                 <p className="text-[var(--text-secondary)] text-sm mb-4 flex-grow">{workflow.description}</p>
+                
+                {/* Pricing with discount */}
                 <div className="mb-6">
-                  {workflow.originalPrice && (
-                    <div className="text-lg text-[var(--text-secondary)]/50 line-through mb-1">{workflow.originalPrice}</div>
+                  {workflow.originalPrice ? (
+                    <>
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="text-base text-[var(--text-secondary)] line-through opacity-60">{workflow.originalPrice}</span>
+                        <span className="px-2 py-0.5 bg-reed-red text-white text-xs font-bold rounded">
+                          SAVE {workflow.discountPercent?.replace(' OFF', '')}
+                        </span>
+                      </div>
+                      <div className="text-3xl font-bold text-[var(--text-primary)]">{workflow.price}</div>
+                    </>
+                  ) : (
+                    <div className="text-3xl font-bold text-[var(--text-primary)]">{workflow.price}</div>
                   )}
-                  <div className="text-3xl font-bold text-[#A11008]">{workflow.price}</div>
                 </div>
+
                 <ul className="space-y-3 mb-6">
                   {workflow.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
@@ -669,16 +672,40 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
 
         {/* LoRAs */}
         <div className="mb-20">
-          <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] mb-8 flex items-center gap-3">
-            <Cpu className="w-6 h-6 text-reed-red" />
-            Custom SDXL LoRAs
-          </h3>
+          <div className="flex flex-wrap items-center gap-4 mb-8">
+            <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
+              <Cpu className="w-6 h-6 text-reed-red" />
+              Custom SDXL LoRAs
+            </h3>
+            {/* Launch Sale Badge */}
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-reed-red/10 border border-reed-red/30 rounded-full text-xs font-semibold text-reed-red">
+              <span className="w-1.5 h-1.5 bg-reed-red rounded-full animate-pulse"></span>
+              Launch Sale
+            </span>
+          </div>
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
             {LORAS.map((lora) => (
               <div key={lora.id} className="bg-[var(--card-bg)] rounded-2xl p-6 border-2 border-[var(--card-border)] hover:border-reed-red transition-all hover:shadow-xl flex flex-col">
                 <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{lora.name}</h4>
                 <p className="text-[var(--text-secondary)] text-sm mb-4 flex-grow">{lora.description}</p>
-                <div className="text-3xl font-bold text-[var(--text-primary)] mb-6">{lora.price}</div>
+                
+                {/* Pricing with discount */}
+                <div className="mb-6">
+                  {lora.originalPrice ? (
+                    <>
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="text-base text-[var(--text-secondary)] line-through opacity-60">{lora.originalPrice}</span>
+                        <span className="px-2 py-0.5 bg-reed-red text-white text-xs font-bold rounded">
+                          SAVE {lora.discountPercent?.replace(' OFF', '')}
+                        </span>
+                      </div>
+                      <div className="text-3xl font-bold text-[var(--text-primary)]">{lora.price}</div>
+                    </>
+                  ) : (
+                    <div className="text-3xl font-bold text-[var(--text-primary)]">{lora.price}</div>
+                  )}
+                </div>
+
                 <ul className="space-y-3 mb-6">
                   {lora.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
