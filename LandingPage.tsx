@@ -653,9 +653,9 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
               Launch Sale
             </span>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-6 pt-4">
             {WORKFLOWS.map((workflow) => (
-              <div key={workflow.id} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col overflow-hidden ${
+              <div key={workflow.id} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
                 workflow.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
               }`}>
                 {workflow.popular && (
@@ -763,7 +763,7 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
             <Sparkles className="w-6 h-6 text-reed-red" />
             Complete Custom Packages
           </h3>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-6 pt-4">
             {PACKAGES.map((pkg) => (
               <div key={pkg.id} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
                 pkg.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
@@ -954,7 +954,7 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
         </div>
 
         {/* Pricing Grid - All 5 in one row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 items-start pt-4">
           {plans.map((plan) => (
             <div key={plan.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col ${
               plan.popular ? 'border-reed-red xl:scale-[1.02] xl:z-10 shadow-lg shadow-reed-red/10' : 'border-[var(--card-border)]'
