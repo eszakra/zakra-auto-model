@@ -73,6 +73,12 @@ ${modelImageRule}
 ${refImageRule}
 - The goal is to generate an image of the BASE MODEL person IN the REFERENCE scene.
 
+CRITICAL IDENTITY PRESERVATION RULES:
+1. FACE ACCESSORIES FROM MODEL: If the BASE MODEL is wearing ANY face accessories (face mask, surgical mask, bandana covering mouth, glasses, sunglasses, eye patch, headband, etc.), these MUST be included in the output. The model's face accessories are PART OF THEIR IDENTITY for this generation.
+2. NO TATTOOS FROM REFERENCE: The REFERENCE image may have tattoos, but these must NEVER appear on the BASE MODEL person. The BASE MODEL's skin should remain exactly as shown in their reference images (clean skin unless the BASE MODEL specifically has tattoos).
+3. NO BODY MODIFICATIONS FROM REFERENCE: Piercings, scars, birthmarks, or any body modifications visible on the REFERENCE person must NOT transfer to the BASE MODEL.
+4. BODY TYPE FROM MODEL: The BASE MODEL's body type, skin tone, and physical characteristics must be preserved exactly.
+
 CRITICAL QUALITY REQUIREMENT:
 The final image MUST look like a real, candid photograph taken with an iPhone or high-end smartphone. NEVER describe anything that would make it look:
 - CGI or computer-generated
@@ -98,9 +104,11 @@ OUTPUT FORMAT (JSON ONLY, NO MARKDOWN, NO BACKTICKS):
   "subject": {
     "description": "[FROM BASE MODEL ONLY: eye color/shape, skin tone with undertones, nose shape, lip shape, jawline, age estimate, ethnicity. Be hyper-specific: 'striking light green/hazel almond-shaped eyes, defined dark arched eyebrows, warm olive skin with visible pores and natural texture']",
     "hair": "[FROM BASE MODEL: color with undertones, texture, length, style. e.g., 'Extra long sleek straight dark chocolate brown hair (deep chestnut, warm tones) with precise middle part']",
+    "face_accessories": "[FROM BASE MODEL: face mask/surgical mask/bandana/glasses/sunglasses/eye patch or 'none'. CRITICAL: If model wears a mask, describe it exactly: color, type, coverage]",
     "clothing": "[FROM REFERENCE: detailed clothing description including fabric type, fit, color, condition]",
     "pose_and_expression": "[FROM REFERENCE: exact body pose AND facial expression combined]",
-    "accessories": "[FROM REFERENCE: any accessories visible, or 'none']",
+    "body_accessories": "[FROM REFERENCE: jewelry, watches, bags, hats (non-face), or 'none']",
+    "skin_notes": "[FROM BASE MODEL: note if skin is clean/clear, any visible tattoos ON THE MODEL, birthmarks. IMPORTANT: Do NOT include tattoos from REFERENCE - only from BASE MODEL]",
     "hair_detailed": {
       "length": "[Exact length using body reference: pixie/short/chin-length/shoulder-length/mid-back/long/very long]",
       "cut": "[Specific style name: blunt bob/layered/shaggy/undercut/fade/tapered/disconnected]",
@@ -200,6 +208,11 @@ IMPORTANT:
 - For hair and skin: describe natural variation and imperfections - avoid "AI perfect" descriptions.
 - For background: be exhaustive - catalog every visible element with position.
 - For lighting: the shadow and highlight analysis is CRITICAL for maintaining quality across pose variations.
+
+CRITICAL REMINDERS:
+- FACE ACCESSORIES (masks, glasses, etc.): Extract from BASE MODEL, NOT from reference. If the model wears a black face mask, the output MUST have the black face mask.
+- TATTOOS: NEVER copy tattoos from the REFERENCE image to the output. The BASE MODEL's skin should remain as shown in their photos (typically clean/clear unless they specifically have tattoos).
+- The output person should look like the BASE MODEL dressed in the REFERENCE's clothing and in the REFERENCE's scene - but with the MODEL's face, body, skin, and any face accessories they wear.
    `;
 
   try {
@@ -360,14 +373,32 @@ ENVIRONMENT DETAILS:
   - Perspective: ${payload.technical_specs.perspective}`
     : '';
 
+  // Build face accessories section (masks, glasses from MODEL)
+  const faceAccessoriesSection = payload.subject.face_accessories && payload.subject.face_accessories !== 'none'
+    ? `FACE ACCESSORIES (MUST INCLUDE): ${payload.subject.face_accessories}`
+    : '';
+
+  // Build body accessories section (jewelry, watches from REFERENCE)
+  const bodyAccessoriesSection = payload.subject.body_accessories && payload.subject.body_accessories !== 'none'
+    ? `BODY ACCESSORIES: ${payload.subject.body_accessories}`
+    : '';
+
+  // Build skin notes section (clean skin, no reference tattoos)
+  const skinNotesSection = payload.subject.skin_notes
+    ? `SKIN: ${payload.subject.skin_notes}`
+    : 'SKIN: Clean, clear skin without tattoos (unless specifically noted above)';
+
   const imagePrompt = `
 Generate a photorealistic image with these EXACT specifications. This must look like a real photograph taken with an iPhone or high-end camera.
 
 SUBJECT: ${payload.subject.description}
 ${hairSection}
+${faceAccessoriesSection ? `${faceAccessoriesSection}` : ''}
+${skinNotesSection}
 CLOTHING: ${payload.subject.clothing}
 POSE & EXPRESSION: ${payload.subject.pose_and_expression}
 ${expressionSection ? `${expressionSection}` : ''}
+${bodyAccessoriesSection ? `${bodyAccessoriesSection}` : ''}
 ${payload.subject.accessories ? `ACCESSORIES: ${payload.subject.accessories}` : ''}
 ${handsSection ? `${handsSection}` : ''}
 ${bodySection ? `${bodySection}` : ''}
@@ -387,6 +418,11 @@ CRITICAL REQUIREMENTS:
 4. Reproduce the lighting direction, shadow quality, and highlight placement precisely.
 5. Hair must show natural variation - flyaways, texture inconsistencies, not "AI perfect" smoothness.
 6. Hands must look natural with correct finger anatomy and relaxed positioning.
+
+IDENTITY PRESERVATION (CRITICAL):
+7. FACE ACCESSORIES: If the model wears a face mask, glasses, or any face covering, it MUST appear in the output exactly as described above.
+8. NO TATTOOS: The output person must NOT have any tattoos unless the BASE MODEL specifically has tattoos. Do NOT copy tattoos from reference poses.
+9. CLEAN SKIN: The model's skin should match their reference photos - typically clean and clear without tattoos or body modifications from the pose reference.
   `.trim();
 
   // Prepare base model image for identity reference
@@ -582,7 +618,10 @@ WHAT CHANGES: The person's pose and expression to: ${poseInstruction}
 SUBJECT IDENTITY (from model references):
   - Face: ${originalPayload.subject.description}
 ${pv_hairSection}
+  ${originalPayload.subject.face_accessories && originalPayload.subject.face_accessories !== 'none' ? `- FACE ACCESSORIES (MUST INCLUDE): ${originalPayload.subject.face_accessories}` : ''}
+  - Skin: ${originalPayload.subject.skin_notes || 'Clean, clear skin without tattoos'}
   - Clothing: ${originalPayload.subject.clothing}
+  ${originalPayload.subject.body_accessories && originalPayload.subject.body_accessories !== 'none' ? `- Body Accessories: ${originalPayload.subject.body_accessories}` : ''}
   ${originalPayload.subject.accessories ? `- Accessories: ${originalPayload.subject.accessories}` : ''}
 
 NEW POSE/EXPRESSION:
@@ -614,6 +653,11 @@ CRITICAL RULES FOR QUALITY PRESERVATION:
 7. COLOR CONSISTENCY: The color temperature, saturation level, and overall color grading must be EXACTLY the same as the original.
 8. BACKGROUND: Must be pixel-level similar — same wall texture, same objects, same spatial depth.
 9. DO NOT degrade image quality, sharpness, or detail level from the original.
+
+IDENTITY PRESERVATION (CRITICAL):
+10. FACE ACCESSORIES: If the model wears a face mask, glasses, or any face covering, it MUST appear in the output exactly as described.
+11. NO TATTOOS: The output person must NOT have any tattoos unless the BASE MODEL specifically has tattoos. Never add tattoos from reference images.
+12. CLEAN SKIN: The model's skin should remain clean and clear as in their reference photos.
   `.trim();
 
   try {

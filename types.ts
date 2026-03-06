@@ -24,9 +24,12 @@ export interface ZakraPayload {
   subject: {
     description: string;
     hair: string;
+    face_accessories?: string;  // Face mask, glasses, sunglasses FROM MODEL
     clothing: string;
     pose_and_expression: string;
-    accessories?: string;
+    accessories?: string;       // Legacy field for backwards compatibility
+    body_accessories?: string;  // Jewelry, watches, bags FROM REFERENCE
+    skin_notes?: string;        // Clean skin, tattoos only from MODEL (not reference)
     // --- Enhanced fields (v2) ---
     hair_detailed?: {
       length: string;        // "pixie/short/chin-length/shoulder-length/mid-back/long"
