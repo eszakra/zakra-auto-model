@@ -396,9 +396,10 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    e.target.value = '';
 
+    // Copy files array BEFORE clearing the input — clearing early can make files inaccessible
     const fileArray = Array.from(files) as File[];
+    e.target.value = ''; // reset so the same file can be picked again later
 
     if (queue.length > 0) {
       const newItems = await buildQueueItems(fileArray);
