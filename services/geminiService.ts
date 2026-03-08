@@ -50,19 +50,13 @@ export const generateUnifiedPayload = async (
   // Using Gemini 3.0 Pro for payload/text generation
   const modelId = 'gemini-3-pro-preview';
 
-  const cleanFace = await ensureBase64(modelFaceImageSource);
-  const cleanRef = await ensureBase64(refImageSource);
-
-  // Prepare body image if provided
-  const cleanBody = modelBodyImageSource ? await ensureBase64(modelBodyImageSource) : null;
-
-  // Prepare legacy extra angles if provided
-  const extraImages: { data: string; mimeType: string }[] = [];
-  if (additionalModelImages && additionalModelImages.length > 0) {
-    for (const img of additionalModelImages) {
-      extraImages.push(await ensureBase64(img));
-    }
-  }
+  // Fetch all images in parallel — face, ref, body, and extras all at once
+  const [cleanFace, cleanRef, cleanBody, ...extraImages] = await Promise.all([
+    ensureBase64(modelFaceImageSource),
+    ensureBase64(refImageSource),
+    modelBodyImageSource ? ensureBase64(modelBodyImageSource) : Promise.resolve(null),
+    ...(additionalModelImages ?? []).map(img => ensureBase64(img)),
+  ]);
 
   // Build image index labels for the prompt
   // Order: [FACE] [BODY?] [EXTRA_ANGLES...] [REFERENCE]
@@ -476,28 +470,13 @@ IDENTITY PRESERVATION (CRITICAL):
 11. CLEAN SKIN: The model's skin should match their reference photos - typically clean and clear without tattoos or body modifications from the pose reference.
   `.trim();
 
-  // Prepare base model face image for identity reference
-  const baseModelImg = await ensureBase64(baseModelFaceImageSource);
-
-  // Prepare additional model images
-  const extraImages: { data: string; mimeType: string }[] = [];
-  if (additionalModelImages && additionalModelImages.length > 0) {
-    for (const img of additionalModelImages) {
-      extraImages.push(await ensureBase64(img));
-    }
-  }
-
-  // Prepare body image for body type/proportions reference
-  let bodyImg: { data: string; mimeType: string } | null = null;
-  if (bodyImageSource) {
-    bodyImg = await ensureBase64(bodyImageSource);
-  }
-
-  // Prepare reference image for photographic quality matching
-  let refImg: { data: string; mimeType: string } | null = null;
-  if (refImageSource) {
-    refImg = await ensureBase64(refImageSource);
-  }
+  // Fetch all images in parallel — face, extras, body, and scene reference all at once
+  const [baseModelImg, bodyImg, refImg, ...extraImages] = await Promise.all([
+    ensureBase64(baseModelFaceImageSource),
+    bodyImageSource ? ensureBase64(bodyImageSource) : Promise.resolve(null),
+    refImageSource ? ensureBase64(refImageSource) : Promise.resolve(null),
+    ...(additionalModelImages ?? []).map(img => ensureBase64(img)),
+  ]);
 
   try {
     // Build image config for resolution and aspect ratio
@@ -602,17 +581,13 @@ export const generatePoseVariation = async (
   const ai = new GoogleGenAI({ apiKey });
   const modelId = 'gemini-3-pro-image-preview';
 
-  // Prepare all images
-  const baseModelImg = await ensureBase64(baseModelFaceImageSource);
-  const generatedImg = await ensureBase64(previouslyGeneratedImage);
-  const bodyImg = bodyImageSource ? await ensureBase64(bodyImageSource) : null;
-
-  const extraModelImages: { data: string; mimeType: string }[] = [];
-  if (additionalModelImages && additionalModelImages.length > 0) {
-    for (const img of additionalModelImages) {
-      extraModelImages.push(await ensureBase64(img));
-    }
-  }
+  // Fetch all images in parallel
+  const [baseModelImg, generatedImg, bodyImg, ...extraModelImages] = await Promise.all([
+    ensureBase64(baseModelFaceImageSource),
+    ensureBase64(previouslyGeneratedImage),
+    bodyImageSource ? ensureBase64(bodyImageSource) : Promise.resolve(null),
+    ...(additionalModelImages ?? []).map(img => ensureBase64(img)),
+  ]);
 
   // Determine the new pose
   const isAutoPose = newPoseDescription === 'auto' || !newPoseDescription;
