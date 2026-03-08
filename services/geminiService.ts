@@ -96,6 +96,7 @@ ANALYSIS RULES:
 - Background: Catalog EVERY visible object with position. For plants identify species. Analyze wall material (painted drywall vs concrete vs brick). Document floor type, spatial depth layers.
 - Lighting: Distinguish dramatic directional vs flat even. Assess shadow edge quality (harsh vs soft), density, placement. Note if ambient fill is present. This is CRITICAL for recreation.
 - Color: Extract dominant colors with hex values. Identify temperature (warm/cool), saturation level, and contrast.
+- PHOTOGRAPHIC QUALITY (CRITICAL): Analyze the reference image as if you are a professional photographer. Determine: is it shot on iPhone/smartphone (natural noise, slightly soft edges, vivid colors, auto HDR) or DSLR (crisper, more neutral rendering)? What is the exact grain/noise level? What is the rendering style — hyper-sharp, slightly soft, cinematic? This MUST be captured precisely in technical_specs and technical_quality so the generator can reproduce the same camera feel.
 
 OUTPUT FORMAT (JSON ONLY, NO MARKDOWN, NO BACKTICKS):
 {
@@ -198,7 +199,7 @@ OUTPUT FORMAT (JSON ONLY, NO MARKDOWN, NO BACKTICKS):
     "depth_of_field": "[DOF: shallow (blurred background)/medium/deep (everything sharp) - describe subject isolation]",
     "perspective": "[Viewpoint: straight on/low angle/high angle/dutch angle/eye level]"
   },
-  "technical_quality": "[ALWAYS include: 'Raw photograph quality, realistic skin texture with visible pores and natural imperfections, sharp focus, natural depth of field, authentic lighting, NO CGI, NO plastic skin, NO artificial smoothing']"
+  "technical_quality": "[MUST describe the EXACT photographic rendering style of the REFERENCE image. Example: 'iPhone 15 Pro photograph quality — natural digital sensor noise, vivid saturated colors, auto-HDR tone mapping, slightly warm rendering, tack-sharp subject with gentle background bokeh, realistic skin pores and texture, zero CGI or artificial smoothing, authentic spontaneous moment feel'. Be camera-specific: if it looks like an iPhone shot, say iPhone. If DSLR, say DSLR. Capture grain level, sharpness, and color rendering precisely.']"
 }
 
 IMPORTANT: 
@@ -274,7 +275,8 @@ export const generateIndustrialImage = async (
   aspectRatio?: string, // '1:1', '4:3', '16:9', etc.
   userPlan?: string, // 'free', 'starter', 'creator', 'pro', 'studio'
   additionalModelImages?: string[], // Extra face references for better consistency
-  customInstructions?: string // Optional user instructions to refine the output
+  customInstructions?: string, // Optional user instructions to refine the output
+  refImageSource?: string // Reference image — passed to generator to match its photographic quality
 ): Promise<string> => {
 
   if (!apiKey) throw new Error("FALTA_CLAVE_API");
@@ -388,9 +390,21 @@ ENVIRONMENT DETAILS:
     ? `SKIN: ${payload.subject.skin_notes}`
     : 'SKIN: Clean, clear skin without tattoos (unless specifically noted above)';
 
+  // Add a section describing how to use the reference image if provided
+  const refImageInstruction = refImageSource
+    ? `\nPHOTOGRAPHIC REFERENCE (last image provided):
+The last image is the ORIGINAL REFERENCE PHOTO. You must:
+- Match its exact photographic quality, sharpness, and detail level
+- Replicate its real camera characteristics: sensor noise, natural bokeh, color rendering, dynamic range
+- Copy its overall color grading, tones, and white balance precisely
+- Reproduce the same depth of field and focus rendering
+- Match its organic, spontaneous feel — this is a real iPhone/smartphone shot, not a studio render
+DO NOT change the person in it — only use it as a visual quality and scene reference.\n`
+    : '';
+
   const imagePrompt = `
 Generate a photorealistic image with these EXACT specifications. This must look like a real photograph taken with an iPhone or high-end camera.
-
+${refImageInstruction}
 SUBJECT: ${payload.subject.description}
 ${hairSection}
 ${faceAccessoriesSection ? `${faceAccessoriesSection}` : ''}
@@ -413,16 +427,17 @@ QUALITY: ${payload.technical_quality}${customSection}
 
 CRITICAL REQUIREMENTS:
 1. This must look like a REAL photograph, NOT CGI. Realistic skin with visible pores, natural imperfections, authentic lighting.
-2. The person MUST have the EXACT face and identity shown in the reference image provided.
-3. Maintain the exact color temperature, saturation, and contrast described above.
-4. Reproduce the lighting direction, shadow quality, and highlight placement precisely.
-5. Hair must show natural variation - flyaways, texture inconsistencies, not "AI perfect" smoothness.
-6. Hands must look natural with correct finger anatomy and relaxed positioning.
+2. The person's FACE AND IDENTITY must exactly match the first model reference image(s) provided.
+3. The PHOTOGRAPHIC QUALITY (sharpness, grain, color rendering, bokeh, dynamic range) must match the last reference image provided — replicate how a real iPhone captures light, texture, and depth.
+4. Maintain the exact color temperature, saturation, and contrast described above.
+5. Reproduce the lighting direction, shadow quality, and highlight placement precisely.
+6. Hair must show natural variation - flyaways, texture inconsistencies, not "AI perfect" smoothness.
+7. Hands must look natural with correct finger anatomy and relaxed positioning.
 
 IDENTITY PRESERVATION (CRITICAL):
-7. FACE ACCESSORIES: If the model wears a face mask, glasses, or any face covering, it MUST appear in the output exactly as described above.
-8. NO TATTOOS: The output person must NOT have any tattoos unless the BASE MODEL specifically has tattoos. Do NOT copy tattoos from reference poses.
-9. CLEAN SKIN: The model's skin should match their reference photos - typically clean and clear without tattoos or body modifications from the pose reference.
+8. FACE ACCESSORIES: If the model wears a face mask, glasses, or any face covering, it MUST appear in the output exactly as described above.
+9. NO TATTOOS: The output person must NOT have any tattoos unless the BASE MODEL specifically has tattoos. Do NOT copy tattoos from reference poses.
+10. CLEAN SKIN: The model's skin should match their reference photos - typically clean and clear without tattoos or body modifications from the pose reference.
   `.trim();
 
   // Prepare base model image for identity reference
@@ -436,6 +451,12 @@ IDENTITY PRESERVATION (CRITICAL):
     }
   }
 
+  // Prepare reference image for photographic quality matching
+  let refImageBase64: string | null = null;
+  if (refImageSource) {
+    refImageBase64 = await ensureBase64(refImageSource);
+  }
+
   try {
     // Build image config for resolution and aspect ratio
     const imageConfig: any = {};
@@ -446,12 +467,20 @@ IDENTITY PRESERVATION (CRITICAL):
       imageConfig.aspectRatio = aspectRatio; // '1:1', '4:3', '16:9', etc.
     }
 
-    // Build image parts: primary model image + extras
+    // Build image parts:
+    // 1. Model reference images (for face/identity) — first
+    // 2. Reference photo (for scene quality matching) — last
+    // This order tells the model: "identity from the first images, match the photographic
+    // quality, lighting and atmosphere of the last image"
     const modelImageParts: any[] = [
       { inlineData: { mimeType: 'image/jpeg', data: baseModelBase64 } },
     ];
     for (const extra of extraImages) {
       modelImageParts.push({ inlineData: { mimeType: 'image/jpeg', data: extra } });
+    }
+    // Append the reference photo last so the model can see the real photographic style
+    if (refImageBase64) {
+      modelImageParts.push({ inlineData: { mimeType: 'image/jpeg', data: refImageBase64 } });
     }
 
     const response = await ai.models.generateContent({

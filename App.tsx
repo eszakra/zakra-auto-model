@@ -478,7 +478,9 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         selectedResolution === 'AUTO' ? undefined : selectedResolution,
         selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio,
         user?.plan_type,
-        selectedModel.reference_images || []
+        selectedModel.reference_images || [],
+        undefined, // no custom instructions in batch mode
+        item.previewUrl // pass the reference image so the generator matches its photographic quality
       );
 
       const fileName = `batch_${Date.now()}_${item.id}.png`;
@@ -737,7 +739,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio,
         user?.plan_type,
         selectedModel?.reference_images || [],
-        customInstructions?.trim() || undefined
+        customInstructions?.trim() || undefined,
+        refImage || undefined // pass the reference image so the generator matches its photographic quality
       );
       setGeneratedImage(result);
       setAppState(AppState.COMPLETE);
