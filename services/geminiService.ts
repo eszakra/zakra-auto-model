@@ -10,25 +10,31 @@ export const constructPayload = (
   return {} as ZakraPayload; // Placeholder
 };
 
-// Helper to ensure we have a clean base64 string (no data: prefix)
+// Helper to ensure we have a clean base64 string (no data: prefix) AND the correct MIME type.
 // Handles: http/https URLs, blob: URLs, data: URLs
-async function ensureBase64(input: string): Promise<string> {
+// Returns { data: string (pure base64), mimeType: string }
+async function ensureBase64(input: string): Promise<{ data: string; mimeType: string }> {
   if (input.startsWith('http') || input.startsWith('blob:')) {
     // Fetch the URL (works for both http and blob: URLs)
     const response = await fetch(input);
     const blob = await response.blob();
+    const detectedMime = blob.type || 'image/jpeg';
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64 = reader.result as string;
-        resolve(base64.replace(/^data:[^;]+;base64,/, ''));
+        const dataUrl = reader.result as string;
+        const base64 = dataUrl.replace(/^data:[^;]+;base64,/, '');
+        resolve({ data: base64, mimeType: detectedMime });
       };
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
   }
-  // Already a data: URL — strip prefix
-  return input.replace(/^data:[^;]+;base64,/, '');
+  // Already a data: URL — extract real MIME type from prefix then strip it
+  const mimeMatch = input.match(/^data:([^;]+);base64,/);
+  const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const data = input.replace(/^data:[^;]+;base64,/, '');
+  return { data, mimeType };
 }
 
 export const generateUnifiedPayload = async (
@@ -51,7 +57,7 @@ export const generateUnifiedPayload = async (
   const cleanBody = modelBodyImageSource ? await ensureBase64(modelBodyImageSource) : null;
 
   // Prepare legacy extra angles if provided
-  const extraImages: string[] = [];
+  const extraImages: { data: string; mimeType: string }[] = [];
   if (additionalModelImages && additionalModelImages.length > 0) {
     for (const img of additionalModelImages) {
       extraImages.push(await ensureBase64(img));
@@ -245,15 +251,15 @@ CRITICAL REMINDERS:
     // Build image parts in the EXACT order described in the prompt:
     // [FACE] → [BODY?] → [EXTRA ANGLES...] → [REFERENCE]
     const imageParts: any[] = [
-      { inlineData: { mimeType: 'image/jpeg', data: cleanFace } },
+      { inlineData: { mimeType: cleanFace.mimeType, data: cleanFace.data } },
     ];
     if (cleanBody) {
-      imageParts.push({ inlineData: { mimeType: 'image/jpeg', data: cleanBody } });
+      imageParts.push({ inlineData: { mimeType: cleanBody.mimeType, data: cleanBody.data } });
     }
     for (const extra of extraImages) {
-      imageParts.push({ inlineData: { mimeType: 'image/jpeg', data: extra } });
+      imageParts.push({ inlineData: { mimeType: extra.mimeType, data: extra.data } });
     }
-    imageParts.push({ inlineData: { mimeType: 'image/jpeg', data: cleanRef } });
+    imageParts.push({ inlineData: { mimeType: cleanRef.mimeType, data: cleanRef.data } });
 
     const response = await ai.models.generateContent({
       model: modelId,
@@ -471,10 +477,10 @@ IDENTITY PRESERVATION (CRITICAL):
   `.trim();
 
   // Prepare base model face image for identity reference
-  const baseModelBase64 = await ensureBase64(baseModelFaceImageSource);
+  const baseModelImg = await ensureBase64(baseModelFaceImageSource);
 
   // Prepare additional model images
-  const extraImages: string[] = [];
+  const extraImages: { data: string; mimeType: string }[] = [];
   if (additionalModelImages && additionalModelImages.length > 0) {
     for (const img of additionalModelImages) {
       extraImages.push(await ensureBase64(img));
@@ -482,15 +488,15 @@ IDENTITY PRESERVATION (CRITICAL):
   }
 
   // Prepare body image for body type/proportions reference
-  let bodyImageBase64: string | null = null;
+  let bodyImg: { data: string; mimeType: string } | null = null;
   if (bodyImageSource) {
-    bodyImageBase64 = await ensureBase64(bodyImageSource);
+    bodyImg = await ensureBase64(bodyImageSource);
   }
 
   // Prepare reference image for photographic quality matching
-  let refImageBase64: string | null = null;
+  let refImg: { data: string; mimeType: string } | null = null;
   if (refImageSource) {
-    refImageBase64 = await ensureBase64(refImageSource);
+    refImg = await ensureBase64(refImageSource);
   }
 
   try {
@@ -506,18 +512,18 @@ IDENTITY PRESERVATION (CRITICAL):
     // Build image parts in order matching the prompt instructions:
     // [FACE] → [BODY?] → [EXTRA ANGLES...] → [SCENE REFERENCE]
     const modelImageParts: any[] = [
-      { inlineData: { mimeType: 'image/jpeg', data: baseModelBase64 } }, // face
+      { inlineData: { mimeType: baseModelImg.mimeType, data: baseModelImg.data } }, // face
     ];
     // Body photo right after face so model clearly associates it with same person
-    if (bodyImageBase64) {
-      modelImageParts.push({ inlineData: { mimeType: 'image/jpeg', data: bodyImageBase64 } });
+    if (bodyImg) {
+      modelImageParts.push({ inlineData: { mimeType: bodyImg.mimeType, data: bodyImg.data } });
     }
     for (const extra of extraImages) {
-      modelImageParts.push({ inlineData: { mimeType: 'image/jpeg', data: extra } });
+      modelImageParts.push({ inlineData: { mimeType: extra.mimeType, data: extra.data } });
     }
     // Scene reference photo last — for photographic quality matching
-    if (refImageBase64) {
-      modelImageParts.push({ inlineData: { mimeType: 'image/jpeg', data: refImageBase64 } });
+    if (refImg) {
+      modelImageParts.push({ inlineData: { mimeType: refImg.mimeType, data: refImg.data } });
     }
 
     const response = await ai.models.generateContent({
@@ -597,11 +603,11 @@ export const generatePoseVariation = async (
   const modelId = 'gemini-3-pro-image-preview';
 
   // Prepare all images
-  const baseModelBase64 = await ensureBase64(baseModelFaceImageSource);
-  const generatedImageBase64 = await ensureBase64(previouslyGeneratedImage);
-  const bodyImageBase64 = bodyImageSource ? await ensureBase64(bodyImageSource) : null;
+  const baseModelImg = await ensureBase64(baseModelFaceImageSource);
+  const generatedImg = await ensureBase64(previouslyGeneratedImage);
+  const bodyImg = bodyImageSource ? await ensureBase64(bodyImageSource) : null;
 
-  const extraModelImages: string[] = [];
+  const extraModelImages: { data: string; mimeType: string }[] = [];
   if (additionalModelImages && additionalModelImages.length > 0) {
     for (const img of additionalModelImages) {
       extraModelImages.push(await ensureBase64(img));
@@ -740,16 +746,16 @@ IDENTITY PRESERVATION (CRITICAL):
 
     // Build image parts: [FACE] → [BODY?] → [EXTRA ANGLES...] → [GENERATED IMAGE]
     const imageParts: any[] = [
-      { inlineData: { mimeType: 'image/jpeg', data: baseModelBase64 } }, // face
+      { inlineData: { mimeType: baseModelImg.mimeType, data: baseModelImg.data } }, // face
     ];
-    if (bodyImageBase64) {
-      imageParts.push({ inlineData: { mimeType: 'image/jpeg', data: bodyImageBase64 } }); // body
+    if (bodyImg) {
+      imageParts.push({ inlineData: { mimeType: bodyImg.mimeType, data: bodyImg.data } }); // body
     }
     for (const extra of extraModelImages) {
-      imageParts.push({ inlineData: { mimeType: 'image/jpeg', data: extra } });
+      imageParts.push({ inlineData: { mimeType: extra.mimeType, data: extra.data } });
     }
     // Last: the generated image we want to vary (for scene/background consistency)
-    imageParts.push({ inlineData: { mimeType: 'image/jpeg', data: generatedImageBase64 } });
+    imageParts.push({ inlineData: { mimeType: generatedImg.mimeType, data: generatedImg.data } });
 
     const response = await ai.models.generateContent({
       model: modelId,

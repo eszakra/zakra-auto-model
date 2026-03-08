@@ -578,7 +578,15 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
     try {
       if (!selectedModel) throw new Error("No model selected");
-      if (!item.payload) throw new Error("No payload found");
+
+      // Always read the freshest item data from live queue state to avoid stale closures.
+      // This ensures base64 and payload are current even if the queue was updated since
+      // startBatchGeneration captured its snapshot.
+      let liveItem: QueueItem | undefined;
+      setQueue(prev => { liveItem = prev.find(q => q.id === item.id); return prev; });
+      const currentItem = liveItem || item; // fallback to the passed item if not found
+
+      if (!currentItem.payload) throw new Error("No payload found");
 
       // Check credits before generating
       if (!hasEnoughCredits(1)) {
@@ -594,13 +602,15 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       const currentKey = getCurrentApiKey();
       const { generateIndustrialImage } = await import('./services/geminiService');
 
-      // Use pre-read base64 as scene reference (never blob URLs — they can expire)
-      if (!item.base64 && !item.file) throw new Error("Image data unavailable — please re-upload this reference.");
-      const sceneRef = item.base64 || await readFileAsBase64(item.file!);
+      // Use pre-read base64 as scene reference (never blob URLs — they can expire).
+      // base64 is available for PENDING/ANALYZED items in the same session;
+      // if it's missing (e.g., item restored from localStorage after page reload), throw clearly.
+      if (!currentItem.base64 && !currentItem.file) throw new Error("Image data unavailable — please re-upload this reference.");
+      const sceneRef = currentItem.base64 || await readFileAsBase64(currentItem.file!);
 
       const resultBase64 = await generateIndustrialImage(
         currentKey,
-        item.payload,
+        currentItem.payload,
         selectedModel.image_url,
         selectedResolution === 'AUTO' ? undefined : selectedResolution,
         selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio,
@@ -617,7 +627,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         user_id: user?.id,
         model_name: selectedModel.model_name,
         image_url: publicUrl,
-        prompt: JSON.stringify(item.payload),
+        prompt: JSON.stringify(currentItem.payload),
         aspect_ratio: selectedAspectRatio,
         resolution: selectedResolution,
         credits_used: 1,
