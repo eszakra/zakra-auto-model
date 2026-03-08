@@ -456,9 +456,14 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     const files = e.dataTransfer.files;
     if (!files || files.length === 0) return;
 
+    // Copy files immediately before any async work
     const fileArray = Array.from(files) as File[];
 
-    if (queue.length > 0) {
+    // Read current queue length from state (avoid stale closure)
+    let currentQueueLength = 0;
+    setQueue(prev => { currentQueueLength = prev.length; return prev; });
+
+    if (currentQueueLength > 0) {
       const newItems = await buildQueueItems(fileArray);
       setQueue(prev => [...prev, ...newItems]);
       return;
@@ -1086,6 +1091,16 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
           </div>
 
           <div className="p-4 flex flex-col gap-6">
+            {/* Hidden file input — lives OUTSIDE the drop zone div to avoid event conflicts */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              multiple
+              className="hidden"
+            />
+
             {/* DROP ZONE */}
             <div
               data-onboarding="upload-zone"
@@ -1102,16 +1117,6 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
-              {/* Hidden file input — always active, handles all uploads */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImageUpload}
-                accept="image/*"
-                multiple
-                className="hidden"
-              />
-
               {/* Drag overlay */}
               {isDragging && (
                 <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-reed-red/10 rounded-xl pointer-events-none">
