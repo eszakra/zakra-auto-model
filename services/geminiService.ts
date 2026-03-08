@@ -329,95 +329,99 @@ export const generateIndustrialImage = async (
     ? `\n\nADDITIONAL REFINEMENTS (apply subtly while maintaining photorealism):\n${customInstructions.trim()}`
     : '';
 
+  // Defensive alias — Gemini occasionally omits the subject object entirely
+  const subj = payload?.subject ?? {} as any;
+  const env  = payload?.environment ?? {} as any;
+
   // Build enhanced sections from v2 fields (with fallback to v1)
-  const hairSection = payload.subject.hair_detailed
+  const hairSection = subj.hair_detailed
     ? `HAIR (DETAILED):
-  - Length & Cut: ${payload.subject.hair_detailed.length}, ${payload.subject.hair_detailed.cut}
-  - Texture: ${payload.subject.hair_detailed.texture} (${payload.subject.hair_detailed.texture_quality})
-  - Natural Imperfections: ${payload.subject.hair_detailed.natural_imperfections}
-  - Styling: ${payload.subject.hair_detailed.styling}
-  - Part: ${payload.subject.hair_detailed.part} | Volume: ${payload.subject.hair_detailed.volume}
-  - Details: ${payload.subject.hair_detailed.details}`
-    : `HAIR: ${payload.subject.hair}`;
+  - Length & Cut: ${subj.hair_detailed.length ?? ''}, ${subj.hair_detailed.cut ?? ''}
+  - Texture: ${subj.hair_detailed.texture ?? ''} (${subj.hair_detailed.texture_quality ?? ''})
+  - Natural Imperfections: ${subj.hair_detailed.natural_imperfections ?? ''}
+  - Styling: ${subj.hair_detailed.styling ?? ''}
+  - Part: ${subj.hair_detailed.part ?? ''} | Volume: ${subj.hair_detailed.volume ?? ''}
+  - Details: ${subj.hair_detailed.details ?? ''}`
+    : `HAIR: ${subj.hair ?? ''}`;
 
-  const expressionSection = payload.subject.facial_expression
+  const expressionSection = subj.facial_expression
     ? `FACIAL EXPRESSION:
-  - Mouth: ${payload.subject.facial_expression.mouth} (smile intensity: ${payload.subject.facial_expression.smile_intensity})
-  - Eyes: ${payload.subject.facial_expression.eyes}
-  - Eyebrows: ${payload.subject.facial_expression.eyebrows}
-  - Emotion: ${payload.subject.facial_expression.overall_emotion} (${payload.subject.facial_expression.authenticity})`
+  - Mouth: ${subj.facial_expression.mouth ?? ''} (smile intensity: ${subj.facial_expression.smile_intensity ?? ''})
+  - Eyes: ${subj.facial_expression.eyes ?? ''}
+  - Eyebrows: ${subj.facial_expression.eyebrows ?? ''}
+  - Emotion: ${subj.facial_expression.overall_emotion ?? ''} (${subj.facial_expression.authenticity ?? ''})`
     : '';
 
-  const handsSection = payload.subject.hands_and_gestures
+  const handsSection = subj.hands_and_gestures
     ? `HANDS & GESTURES:
-  - Left hand: ${payload.subject.hands_and_gestures.left_hand}
-  - Right hand: ${payload.subject.hands_and_gestures.right_hand}
-  - Fingers: ${payload.subject.hands_and_gestures.finger_positions}
-  - Tension: ${payload.subject.hands_and_gestures.hand_tension}
-  - Interaction: ${payload.subject.hands_and_gestures.interaction}
-  - Naturalness: ${payload.subject.hands_and_gestures.naturalness}`
+  - Left hand: ${subj.hands_and_gestures.left_hand ?? ''}
+  - Right hand: ${subj.hands_and_gestures.right_hand ?? ''}
+  - Fingers: ${subj.hands_and_gestures.finger_positions ?? ''}
+  - Tension: ${subj.hands_and_gestures.hand_tension ?? ''}
+  - Interaction: ${subj.hands_and_gestures.interaction ?? ''}
+  - Naturalness: ${subj.hands_and_gestures.naturalness ?? ''}`
     : '';
 
-  const bodySection = payload.subject.body_positioning
+  const bodySection = subj.body_positioning
     ? `BODY POSITION:
-  - Posture: ${payload.subject.body_positioning.posture}
-  - Angle: ${payload.subject.body_positioning.angle}
-  - Weight: ${payload.subject.body_positioning.weight_distribution}
-  - Shoulders: ${payload.subject.body_positioning.shoulders}`
+  - Posture: ${subj.body_positioning.posture ?? ''}
+  - Angle: ${subj.body_positioning.angle ?? ''}
+  - Weight: ${subj.body_positioning.weight_distribution ?? ''}
+  - Shoulders: ${subj.body_positioning.shoulders ?? ''}`
     : '';
 
   const lightingSection = payload.lighting_detailed
     ? `LIGHTING (DETAILED):
-  - Type: ${payload.lighting_detailed.type} | Direction: ${payload.lighting_detailed.direction}
-  - Directionality: ${payload.lighting_detailed.directionality}
-  - Quality: ${payload.lighting_detailed.quality} | Intensity: ${payload.lighting_detailed.intensity}
-  - Contrast Ratio: ${payload.lighting_detailed.contrast_ratio}
-  - Shadows: ${payload.lighting_detailed.shadows.type}, density: ${payload.lighting_detailed.shadows.density}, placement: ${payload.lighting_detailed.shadows.placement}
-  - Highlights: ${payload.lighting_detailed.highlights.treatment}, on: ${payload.lighting_detailed.highlights.placement}
-  - Ambient Fill: ${payload.lighting_detailed.ambient_fill}
-  - Light Temperature: ${payload.lighting_detailed.light_temperature}`
-    : `LIGHTING: ${payload.lighting_and_atmosphere}`;
+  - Type: ${payload.lighting_detailed.type ?? ''} | Direction: ${payload.lighting_detailed.direction ?? ''}
+  - Directionality: ${payload.lighting_detailed.directionality ?? ''}
+  - Quality: ${payload.lighting_detailed.quality ?? ''} | Intensity: ${payload.lighting_detailed.intensity ?? ''}
+  - Contrast Ratio: ${payload.lighting_detailed.contrast_ratio ?? ''}
+  - Shadows: ${payload.lighting_detailed.shadows?.type ?? ''}, density: ${payload.lighting_detailed.shadows?.density ?? ''}, placement: ${payload.lighting_detailed.shadows?.placement ?? ''}
+  - Highlights: ${payload.lighting_detailed.highlights?.treatment ?? ''}, on: ${payload.lighting_detailed.highlights?.placement ?? ''}
+  - Ambient Fill: ${payload.lighting_detailed.ambient_fill ?? ''}
+  - Light Temperature: ${payload.lighting_detailed.light_temperature ?? ''}`
+    : `LIGHTING: ${payload.lighting_and_atmosphere ?? ''}`;
 
   const colorSection = payload.color_profile
     ? `COLOR PROFILE:
-  - Dominant Colors: ${payload.color_profile.dominant_colors.map(c => `${c.color} (${c.hex}, ${c.role})`).join(', ')}
-  - Temperature: ${payload.color_profile.temperature}
-  - Saturation: ${payload.color_profile.saturation}
-  - Contrast: ${payload.color_profile.contrast}`
+  - Dominant Colors: ${(payload.color_profile.dominant_colors ?? []).map(c => `${c.color} (${c.hex}, ${c.role})`).join(', ')}
+  - Temperature: ${payload.color_profile.temperature ?? ''}
+  - Saturation: ${payload.color_profile.saturation ?? ''}
+  - Contrast: ${payload.color_profile.contrast ?? ''}`
     : '';
 
-  const backgroundSection = payload.environment.wall_surface
-    ? `BACKGROUND: ${payload.environment.background}
+  const backgroundSection = env.wall_surface
+    ? `BACKGROUND: ${env.background ?? ''}
 ENVIRONMENT DETAILS:
-  - Setting: ${payload.environment.setting_type || 'unspecified'}
-  - Spatial Depth: ${payload.environment.spatial_depth || 'unspecified'}
-  - Wall: ${payload.environment.wall_surface.material}, ${payload.environment.wall_surface.texture}, ${payload.environment.wall_surface.finish} finish, color: ${payload.environment.wall_surface.color}, condition: ${payload.environment.wall_surface.condition}${payload.environment.wall_surface.features !== 'clean' ? `, features: ${payload.environment.wall_surface.features}` : ''}
-  ${payload.environment.floor_surface ? `- Floor: ${payload.environment.floor_surface.material}, ${payload.environment.floor_surface.color}${payload.environment.floor_surface.pattern ? `, ${payload.environment.floor_surface.pattern}` : ''}` : ''}
-  ${payload.environment.objects_catalog ? `- Objects: ${payload.environment.objects_catalog}` : ''}`
-    : `BACKGROUND: ${payload.environment.background}`;
+  - Setting: ${env.setting_type || 'unspecified'}
+  - Spatial Depth: ${env.spatial_depth || 'unspecified'}
+  - Wall: ${env.wall_surface.material ?? ''}, ${env.wall_surface.texture ?? ''}, ${env.wall_surface.finish ?? ''} finish, color: ${env.wall_surface.color ?? ''}, condition: ${env.wall_surface.condition ?? ''}${env.wall_surface.features && env.wall_surface.features !== 'clean' ? `, features: ${env.wall_surface.features}` : ''}
+  ${env.floor_surface ? `- Floor: ${env.floor_surface.material ?? ''}, ${env.floor_surface.color ?? ''}${env.floor_surface.pattern ? `, ${env.floor_surface.pattern}` : ''}` : ''}
+  ${env.objects_catalog ? `- Objects: ${env.objects_catalog}` : ''}`
+    : `BACKGROUND: ${env.background ?? ''}`;
 
   const techSpecsSection = payload.technical_specs
     ? `TECHNICAL SPECS:
-  - Style: ${payload.technical_specs.style}
-  - Texture: ${payload.technical_specs.texture} | Sharpness: ${payload.technical_specs.sharpness}
-  - Grain: ${payload.technical_specs.grain}
-  - Depth of Field: ${payload.technical_specs.depth_of_field}
-  - Perspective: ${payload.technical_specs.perspective}`
+  - Style: ${payload.technical_specs.style ?? ''}
+  - Texture: ${payload.technical_specs.texture ?? ''} | Sharpness: ${payload.technical_specs.sharpness ?? ''}
+  - Grain: ${payload.technical_specs.grain ?? ''}
+  - Depth of Field: ${payload.technical_specs.depth_of_field ?? ''}
+  - Perspective: ${payload.technical_specs.perspective ?? ''}`
     : '';
 
   // Build face accessories section (masks, glasses from MODEL)
-  const faceAccessoriesSection = payload.subject.face_accessories && payload.subject.face_accessories !== 'none'
-    ? `FACE ACCESSORIES (MUST INCLUDE): ${payload.subject.face_accessories}`
+  const faceAccessoriesSection = subj.face_accessories && subj.face_accessories !== 'none'
+    ? `FACE ACCESSORIES (MUST INCLUDE): ${subj.face_accessories}`
     : '';
 
   // Build body accessories section (jewelry, watches from REFERENCE)
-  const bodyAccessoriesSection = payload.subject.body_accessories && payload.subject.body_accessories !== 'none'
-    ? `BODY ACCESSORIES: ${payload.subject.body_accessories}`
+  const bodyAccessoriesSection = subj.body_accessories && subj.body_accessories !== 'none'
+    ? `BODY ACCESSORIES: ${subj.body_accessories}`
     : '';
 
   // Build skin notes section (clean skin, no reference tattoos)
-  const skinNotesSection = payload.subject.skin_notes
-    ? `SKIN: ${payload.subject.skin_notes}`
+  const skinNotesSection = subj.skin_notes
+    ? `SKIN: ${subj.skin_notes}`
     : 'SKIN: Clean, clear skin without tattoos (unless specifically noted above)';
 
   // Add a section describing how to use each image type
@@ -426,33 +430,33 @@ IMAGE ROLES (follow strictly):
 - FIRST IMAGE: Face close-up — use ONLY for facial identity (eyes, skin, features, face accessories).${bodyImageSource ? '\n- SECOND IMAGE: Full-body photo — use ONLY for body type, proportions, and curves. NEVER copy clothing from it.' : ''}${refImageSource ? '\n- LAST IMAGE: Scene reference photo — use for pose, clothing, background, lighting, and photographic quality. Match its exact camera feel (iPhone realism, grain, bokeh, color rendering).' : ''}
 `;
 
-  const bodyTypeSection = payload.subject.body_type
-    ? `BODY TYPE (MUST REPRODUCE EXACTLY): ${payload.subject.body_type}`
+  const bodyTypeSection = subj.body_type
+    ? `BODY TYPE (MUST REPRODUCE EXACTLY): ${subj.body_type}`
     : '';
 
   const imagePrompt = `
 Generate a photorealistic image with these EXACT specifications. This must look like a real photograph taken with an iPhone or high-end camera.
 ${refImageInstruction}
-FACE & IDENTITY: ${payload.subject.description}
+FACE & IDENTITY: ${subj.description ?? ''}
 ${bodyTypeSection ? `${bodyTypeSection}` : ''}
 ${hairSection}
 ${faceAccessoriesSection ? `${faceAccessoriesSection}` : ''}
 ${skinNotesSection}
-CLOTHING: ${payload.subject.clothing}
-POSE & EXPRESSION: ${payload.subject.pose_and_expression}
+CLOTHING: ${subj.clothing ?? ''}
+POSE & EXPRESSION: ${subj.pose_and_expression ?? ''}
 ${expressionSection ? `${expressionSection}` : ''}
 ${bodyAccessoriesSection ? `${bodyAccessoriesSection}` : ''}
-${payload.subject.accessories ? `ACCESSORIES: ${payload.subject.accessories}` : ''}
+${subj.accessories ? `ACCESSORIES: ${subj.accessories}` : ''}
 ${handsSection ? `${handsSection}` : ''}
 ${bodySection ? `${bodySection}` : ''}
 
-SCENE: ${payload.main_composition}
+SCENE: ${payload.main_composition ?? ''}
 ${backgroundSection}
 ${lightingSection}
 ${colorSection ? `${colorSection}` : ''}
 ${techSpecsSection ? `${techSpecsSection}` : ''}
 
-QUALITY: ${payload.technical_quality}${customSection}
+QUALITY: ${payload.technical_quality ?? ''}${customSection}
 
 CRITICAL REQUIREMENTS:
 1. This must look like a REAL photograph, NOT CGI. Realistic skin with visible pores, natural imperfections, authentic lighting.
@@ -595,55 +599,59 @@ export const generatePoseVariation = async (
     ? "a natural, slightly different pose and expression (as if taken moments later in the same photoshoot)"
     : newPoseDescription;
 
+  // Defensive aliases for pose variation
+  const pvSubj = originalPayload?.subject ?? {} as any;
+  const pvEnv  = originalPayload?.environment ?? {} as any;
+
   // Build enhanced sections for pose variation (re-inject all quality-critical details)
-  const pv_hairSection = originalPayload.subject.hair_detailed
-    ? `  - Hair Length & Cut: ${originalPayload.subject.hair_detailed.length}, ${originalPayload.subject.hair_detailed.cut}
-  - Hair Texture: ${originalPayload.subject.hair_detailed.texture} (${originalPayload.subject.hair_detailed.texture_quality})
-  - Hair Imperfections: ${originalPayload.subject.hair_detailed.natural_imperfections}
-  - Hair Styling: ${originalPayload.subject.hair_detailed.styling}
-  - Hair Part: ${originalPayload.subject.hair_detailed.part} | Volume: ${originalPayload.subject.hair_detailed.volume}`
-    : `  - Hair: ${originalPayload.subject.hair}`;
+  const pv_hairSection = pvSubj.hair_detailed
+    ? `  - Hair Length & Cut: ${pvSubj.hair_detailed.length ?? ''}, ${pvSubj.hair_detailed.cut ?? ''}
+  - Hair Texture: ${pvSubj.hair_detailed.texture ?? ''} (${pvSubj.hair_detailed.texture_quality ?? ''})
+  - Hair Imperfections: ${pvSubj.hair_detailed.natural_imperfections ?? ''}
+  - Hair Styling: ${pvSubj.hair_detailed.styling ?? ''}
+  - Hair Part: ${pvSubj.hair_detailed.part ?? ''} | Volume: ${pvSubj.hair_detailed.volume ?? ''}`
+    : `  - Hair: ${pvSubj.hair ?? ''}`;
 
   const pv_lightingSection = originalPayload.lighting_detailed
     ? `LIGHTING (MUST REPLICATE EXACTLY):
-  - Type: ${originalPayload.lighting_detailed.type}
-  - Direction: ${originalPayload.lighting_detailed.direction}
-  - Directionality: ${originalPayload.lighting_detailed.directionality}
-  - Quality: ${originalPayload.lighting_detailed.quality} | Intensity: ${originalPayload.lighting_detailed.intensity}
-  - Contrast Ratio: ${originalPayload.lighting_detailed.contrast_ratio}
-  - Shadows: ${originalPayload.lighting_detailed.shadows.type}, density: ${originalPayload.lighting_detailed.shadows.density}, placement: ${originalPayload.lighting_detailed.shadows.placement}
-  - Highlights: ${originalPayload.lighting_detailed.highlights.treatment} on ${originalPayload.lighting_detailed.highlights.placement}
-  - Ambient Fill: ${originalPayload.lighting_detailed.ambient_fill}
-  - Light Temperature: ${originalPayload.lighting_detailed.light_temperature}
+  - Type: ${originalPayload.lighting_detailed.type ?? ''}
+  - Direction: ${originalPayload.lighting_detailed.direction ?? ''}
+  - Directionality: ${originalPayload.lighting_detailed.directionality ?? ''}
+  - Quality: ${originalPayload.lighting_detailed.quality ?? ''} | Intensity: ${originalPayload.lighting_detailed.intensity ?? ''}
+  - Contrast Ratio: ${originalPayload.lighting_detailed.contrast_ratio ?? ''}
+  - Shadows: ${originalPayload.lighting_detailed.shadows?.type ?? ''}, density: ${originalPayload.lighting_detailed.shadows?.density ?? ''}, placement: ${originalPayload.lighting_detailed.shadows?.placement ?? ''}
+  - Highlights: ${originalPayload.lighting_detailed.highlights?.treatment ?? ''} on ${originalPayload.lighting_detailed.highlights?.placement ?? ''}
+  - Ambient Fill: ${originalPayload.lighting_detailed.ambient_fill ?? ''}
+  - Light Temperature: ${originalPayload.lighting_detailed.light_temperature ?? ''}
   NOTE: Shadows will naturally shift with the new pose, but maintain the SAME light source position, quality, temperature, and contrast ratio.`
-    : `LIGHTING: ${originalPayload.lighting_and_atmosphere}`;
+    : `LIGHTING: ${originalPayload.lighting_and_atmosphere ?? ''}`;
 
   const pv_colorSection = originalPayload.color_profile
     ? `COLOR PROFILE (MUST MATCH EXACTLY):
-  - Dominant Colors: ${originalPayload.color_profile.dominant_colors.map(c => `${c.color} (${c.hex}, ${c.role})`).join(', ')}
-  - Temperature: ${originalPayload.color_profile.temperature}
-  - Saturation: ${originalPayload.color_profile.saturation}
-  - Contrast: ${originalPayload.color_profile.contrast}
+  - Dominant Colors: ${(originalPayload.color_profile.dominant_colors ?? []).map(c => `${c.color} (${c.hex}, ${c.role})`).join(', ')}
+  - Temperature: ${originalPayload.color_profile.temperature ?? ''}
+  - Saturation: ${originalPayload.color_profile.saturation ?? ''}
+  - Contrast: ${originalPayload.color_profile.contrast ?? ''}
   NOTE: The color grading, temperature, and saturation MUST be identical to the original.`
     : '';
 
-  const pv_backgroundSection = originalPayload.environment.wall_surface
+  const pv_backgroundSection = pvEnv.wall_surface
     ? `BACKGROUND (MUST BE IDENTICAL):
-  - Setting: ${originalPayload.environment.setting_type || originalPayload.environment.background}
-  - Spatial Depth: ${originalPayload.environment.spatial_depth || 'as in reference'}
-  - Wall: ${originalPayload.environment.wall_surface.material}, ${originalPayload.environment.wall_surface.texture}, ${originalPayload.environment.wall_surface.finish} finish, color: ${originalPayload.environment.wall_surface.color}${originalPayload.environment.wall_surface.features !== 'clean' ? `, features: ${originalPayload.environment.wall_surface.features}` : ''}
-  ${originalPayload.environment.floor_surface ? `- Floor: ${originalPayload.environment.floor_surface.material}, ${originalPayload.environment.floor_surface.color}` : ''}
-  ${originalPayload.environment.objects_catalog ? `- Objects: ${originalPayload.environment.objects_catalog}` : ''}
-  - Full description: ${originalPayload.environment.background}`
-    : `BACKGROUND (MUST BE IDENTICAL): ${originalPayload.environment.background}`;
+  - Setting: ${pvEnv.setting_type || pvEnv.background || ''}
+  - Spatial Depth: ${pvEnv.spatial_depth || 'as in reference'}
+  - Wall: ${pvEnv.wall_surface.material ?? ''}, ${pvEnv.wall_surface.texture ?? ''}, ${pvEnv.wall_surface.finish ?? ''} finish, color: ${pvEnv.wall_surface.color ?? ''}${pvEnv.wall_surface.features && pvEnv.wall_surface.features !== 'clean' ? `, features: ${pvEnv.wall_surface.features}` : ''}
+  ${pvEnv.floor_surface ? `- Floor: ${pvEnv.floor_surface.material ?? ''}, ${pvEnv.floor_surface.color ?? ''}` : ''}
+  ${pvEnv.objects_catalog ? `- Objects: ${pvEnv.objects_catalog}` : ''}
+  - Full description: ${pvEnv.background ?? ''}`
+    : `BACKGROUND (MUST BE IDENTICAL): ${pvEnv.background ?? ''}`;
 
   const pv_techSpecs = originalPayload.technical_specs
     ? `TECHNICAL SPECS (MUST MATCH):
-  - Style: ${originalPayload.technical_specs.style}
-  - Texture: ${originalPayload.technical_specs.texture} | Sharpness: ${originalPayload.technical_specs.sharpness}
-  - Grain: ${originalPayload.technical_specs.grain}
-  - Depth of Field: ${originalPayload.technical_specs.depth_of_field}
-  - Perspective: ${originalPayload.technical_specs.perspective}`
+  - Style: ${originalPayload.technical_specs.style ?? ''}
+  - Texture: ${originalPayload.technical_specs.texture ?? ''} | Sharpness: ${originalPayload.technical_specs.sharpness ?? ''}
+  - Grain: ${originalPayload.technical_specs.grain ?? ''}
+  - Depth of Field: ${originalPayload.technical_specs.depth_of_field ?? ''}
+  - Perspective: ${originalPayload.technical_specs.perspective ?? ''}`
     : '';
 
   // Build the pose variation prompt - comprehensive quality preservation
@@ -665,21 +673,21 @@ WHAT CHANGES: The person's pose and expression to: ${poseInstruction}
 
 ═══════════════════════════════════════
 SUBJECT IDENTITY (from model references):
-  - Face: ${originalPayload.subject.description}
-  ${originalPayload.subject.body_type ? `- BODY TYPE (MUST REPRODUCE EXACTLY): ${originalPayload.subject.body_type}` : ''}
+  - Face: ${pvSubj.description ?? ''}
+  ${pvSubj.body_type ? `- BODY TYPE (MUST REPRODUCE EXACTLY): ${pvSubj.body_type}` : ''}
 ${pv_hairSection}
-  ${originalPayload.subject.face_accessories && originalPayload.subject.face_accessories !== 'none' ? `- FACE ACCESSORIES (MUST INCLUDE): ${originalPayload.subject.face_accessories}` : ''}
-  - Skin: ${originalPayload.subject.skin_notes || 'Clean, clear skin without tattoos'}
-  - Clothing: ${originalPayload.subject.clothing}
-  ${originalPayload.subject.body_accessories && originalPayload.subject.body_accessories !== 'none' ? `- Body Accessories: ${originalPayload.subject.body_accessories}` : ''}
-  ${originalPayload.subject.accessories ? `- Accessories: ${originalPayload.subject.accessories}` : ''}
+  ${pvSubj.face_accessories && pvSubj.face_accessories !== 'none' ? `- FACE ACCESSORIES (MUST INCLUDE): ${pvSubj.face_accessories}` : ''}
+  - Skin: ${pvSubj.skin_notes || 'Clean, clear skin without tattoos'}
+  - Clothing: ${pvSubj.clothing ?? ''}
+  ${pvSubj.body_accessories && pvSubj.body_accessories !== 'none' ? `- Body Accessories: ${pvSubj.body_accessories}` : ''}
+  ${pvSubj.accessories ? `- Accessories: ${pvSubj.accessories}` : ''}
 
 NEW POSE/EXPRESSION:
   - ${poseInstruction}
   ${isAutoPose ? '- Hands should be in a natural, relaxed position appropriate for the new pose' : ''}
 
 ═══════════════════════════════════════
-SCENE: ${originalPayload.main_composition}
+SCENE: ${originalPayload.main_composition ?? ''}
 
 ${pv_backgroundSection}
 
@@ -691,7 +699,7 @@ ${pv_techSpecs ? `${pv_techSpecs}` : ''}
 
 ═══════════════════════════════════════
 QUALITY REQUIREMENTS:
-${originalPayload.technical_quality}
+${originalPayload.technical_quality ?? ''}
 
 CRITICAL RULES FOR QUALITY PRESERVATION:
 1. This must look like the NEXT FRAME in the same photoshoot — same everything except the pose.
