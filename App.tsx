@@ -47,6 +47,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   // --- COL 2: REFERENCE & INPUTS ---
   const [refImage, setRefImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0); // tracks nested dragenter/dragleave correctly
 
   // --- BATCH MODE ---
   const QUEUE_STORAGE_KEY = 'reed_batch_queue';
@@ -431,9 +433,25 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     e.stopPropagation();
   };
 
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current += 1;
+    if (dragCounterRef.current === 1) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current === 0) setIsDragging(false);
+  };
+
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragging(false);
     const files = e.dataTransfer.files;
     if (!files || files.length === 0) return;
 
@@ -1070,12 +1088,38 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
             {/* DROP ZONE */}
             <div
               data-onboarding="upload-zone"
-              className={`${isBatchMode ? 'h-[500px]' : 'aspect-square'} w-full border-2 border-dashed rounded-xl ${refImage || isBatchMode ? 'border-reed-red bg-reed-red/5' : 'border-[var(--border-color)] hover:border-[var(--text-muted)]'} relative flex flex-col items-center justify-center transition-all group overflow-hidden ${!isBatchMode ? 'cursor-pointer' : ''}`}
-              onClick={() => !isBatchMode && fileInputRef.current?.click()}
+              className={`${isBatchMode ? 'h-[500px]' : 'aspect-square'} w-full border-2 border-dashed rounded-xl relative flex flex-col items-center justify-center transition-all duration-200 group overflow-hidden cursor-pointer
+                ${isDragging
+                  ? 'border-reed-red bg-reed-red/10 scale-[1.01] shadow-lg shadow-reed-red/20'
+                  : refImage || isBatchMode
+                    ? 'border-reed-red bg-reed-red/5'
+                    : 'border-[var(--border-color)] hover:border-reed-red hover:bg-reed-red/5'
+                }`}
+              onClick={() => fileInputRef.current?.click()}
               onDragOver={handleDragOver}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
-              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
+              {/* Hidden file input — always active, handles all uploads */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
+                multiple
+                className="hidden"
+              />
+
+              {/* Drag overlay */}
+              {isDragging && (
+                <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-reed-red/10 rounded-xl pointer-events-none">
+                  <div className="w-12 h-12 rounded-full bg-reed-red/20 flex items-center justify-center mb-2 animate-bounce">
+                    <Plus size={24} className="text-reed-red" />
+                  </div>
+                  <span className="text-sm font-bold text-reed-red uppercase tracking-wide">Drop to upload</span>
+                </div>
+              )}
 
               {isBatchMode && queue.some(q => !q.file) && (
                 <div className="absolute top-2 left-2 right-2 z-10 bg-amber-500/90 text-black text-[10px] font-bold uppercase rounded-lg px-3 py-1.5 flex items-center gap-2">
