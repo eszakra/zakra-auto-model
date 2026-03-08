@@ -401,11 +401,16 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     const fileArray = Array.from(files) as File[];
     e.target.value = '';
 
-    // Read current queue length from live state (not stale closure)
-    let currentQueueLength = 0;
-    setQueue(prev => { currentQueueLength = prev.length; return prev; });
+    // Only append to an existing batch if there are actively-processing items.
+    // A restored queue from localStorage (all PENDING/ANALYZED/COMPLETED/ERROR, none actively running)
+    // should be treated as stale — start fresh instead of appending.
+    let hasActiveItems = false;
+    setQueue(prev => {
+      hasActiveItems = prev.some(item => item.status === 'ANALYZING' || item.status === 'GENERATING');
+      return prev;
+    });
 
-    if (currentQueueLength > 0) {
+    if (hasActiveItems) {
       const newItems = await buildQueueItems(fileArray);
       setQueue(prev => [...prev, ...newItems]);
       return;
@@ -467,11 +472,16 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     // Copy files immediately before any async work
     const fileArray = Array.from(files) as File[];
 
-    // Read current queue length from state (avoid stale closure)
-    let currentQueueLength = 0;
-    setQueue(prev => { currentQueueLength = prev.length; return prev; });
+    // Only append to an existing batch if there are actively-processing items.
+    // A restored queue from localStorage (all PENDING/ANALYZED/COMPLETED/ERROR, none actively running)
+    // should be treated as stale — start fresh instead of appending.
+    let hasActiveItems = false;
+    setQueue(prev => {
+      hasActiveItems = prev.some(item => item.status === 'ANALYZING' || item.status === 'GENERATING');
+      return prev;
+    });
 
-    if (currentQueueLength > 0) {
+    if (hasActiveItems) {
       const newItems = await buildQueueItems(fileArray);
       setQueue(prev => [...prev, ...newItems]);
       return;
