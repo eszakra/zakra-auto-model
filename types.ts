@@ -143,13 +143,13 @@ export enum AppState {
 
 export interface QueueItem {
   id: string;
-  file: File;
-  previewUrl: string;   // blob: URL — for display only
-  base64?: string;      // data: base64 — the real image data for API calls
+  file?: File;          // Not serializable — absent when restored from localStorage
+  previewUrl: string;   // blob: URL (live session) or data: URL (restored from storage)
+  base64?: string;      // data: base64 — the real image data for API calls, always persisted
   status: 'PENDING' | 'ANALYZING' | 'ANALYZED' | 'GENERATING' | 'COMPLETED' | 'ERROR';
   payload?: any;
   resultImage?: string;
-  resultUrl?: string; // Public Supabase URL (used for ZIP download instead of base64)
+  resultUrl?: string;   // Public Supabase URL (used for ZIP download instead of base64)
   error?: string;
 }
 

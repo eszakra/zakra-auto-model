@@ -49,10 +49,47 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- BATCH MODE ---
-  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const QUEUE_STORAGE_KEY = 'reed_batch_queue';
+
+  // Restore queue from localStorage on first load
+  const [queue, setQueue] = useState<QueueItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(QUEUE_STORAGE_KEY);
+      if (!saved) return [];
+      const parsed: QueueItem[] = JSON.parse(saved);
+      // Restore: previewUrl = base64 (blob URLs don't survive page reload)
+      return parsed.map(item => ({
+        ...item,
+        file: undefined, // File objects can't be persisted
+        previewUrl: item.base64 || item.previewUrl, // use base64 as preview when blob URL is gone
+        // Items that were mid-flight get reset so they can be retried
+        status: (item.status === 'ANALYZING' || item.status === 'GENERATING')
+          ? (item.payload ? 'ANALYZED' : 'PENDING')
+          : item.status,
+      }));
+    } catch {
+      return [];
+    }
+  });
+
   const isBatchMode = queue.length > 1;
   const [selectedQueueId, setSelectedQueueId] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  // Persist queue to localStorage whenever it changes
+  // We omit: file (not serializable), resultImage (large base64 — resultUrl is enough)
+  useEffect(() => {
+    if (queue.length === 0) {
+      localStorage.removeItem(QUEUE_STORAGE_KEY);
+      return;
+    }
+    try {
+      const serializable = queue.map(({ file: _file, resultImage: _ri, ...rest }) => rest);
+      localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(serializable));
+    } catch {
+      // If localStorage is full (quota), fail silently — not critical
+    }
+  }, [queue]);
 
   // NEW: Store the generated payload instead of separate inputs
   const [generatedPayload, setGeneratedPayload] = useState<any | null>(null);
@@ -414,7 +451,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       if (!item || !selectedModel) throw new Error("Item or model not found");
 
       // Use pre-read base64 if available, otherwise read from file
-      const base64Ref = item.base64 || await readFileAsBase64(item.file);
+      if (!item.base64 && !item.file) throw new Error("Image data unavailable — please re-upload this reference.");
+      const base64Ref = item.base64 || await readFileAsBase64(item.file!);
 
       const currentKey = getCurrentApiKey();
       const { generateUnifiedPayload } = await import('./services/geminiService');
@@ -479,7 +517,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       const { generateIndustrialImage } = await import('./services/geminiService');
 
       // Use pre-read base64 as scene reference (never blob URLs — they can expire)
-      const sceneRef = item.base64 || await readFileAsBase64(item.file);
+      if (!item.base64 && !item.file) throw new Error("Image data unavailable — please re-upload this reference.");
+      const sceneRef = item.base64 || await readFileAsBase64(item.file!);
 
       const resultBase64 = await generateIndustrialImage(
         currentKey,
@@ -1004,8 +1043,14 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
             >
               <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple className="hidden" />
 
+              {isBatchMode && queue.some(q => !q.file) && (
+                <div className="absolute top-2 left-2 right-2 z-10 bg-amber-500/90 text-black text-[10px] font-bold uppercase rounded-lg px-3 py-1.5 flex items-center gap-2">
+                  <CheckCircle2 size={12} />
+                  Session restored — {queue.filter(q => q.status === 'ANALYZED').length} analyzed, {queue.filter(q => q.status === 'COMPLETED').length} completed
+                </div>
+              )}
               {isBatchMode ? (
-                <div className="w-full h-full p-2 grid grid-cols-3 gap-2 overflow-y-auto content-start">
+                <div className="w-full h-full p-2 grid grid-cols-3 gap-2 overflow-y-auto content-start" style={{ paddingTop: queue.some(q => !q.file) ? '2.5rem' : undefined }}>
                   {queue.map(q => (
                     <div
                       key={q.id}
@@ -1089,9 +1134,15 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
               )}
 
               {isBatchMode && (
-                <div className="w-full pb-2 text-xs font-bold uppercase text-[var(--text-muted)] flex justify-between">
-                  <span>Batch: {queue.length} images</span>
-                  <span>Analyzed: {queue.filter(q => q.status !== 'PENDING' && q.status !== 'ANALYZING').length} / {queue.length}</span>
+                <div className="w-full pb-1 text-xs font-bold uppercase text-[var(--text-muted)] flex justify-between items-center">
+                  <span>Batch: {queue.length} images &nbsp;·&nbsp; Analyzed: {queue.filter(q => q.status !== 'PENDING' && q.status !== 'ANALYZING').length}/{queue.length} &nbsp;·&nbsp; Done: {queue.filter(q => q.status === 'COMPLETED').length}/{queue.length}</span>
+                  <button
+                    onClick={() => { if (window.confirm('Clear the entire batch? This cannot be undone.')) setQueue([]); }}
+                    className="text-[10px] text-red-400 hover:text-red-500 uppercase font-bold tracking-wide transition-colors ml-2"
+                    title="Clear all"
+                  >
+                    Clear all
+                  </button>
                 </div>
               )}
 
