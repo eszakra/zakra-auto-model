@@ -144,7 +144,8 @@ export enum AppState {
 export interface QueueItem {
   id: string;
   file: File;
-  previewUrl: string;
+  previewUrl: string;   // blob: URL — for display only
+  base64?: string;      // data: base64 — the real image data for API calls
   status: 'PENDING' | 'ANALYZING' | 'ANALYZED' | 'GENERATING' | 'COMPLETED' | 'ERROR';
   payload?: any;
   resultImage?: string;

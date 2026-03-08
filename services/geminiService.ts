@@ -10,23 +10,25 @@ export const constructPayload = (
   return {} as ZakraPayload; // Placeholder
 };
 
-// Helper to ensure we have a clean base64 string
+// Helper to ensure we have a clean base64 string (no data: prefix)
+// Handles: http/https URLs, blob: URLs, data: URLs
 async function ensureBase64(input: string): Promise<string> {
-  if (input.startsWith('http')) {
+  if (input.startsWith('http') || input.startsWith('blob:')) {
+    // Fetch the URL (works for both http and blob: URLs)
     const response = await fetch(input);
     const blob = await response.blob();
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = reader.result as string;
-        resolve(base64.replace(/^data:image\/\w+;base64,/, ''));
+        resolve(base64.replace(/^data:[^;]+;base64,/, ''));
       };
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
   }
-  // It's likely already base64, just clean it
-  return input.replace(/^data:image\/\w+;base64,/, '');
+  // Already a data: URL — strip prefix
+  return input.replace(/^data:[^;]+;base64,/, '');
 }
 
 export const generateUnifiedPayload = async (

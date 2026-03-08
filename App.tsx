@@ -313,19 +313,35 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   };
 
   // --- UPLOAD & BATCH LOGIC ---
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Helper: read a File as base64 data URL
+  const readFileAsBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  // Helper: build QueueItems from a FileList, reading base64 eagerly
+  const buildQueueItems = async (files: File[]): Promise<QueueItem[]> =>
+    Promise.all(files.map(async (file) => ({
+      id: Math.random().toString(36).substr(2, 9),
+      file,
+      previewUrl: URL.createObjectURL(file), // blob URL for display only
+      base64: await readFileAsBase64(file),  // real data for API calls
+      status: 'PENDING' as const,
+    })));
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    e.target.value = '';
+
+    const fileArray = Array.from(files) as File[];
 
     if (queue.length > 0) {
-      const newItems: QueueItem[] = Array.from(files).map((file: File) => ({
-        id: Math.random().toString(36).substr(2, 9),
-        file,
-        previewUrl: URL.createObjectURL(file),
-        status: 'PENDING'
-      }));
+      const newItems = await buildQueueItems(fileArray);
       setQueue(prev => [...prev, ...newItems]);
-      e.target.value = '';
       return;
     }
 
@@ -335,24 +351,13 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     setAppState(AppState.IDLE);
     setRefImage(null);
 
-    if (files.length === 1) {
-      const file = files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setRefImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (fileArray.length === 1) {
+      const b64 = await readFileAsBase64(fileArray[0]);
+      setRefImage(b64);
     } else {
-      const newQueue: QueueItem[] = Array.from(files).map((file: File) => ({
-        id: Math.random().toString(36).substr(2, 9),
-        file,
-        previewUrl: URL.createObjectURL(file),
-        status: 'PENDING'
-      }));
+      const newQueue = await buildQueueItems(fileArray);
       setQueue(newQueue);
     }
-
-    e.target.value = '';
   };
 
   // Remove item from queue
@@ -367,19 +372,16 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     e.stopPropagation();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const files = e.dataTransfer.files;
     if (!files || files.length === 0) return;
 
+    const fileArray = Array.from(files) as File[];
+
     if (queue.length > 0) {
-      const newItems: QueueItem[] = Array.from(files).map((file: File) => ({
-        id: Math.random().toString(36).substr(2, 9),
-        file,
-        previewUrl: URL.createObjectURL(file),
-        status: 'PENDING'
-      }));
+      const newItems = await buildQueueItems(fileArray);
       setQueue(prev => [...prev, ...newItems]);
       return;
     }
@@ -390,20 +392,11 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     setAppState(AppState.IDLE);
     setRefImage(null);
 
-    if (files.length === 1) {
-      const file = files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setRefImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (fileArray.length === 1) {
+      const b64 = await readFileAsBase64(fileArray[0]);
+      setRefImage(b64);
     } else {
-      const newQueue: QueueItem[] = Array.from(files).map((file: File) => ({
-        id: Math.random().toString(36).substr(2, 9),
-        file,
-        previewUrl: URL.createObjectURL(file),
-        status: 'PENDING'
-      }));
+      const newQueue = await buildQueueItems(fileArray);
       setQueue(newQueue);
     }
   };
@@ -412,13 +405,26 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   const analyzeBatchItem = async (itemId: string) => {
     setQueue(prev => prev.map(item => item.id === itemId ? { ...item, status: 'ANALYZING' } : item));
     try {
-      const item = queue.find(q => q.id === itemId);
-      if (!item || !selectedModel) return;
+      // Read from the latest queue state via a callback to avoid stale closure
+      let item: QueueItem | undefined;
+      setQueue(prev => { item = prev.find(q => q.id === itemId); return prev; });
+
+      // Fallback: also check the current queue snapshot
+      if (!item) item = queue.find(q => q.id === itemId);
+      if (!item || !selectedModel) throw new Error("Item or model not found");
+
+      // Use pre-read base64 if available, otherwise read from file
+      const base64Ref = item.base64 || await readFileAsBase64(item.file);
 
       const currentKey = getCurrentApiKey();
-      const base64Ref = await fileToBase64(item.file);
       const { generateUnifiedPayload } = await import('./services/geminiService');
-      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, base64Ref, selectedModel.reference_images || [], selectedModel.body_image || undefined);
+      const payload = await generateUnifiedPayload(
+        currentKey,
+        selectedModel.image_url,
+        base64Ref,
+        selectedModel.reference_images || [],
+        selectedModel.body_image || undefined
+      );
 
       setQueue(prev => prev.map(q => q.id === itemId ? { ...q, status: 'ANALYZED', payload } : q));
     } catch (e: any) {
@@ -472,6 +478,9 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       const currentKey = getCurrentApiKey();
       const { generateIndustrialImage } = await import('./services/geminiService');
 
+      // Use pre-read base64 as scene reference (never blob URLs — they can expire)
+      const sceneRef = item.base64 || await readFileAsBase64(item.file);
+
       const resultBase64 = await generateIndustrialImage(
         currentKey,
         item.payload,
@@ -481,7 +490,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         user?.plan_type,
         selectedModel.reference_images || [],
         undefined, // no custom instructions in batch mode
-        item.previewUrl, // scene reference — photographic quality matching
+        sceneRef, // scene reference — real base64, not a blob URL
         selectedModel.body_image || undefined // body type reference
       );
 
@@ -511,14 +520,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     }
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
+
 
   const [zipProgress, setZipProgress] = useState('');
 
