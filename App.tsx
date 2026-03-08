@@ -480,6 +480,18 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     }
   };
 
+  // Retry all failed items — reset ERROR back to PENDING and re-analyze
+  const retryErrorItems = async () => {
+    const errorItems = queue.filter(q => q.status === 'ERROR');
+    if (errorItems.length === 0) return;
+    // Reset all errors to PENDING first
+    setQueue(prev => prev.map(q => q.status === 'ERROR' ? { ...q, status: 'PENDING', error: undefined } : q));
+    // Then re-analyze them
+    for (const item of errorItems) {
+      await analyzeBatchItem(item.id);
+    }
+  };
+
   const startBatchGeneration = async () => {
     if (!selectedModel) { alert("SELECT MODEL?"); return; }
 
@@ -1051,35 +1063,76 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
               )}
               {isBatchMode ? (
                 <div className="w-full h-full p-2 grid grid-cols-3 gap-2 overflow-y-auto content-start" style={{ paddingTop: queue.some(q => !q.file) ? '2.5rem' : undefined }}>
-                  {queue.map(q => (
-                    <div
-                      key={q.id}
-                      onClick={() => setSelectedQueueId(q.id)}
-                      className={`relative aspect-square border-2 rounded-lg cursor-pointer transition-all group/item ${selectedQueueId === q.id ? 'border-reed-red bg-reed-red/5' : 'border-[var(--border-color)]'}`}
-                    >
-                      <img src={q.previewUrl} className="w-full h-full object-cover rounded" />
-                      <button
-                        onClick={(e) => { e.stopPropagation(); removeQueueItem(q.id); }}
-                        className="absolute top-1 right-1 w-5 h-5 bg-[var(--bg-primary)] border border-[var(--border-color)] hover:border-red-500 hover:text-[#a11008] rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-all z-30"
-                        title="Remove"
-                      >
-                        <X size={10} />
-                      </button>
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        {q.status === 'PENDING' && <div className="w-2 h-2 bg-[var(--text-muted)] rounded-full" />}
-                        {q.status === 'ANALYZING' && <Loader2 className="animate-spin text-amber-500 w-5 h-5" />}
-                        {q.status === 'ANALYZED' && (
-                          <>
-                            <div className="absolute inset-0 border-2 border-amber-500 rounded-lg pointer-events-none z-10" />
-                            <Play className="text-amber-500 w-8 h-8 z-20" fill="currentColor" />
-                          </>
-                        )}
-                        {q.status === 'GENERATING' && <Loader2 className="animate-spin text-green-500 w-5 h-5" />}
-                        {q.status === 'COMPLETED' && <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center"><Check className="text-white w-3 h-3" /></div>}
-                        {q.status === 'ERROR' && <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"><X className="text-white w-3 h-3" /></div>}
-                      </div>
-                    </div>
-                  ))}
+                   {queue.map(q => (
+                     <div
+                       key={q.id}
+                       onClick={() => setSelectedQueueId(q.id)}
+                       className={`relative aspect-square rounded-lg cursor-pointer transition-all group/item border-2
+                         ${q.status === 'ERROR' ? 'border-red-500/70' :
+                           q.status === 'COMPLETED' ? 'border-green-500/50' :
+                           q.status === 'ANALYZED' ? 'border-amber-500' :
+                           selectedQueueId === q.id ? 'border-reed-red' :
+                           'border-[var(--border-color)]'}`}
+                     >
+                       <img src={q.previewUrl} className="w-full h-full object-cover rounded" />
+
+                       {/* Dim overlay for error state */}
+                       {q.status === 'ERROR' && (
+                         <div className="absolute inset-0 bg-black/50 rounded-[calc(0.5rem-2px)]" />
+                       )}
+
+                       {/* Remove button */}
+                       <button
+                         onClick={(e) => { e.stopPropagation(); removeQueueItem(q.id); }}
+                         className="absolute top-1 right-1 w-5 h-5 bg-[var(--bg-primary)] border border-[var(--border-color)] hover:border-red-500 hover:text-[#a11008] rounded flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-all z-30"
+                         title="Remove"
+                       >
+                         <X size={10} />
+                       </button>
+
+                       {/* Status indicators */}
+                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                         {q.status === 'PENDING' && <div className="w-2 h-2 bg-[var(--text-muted)] rounded-full" />}
+                         {q.status === 'ANALYZING' && <Loader2 className="animate-spin text-amber-500 w-5 h-5" />}
+                         {q.status === 'ANALYZED' && (
+                           <>
+                             <div className="absolute inset-0 border-2 border-amber-500 rounded-lg pointer-events-none z-10" />
+                             <Play className="text-amber-500 w-7 h-7 z-20 drop-shadow-lg" fill="currentColor" />
+                           </>
+                         )}
+                         {q.status === 'GENERATING' && <Loader2 className="animate-spin text-green-500 w-5 h-5" />}
+                         {q.status === 'COMPLETED' && (
+                           <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                             <Check className="text-white w-3 h-3" />
+                           </div>
+                         )}
+                         {q.status === 'ERROR' && (
+                           <div className="flex flex-col items-center gap-1 z-20 px-1 pointer-events-auto">
+                             <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
+                               <X className="text-white w-3 h-3" />
+                             </div>
+                             {/* Retry button on hover */}
+                             <button
+                               onClick={(e) => { e.stopPropagation(); analyzeBatchItem(q.id); }}
+                               className="opacity-0 group-hover/item:opacity-100 transition-opacity bg-white/90 text-black text-[9px] font-bold uppercase px-2 py-0.5 rounded-full mt-0.5"
+                             >
+                               Retry
+                             </button>
+                           </div>
+                         )}
+                       </div>
+
+                       {/* Error tooltip on bottom */}
+                       {q.status === 'ERROR' && q.error && (
+                         <div className="absolute bottom-0 left-0 right-0 bg-red-900/90 text-red-200 text-[8px] leading-tight px-1 py-0.5 rounded-b-[calc(0.5rem-2px)] truncate pointer-events-none">
+                           {q.error.includes('BLOQUEADO') ? 'Blocked by safety filter' :
+                            q.error.includes('QUOTA') ? 'API quota exceeded' :
+                            q.error.includes('unavailable') ? 'Re-upload needed' :
+                            'Analysis failed'}
+                         </div>
+                       )}
+                     </div>
+                   ))}
                   <div
                     onClick={() => fileInputRef.current?.click()}
                     className="cursor-pointer flex items-center justify-center border-2 border-dashed border-[var(--border-color)] text-[var(--text-muted)] text-xs aspect-square rounded-lg hover:border-reed-red hover:text-reed-red transition-colors"
@@ -1112,20 +1165,37 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                 </button>
               ) : (
                 <div className="flex gap-2">
+                  {/* Analyze all pending */}
                   <button
                     onClick={analyzeAllBatchItems}
-                    disabled={!queue.some(q => q.status === 'PENDING')}
+                    disabled={!queue.some(q => q.status === 'PENDING') || queue.some(q => q.status === 'ANALYZING')}
                     className={`flex-grow py-3 text-sm font-bold uppercase rounded-lg border-2 transition-all
-                      ${!queue.some(q => q.status === 'PENDING') ? 'border-[var(--border-color)] text-[var(--text-muted)]' :
-                        'border-amber-500 text-amber-500 hover:bg-amber-500/10'}`}
+                      ${!queue.some(q => q.status === 'PENDING') || queue.some(q => q.status === 'ANALYZING')
+                        ? 'border-[var(--border-color)] text-[var(--text-muted)]'
+                        : 'border-amber-500 text-amber-500 hover:bg-amber-500/10'}`}
                   >
-                    {queue.some(q => q.status === 'ANALYZING') ? 'Analyzing Batch...' : 'Generate Payloads (Auto)'}
+                    {queue.some(q => q.status === 'ANALYZING')
+                      ? `Analyzing… (${queue.filter(q => q.status === 'ANALYZING').length} left)`
+                      : queue.some(q => q.status === 'PENDING')
+                        ? `Analyze ${queue.filter(q => q.status === 'PENDING').length} pending`
+                        : 'All analyzed'}
                   </button>
+                  {/* Retry errors */}
+                  {queue.some(q => q.status === 'ERROR') && !queue.some(q => q.status === 'ANALYZING') && (
+                    <button
+                      onClick={retryErrorItems}
+                      className="px-3 border-2 border-red-500/60 text-red-400 hover:bg-red-500/10 rounded-lg text-xs font-bold uppercase transition-all"
+                      title={`Retry ${queue.filter(q => q.status === 'ERROR').length} failed`}
+                    >
+                      ↺ {queue.filter(q => q.status === 'ERROR').length}
+                    </button>
+                  )}
+                  {/* Analyze single selected */}
                   {selectedQueueId && queue.find(q => q.id === selectedQueueId)?.status === 'PENDING' && (
                     <button
                       onClick={() => analyzeBatchItem(selectedQueueId)}
-                      className="px-3 border-2 border-[var(--border-color)] text-[var(--text-muted)] hover:text-amber-500 hover:border-amber-500 rounded-lg"
-                      title="Analyze individually"
+                      className="px-3 border-2 border-[var(--border-color)] text-[var(--text-muted)] hover:text-amber-500 hover:border-amber-500 rounded-lg text-xs font-bold"
+                      title="Analyze selected only"
                     >
                       1
                     </button>
@@ -1134,15 +1204,36 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
               )}
 
               {isBatchMode && (
-                <div className="w-full pb-1 text-xs font-bold uppercase text-[var(--text-muted)] flex justify-between items-center">
-                  <span>Batch: {queue.length} images &nbsp;·&nbsp; Analyzed: {queue.filter(q => q.status !== 'PENDING' && q.status !== 'ANALYZING').length}/{queue.length} &nbsp;·&nbsp; Done: {queue.filter(q => q.status === 'COMPLETED').length}/{queue.length}</span>
-                  <button
-                    onClick={() => { if (window.confirm('Clear the entire batch? This cannot be undone.')) setQueue([]); }}
-                    className="text-[10px] text-red-400 hover:text-red-500 uppercase font-bold tracking-wide transition-colors ml-2"
-                    title="Clear all"
-                  >
-                    Clear all
-                  </button>
+                <div className="w-full pb-1 flex flex-col gap-1">
+                  {/* Stats row */}
+                  <div className="text-[10px] font-bold uppercase text-[var(--text-muted)] flex justify-between items-center">
+                    <span className="flex items-center gap-2">
+                      <span>{queue.length} total</span>
+                      <span className="text-amber-400">{queue.filter(q => q.status === 'ANALYZED').length} ready</span>
+                      <span className="text-green-400">{queue.filter(q => q.status === 'COMPLETED').length} done</span>
+                      {queue.some(q => q.status === 'ERROR') && (
+                        <span className="text-red-400">{queue.filter(q => q.status === 'ERROR').length} failed</span>
+                      )}
+                    </span>
+                    <button
+                      onClick={() => { if (window.confirm('Clear the entire batch? This cannot be undone.')) setQueue([]); }}
+                      className="text-[10px] text-red-400 hover:text-red-500 uppercase font-bold tracking-wide transition-colors"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  {/* Progress bar — errors count as "processed" so bar always reaches 100% */}
+                  <div className="h-1 bg-[var(--bg-primary)] rounded-full overflow-hidden flex">
+                    {/* Green = completed */}
+                    <div className="h-full bg-green-500 transition-all duration-300"
+                      style={{ width: `${(queue.filter(q => q.status === 'COMPLETED').length / queue.length) * 100}%` }} />
+                    {/* Amber = analyzed (ready to generate) */}
+                    <div className="h-full bg-amber-400 transition-all duration-300"
+                      style={{ width: `${(queue.filter(q => q.status === 'ANALYZED').length / queue.length) * 100}%` }} />
+                    {/* Red = errors */}
+                    <div className="h-full bg-red-500 transition-all duration-300"
+                      style={{ width: `${(queue.filter(q => q.status === 'ERROR').length / queue.length) * 100}%` }} />
+                  </div>
                 </div>
               )}
 
@@ -1198,19 +1289,39 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
                 {/* Batch Mode Status */}
                 {isBatchMode && (
-                  <div className="bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] p-3">
+                  <div className="bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] p-3 flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-[var(--text-muted)] uppercase font-medium">Batch Progress</span>
                       <span className="text-[var(--text-primary)] font-bold">
-                        {queue.filter(q => q.status === 'ANALYZED' || q.status === 'COMPLETED').length} / {queue.length} Ready
+                        {queue.filter(q => q.status === 'COMPLETED').length} / {queue.length} Generated
                       </span>
                     </div>
-                    <div className="mt-2 h-1.5 bg-[var(--bg-primary)] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-green-500 transition-all duration-300"
-                        style={{ width: `${(queue.filter(q => q.status === 'ANALYZED' || q.status === 'COMPLETED').length / queue.length) * 100}%` }}
-                      />
+                    {/* Segmented progress bar */}
+                    <div className="h-1.5 bg-[var(--bg-primary)] rounded-full overflow-hidden flex">
+                      <div className="h-full bg-green-500 transition-all duration-500 rounded-l-full"
+                        style={{ width: `${(queue.filter(q => q.status === 'COMPLETED').length / queue.length) * 100}%` }} />
+                      <div className="h-full bg-amber-400 transition-all duration-500"
+                        style={{ width: `${(queue.filter(q => q.status === 'ANALYZED').length / queue.length) * 100}%` }} />
+                      <div className="h-full bg-red-500 transition-all duration-500"
+                        style={{ width: `${(queue.filter(q => q.status === 'ERROR').length / queue.length) * 100}%` }} />
                     </div>
+                    {/* Legend */}
+                    <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)]">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" />Done</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />Ready</span>
+                      {queue.some(q => q.status === 'ERROR') && (
+                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" />Failed</span>
+                      )}
+                    </div>
+                    {/* Retry button when there are errors */}
+                    {queue.some(q => q.status === 'ERROR') && (
+                      <button
+                        onClick={retryErrorItems}
+                        className="w-full mt-1 py-1.5 text-[11px] font-bold uppercase rounded-lg border-2 border-red-500/50 text-red-400 hover:bg-red-500/10 transition-all"
+                      >
+                        Retry {queue.filter(q => q.status === 'ERROR').length} Failed
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -1254,13 +1365,29 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                               <ScanSearch className="text-white w-6 h-6" />
                             </div>
                           </>
+                        ) : q.status === 'ERROR' ? (
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-2">
+                            <AlertCircle className="text-red-400 w-6 h-6 shrink-0" />
+                            <p className="text-[9px] text-red-400 text-center leading-tight">
+                              {q.error?.includes('BLOQUEADO') ? 'Blocked by safety filter' :
+                               q.error?.includes('QUOTA') ? 'API quota exceeded' :
+                               q.error?.includes('unavailable') ? 'Re-upload image' :
+                               'Failed'}
+                            </p>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); analyzeBatchItem(q.id); }}
+                              className="text-[9px] font-bold uppercase border border-red-400/50 text-red-400 px-2 py-0.5 rounded-full hover:bg-red-500/10 transition-all"
+                            >
+                              Retry
+                            </button>
+                          </div>
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]">
-                            {q.status === 'ERROR' ? <AlertCircle className="text-[#a11008]" /> :
-                              q.status === 'COMPLETED' ? <CheckCircle2 className="text-green-400" /> :
-                                q.status === 'GENERATING' ? <Loader2 className="animate-spin text-green-400" /> :
-                                  q.status === 'ANALYZED' ? <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" /> :
-                                    <div className="w-1 h-1 bg-[var(--text-muted)] rounded-full" />}
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-[var(--text-muted)]">
+                            {q.status === 'COMPLETED' ? <CheckCircle2 className="text-green-400 w-5 h-5" /> :
+                             q.status === 'GENERATING' ? <><Loader2 className="animate-spin text-green-400 w-5 h-5" /><span className="text-[9px] mt-1">Generating…</span></> :
+                             q.status === 'ANALYZED' ? <><div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" /><span className="text-[9px] mt-1">Ready</span></> :
+                             q.status === 'ANALYZING' ? <><Loader2 className="animate-spin text-amber-400 w-5 h-5" /><span className="text-[9px] mt-1">Analyzing…</span></> :
+                             <div className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full" />}
                           </div>
                         )}
 
