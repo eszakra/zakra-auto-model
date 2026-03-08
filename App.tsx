@@ -174,7 +174,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         selectedModel.image_url,
         selectedResolution === 'AUTO' ? undefined : selectedResolution,
         selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio,
-        selectedModel.reference_images || []
+        selectedModel.reference_images || [],
+        selectedModel.body_image || undefined // body type reference for pose variations
       );
 
       // Update the displayed image
@@ -417,7 +418,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       const currentKey = getCurrentApiKey();
       const base64Ref = await fileToBase64(item.file);
       const { generateUnifiedPayload } = await import('./services/geminiService');
-      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, base64Ref, selectedModel.reference_images || []);
+      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, base64Ref, selectedModel.reference_images || [], selectedModel.body_image || undefined);
 
       setQueue(prev => prev.map(q => q.id === itemId ? { ...q, status: 'ANALYZED', payload } : q));
     } catch (e: any) {
@@ -480,7 +481,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         user?.plan_type,
         selectedModel.reference_images || [],
         undefined, // no custom instructions in batch mode
-        item.previewUrl // pass the reference image so the generator matches its photographic quality
+        item.previewUrl, // scene reference — photographic quality matching
+        selectedModel.body_image || undefined // body type reference
       );
 
       const fileName = `batch_${Date.now()}_${item.id}.png`;
@@ -686,7 +688,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       const currentKey = getCurrentApiKey();
       const { generateUnifiedPayload } = await import('./services/geminiService');
 
-      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, refImage, selectedModel.reference_images || []);
+      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, refImage, selectedModel.reference_images || [], selectedModel.body_image || undefined);
       setGeneratedPayload(payload);
       setAppState(AppState.IDLE);
 
@@ -740,7 +742,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         user?.plan_type,
         selectedModel?.reference_images || [],
         customInstructions?.trim() || undefined,
-        refImage || undefined // pass the reference image so the generator matches its photographic quality
+        refImage || undefined, // scene reference — photographic quality matching
+        selectedModel?.body_image || undefined // body type reference
       );
       setGeneratedImage(result);
       setAppState(AppState.COMPLETE);

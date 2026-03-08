@@ -31,9 +31,10 @@ async function ensureBase64(input: string): Promise<string> {
 
 export const generateUnifiedPayload = async (
   apiKey: string,
-  modelImageSource: string, // Can be URL or Base64
-  refImageSource: string,   // Can be URL or Base64
-  additionalModelImages?: string[] // Extra face references for better consistency
+  modelFaceImageSource: string, // Close-up face photo — identity (face, eyes, skin tone)
+  refImageSource: string,       // Scene reference — pose, clothing, background, lighting
+  additionalModelImages?: string[], // Legacy extra angles (kept for backward compat)
+  modelBodyImageSource?: string // Full-body photo — body type, proportions, curves
 ): Promise<ZakraPayload> => {
   if (!apiKey) throw new Error("FALTA_CLAVE_API");
 
@@ -41,10 +42,13 @@ export const generateUnifiedPayload = async (
   // Using Gemini 3.0 Pro for payload/text generation
   const modelId = 'gemini-3-pro-preview';
 
-  const cleanModel = await ensureBase64(modelImageSource);
+  const cleanFace = await ensureBase64(modelFaceImageSource);
   const cleanRef = await ensureBase64(refImageSource);
 
-  // Prepare additional model images if provided
+  // Prepare body image if provided
+  const cleanBody = modelBodyImageSource ? await ensureBase64(modelBodyImageSource) : null;
+
+  // Prepare legacy extra angles if provided
   const extraImages: string[] = [];
   if (additionalModelImages && additionalModelImages.length > 0) {
     for (const img of additionalModelImages) {
@@ -52,16 +56,26 @@ export const generateUnifiedPayload = async (
     }
   }
 
-  const totalModelImages = 1 + extraImages.length;
-  const hasMultipleRefs = extraImages.length > 0;
+  // Build image index labels for the prompt
+  // Order: [FACE] [BODY?] [EXTRA_ANGLES...] [REFERENCE]
+  let imgIndex = 1;
+  const faceIndex = imgIndex++;
+  const bodyIndex = cleanBody ? imgIndex++ : null;
+  const extraStartIndex = imgIndex;
+  imgIndex += extraImages.length;
+  const refIndex = imgIndex;
 
-  const modelImageRule = hasMultipleRefs
-    ? `- IMAGES 1-${totalModelImages} (BASE MODEL): These are ALL the SAME PERSON photographed from different angles. Use ALL of them together to accurately extract the person's IDENTITY (face, eyes, skin tone, hair color/texture, facial structure). The more references you have, the more precise your description must be.`
-    : `- IMAGE 1 (BASE MODEL): Extract ONLY the person's IDENTITY (face, eyes, skin tone, hair color/texture).`;
+  const faceRule = `- IMAGE ${faceIndex} (FACE — BASE MODEL): Close-up face photo. Extract ONLY facial identity: eye color/shape, skin tone with undertones, nose shape, lip shape, jawline, age estimate, ethnicity, any face accessories (glasses, mask, etc.).`;
 
-  const refImageRule = hasMultipleRefs
-    ? `- IMAGE ${totalModelImages + 1} (REFERENCE): Extract EVERYTHING ELSE (pose, expression, clothing, background, lighting, accessories).`
-    : `- IMAGE 2 (REFERENCE): Extract EVERYTHING ELSE (pose, expression, clothing, background, lighting, accessories).`;
+  const bodyRule = bodyIndex
+    ? `- IMAGE ${bodyIndex} (BODY — BASE MODEL): Full-body photo of THE SAME PERSON. Extract ONLY physical body characteristics: height impression, body type (slim/athletic/curvy/plus-size/petite), proportions (shoulder width, hip width, waist definition), visible curves, posture tendency. NEVER copy clothing from this image — only body shape.`
+    : '';
+
+  const extraRule = extraImages.length > 0
+    ? `- IMAGES ${extraStartIndex}–${extraStartIndex + extraImages.length - 1} (EXTRA ANGLES — BASE MODEL): Additional photos of the same person. Use to refine face/identity accuracy.`
+    : '';
+
+  const refRule = `- IMAGE ${refIndex} (SCENE REFERENCE): Extract EVERYTHING ELSE: pose, expression, clothing, background, lighting, accessories, color grading, photographic style.`;
 
   const prompt = `
 You are an expert visual analysis specialist and prompt engineer with 15+ years of experience in photography, digital art, and AI image generation. You excel at deconstructing every visual element and translating them into precise technical specifications.
@@ -69,8 +83,10 @@ You are an expert visual analysis specialist and prompt engineer with 15+ years 
 TASK: Analyze the provided images and create a comprehensive JSON payload that FUSES them.
 
 RULES:
-${modelImageRule}
-${refImageRule}
+${faceRule}
+${bodyRule}
+${extraRule}
+${refRule}
 - The goal is to generate an image of the BASE MODEL person IN the REFERENCE scene.
 
 CRITICAL IDENTITY PRESERVATION RULES:
@@ -103,13 +119,14 @@ OUTPUT FORMAT (JSON ONLY, NO MARKDOWN, NO BACKTICKS):
   "prompt_type": "[Type of photo from REFERENCE: 'candid indoor smartphone selfie', 'professional studio portrait', 'outdoor natural light portrait', etc.]",
   "main_composition": "[Describe scene/action from REFERENCE. Include: rule applied (rule of thirds/center/symmetry), focal points, visual hierarchy, how eye moves through image]",
   "subject": {
-    "description": "[FROM BASE MODEL ONLY: eye color/shape, skin tone with undertones, nose shape, lip shape, jawline, age estimate, ethnicity. Be hyper-specific: 'striking light green/hazel almond-shaped eyes, defined dark arched eyebrows, warm olive skin with visible pores and natural texture']",
-    "hair": "[FROM BASE MODEL: color with undertones, texture, length, style. e.g., 'Extra long sleek straight dark chocolate brown hair (deep chestnut, warm tones) with precise middle part']",
-    "face_accessories": "[FROM BASE MODEL: face mask/surgical mask/bandana/glasses/sunglasses/eye patch or 'none'. CRITICAL: If model wears a mask, describe it exactly: color, type, coverage]",
+    "description": "[FROM FACE PHOTO ONLY: eye color/shape, skin tone with undertones, nose shape, lip shape, jawline, age estimate, ethnicity. Be hyper-specific: 'striking light green/hazel almond-shaped eyes, defined dark arched eyebrows, warm olive skin with visible pores and natural texture']",
+    "body_type": "[FROM BODY PHOTO: exact body type and proportions. Be honest and specific — e.g., 'curvy plus-size woman with wide hips, full bust, defined waist, rounded arms, soft belly' OR 'petite slim build, narrow shoulders, small bust, straight silhouette' OR 'athletic medium build, broad shoulders, toned arms, flat stomach'. Include: height impression (petite/average/tall), weight impression (slim/medium/full-figured/plus-size), shoulder-to-hip ratio, visible curves. This MUST be reproduced exactly — never make the model slimmer or curvier than shown.]",
+    "hair": "[FROM FACE/BODY PHOTO: color with undertones, texture, length, style. e.g., 'Extra long sleek straight dark chocolate brown hair (deep chestnut, warm tones) with precise middle part']",
+    "face_accessories": "[FROM FACE PHOTO: face mask/surgical mask/bandana/glasses/sunglasses/eye patch or 'none'. CRITICAL: If model wears a mask, describe it exactly: color, type, coverage]",
     "clothing": "[FROM REFERENCE: detailed clothing description including fabric type, fit, color, condition]",
     "pose_and_expression": "[FROM REFERENCE: exact body pose AND facial expression combined]",
     "body_accessories": "[FROM REFERENCE: jewelry, watches, bags, hats (non-face), or 'none']",
-    "skin_notes": "[FROM BASE MODEL: note if skin is clean/clear, any visible tattoos ON THE MODEL, birthmarks. IMPORTANT: Do NOT include tattoos from REFERENCE - only from BASE MODEL]",
+    "skin_notes": "[FROM FACE/BODY PHOTO: note if skin is clean/clear, any visible tattoos ON THE MODEL, birthmarks. IMPORTANT: Do NOT include tattoos from REFERENCE - only from BASE MODEL]",
     "hair_detailed": {
       "length": "[Exact length using body reference: pixie/short/chin-length/shoulder-length/mid-back/long/very long]",
       "cut": "[Specific style name: blunt bob/layered/shaggy/undercut/fade/tapered/disconnected]",
@@ -217,10 +234,14 @@ CRITICAL REMINDERS:
    `;
 
   try {
-    // Build image parts: all model images first, then reference image last
+    // Build image parts in the EXACT order described in the prompt:
+    // [FACE] → [BODY?] → [EXTRA ANGLES...] → [REFERENCE]
     const imageParts: any[] = [
-      { inlineData: { mimeType: 'image/jpeg', data: cleanModel } },
+      { inlineData: { mimeType: 'image/jpeg', data: cleanFace } },
     ];
+    if (cleanBody) {
+      imageParts.push({ inlineData: { mimeType: 'image/jpeg', data: cleanBody } });
+    }
     for (const extra of extraImages) {
       imageParts.push({ inlineData: { mimeType: 'image/jpeg', data: extra } });
     }
@@ -270,13 +291,14 @@ CRITICAL REMINDERS:
 export const generateIndustrialImage = async (
   apiKey: string,
   payload: ZakraPayload,
-  baseModelImageSource: string, // Pass base model image for identity reference
+  baseModelFaceImageSource: string, // Face close-up — primary identity reference
   imageSize?: string, // '1K', '2K', '4K' or undefined for AUTO
   aspectRatio?: string, // '1:1', '4:3', '16:9', etc.
   userPlan?: string, // 'free', 'starter', 'creator', 'pro', 'studio'
-  additionalModelImages?: string[], // Extra face references for better consistency
+  additionalModelImages?: string[], // Legacy extra angles
   customInstructions?: string, // Optional user instructions to refine the output
-  refImageSource?: string // Reference image — passed to generator to match its photographic quality
+  refImageSource?: string, // Scene reference — used to match photographic quality
+  bodyImageSource?: string // Full-body photo — body type/proportions reference
 ): Promise<string> => {
 
   if (!apiKey) throw new Error("FALTA_CLAVE_API");
@@ -390,22 +412,21 @@ ENVIRONMENT DETAILS:
     ? `SKIN: ${payload.subject.skin_notes}`
     : 'SKIN: Clean, clear skin without tattoos (unless specifically noted above)';
 
-  // Add a section describing how to use the reference image if provided
-  const refImageInstruction = refImageSource
-    ? `\nPHOTOGRAPHIC REFERENCE (last image provided):
-The last image is the ORIGINAL REFERENCE PHOTO. You must:
-- Match its exact photographic quality, sharpness, and detail level
-- Replicate its real camera characteristics: sensor noise, natural bokeh, color rendering, dynamic range
-- Copy its overall color grading, tones, and white balance precisely
-- Reproduce the same depth of field and focus rendering
-- Match its organic, spontaneous feel — this is a real iPhone/smartphone shot, not a studio render
-DO NOT change the person in it — only use it as a visual quality and scene reference.\n`
+  // Add a section describing how to use each image type
+  const refImageInstruction = `
+IMAGE ROLES (follow strictly):
+- FIRST IMAGE: Face close-up — use ONLY for facial identity (eyes, skin, features, face accessories).${bodyImageSource ? '\n- SECOND IMAGE: Full-body photo — use ONLY for body type, proportions, and curves. NEVER copy clothing from it.' : ''}${refImageSource ? '\n- LAST IMAGE: Scene reference photo — use for pose, clothing, background, lighting, and photographic quality. Match its exact camera feel (iPhone realism, grain, bokeh, color rendering).' : ''}
+`;
+
+  const bodyTypeSection = payload.subject.body_type
+    ? `BODY TYPE (MUST REPRODUCE EXACTLY): ${payload.subject.body_type}`
     : '';
 
   const imagePrompt = `
 Generate a photorealistic image with these EXACT specifications. This must look like a real photograph taken with an iPhone or high-end camera.
 ${refImageInstruction}
-SUBJECT: ${payload.subject.description}
+FACE & IDENTITY: ${payload.subject.description}
+${bodyTypeSection ? `${bodyTypeSection}` : ''}
 ${hairSection}
 ${faceAccessoriesSection ? `${faceAccessoriesSection}` : ''}
 ${skinNotesSection}
@@ -427,21 +448,22 @@ QUALITY: ${payload.technical_quality}${customSection}
 
 CRITICAL REQUIREMENTS:
 1. This must look like a REAL photograph, NOT CGI. Realistic skin with visible pores, natural imperfections, authentic lighting.
-2. The person's FACE AND IDENTITY must exactly match the first model reference image(s) provided.
-3. The PHOTOGRAPHIC QUALITY (sharpness, grain, color rendering, bokeh, dynamic range) must match the last reference image provided — replicate how a real iPhone captures light, texture, and depth.
-4. Maintain the exact color temperature, saturation, and contrast described above.
-5. Reproduce the lighting direction, shadow quality, and highlight placement precisely.
-6. Hair must show natural variation - flyaways, texture inconsistencies, not "AI perfect" smoothness.
-7. Hands must look natural with correct finger anatomy and relaxed positioning.
+2. The person's FACE AND IDENTITY must exactly match the face reference image provided.
+3. The person's BODY TYPE AND PROPORTIONS must exactly match the body reference image — reproduce curves, weight, and build faithfully. NEVER slim down or alter the body.
+4. The PHOTOGRAPHIC QUALITY (sharpness, grain, color rendering, bokeh, dynamic range) must match the last reference image provided — replicate how a real iPhone captures light, texture, and depth.
+5. Maintain the exact color temperature, saturation, and contrast described above.
+6. Reproduce the lighting direction, shadow quality, and highlight placement precisely.
+7. Hair must show natural variation - flyaways, texture inconsistencies, not "AI perfect" smoothness.
+8. Hands must look natural with correct finger anatomy and relaxed positioning.
 
 IDENTITY PRESERVATION (CRITICAL):
-8. FACE ACCESSORIES: If the model wears a face mask, glasses, or any face covering, it MUST appear in the output exactly as described above.
-9. NO TATTOOS: The output person must NOT have any tattoos unless the BASE MODEL specifically has tattoos. Do NOT copy tattoos from reference poses.
-10. CLEAN SKIN: The model's skin should match their reference photos - typically clean and clear without tattoos or body modifications from the pose reference.
+9. FACE ACCESSORIES: If the model wears a face mask, glasses, or any face covering, it MUST appear in the output exactly as described above.
+10. NO TATTOOS: The output person must NOT have any tattoos unless the BASE MODEL specifically has tattoos. Do NOT copy tattoos from reference poses.
+11. CLEAN SKIN: The model's skin should match their reference photos - typically clean and clear without tattoos or body modifications from the pose reference.
   `.trim();
 
-  // Prepare base model image for identity reference
-  const baseModelBase64 = await ensureBase64(baseModelImageSource);
+  // Prepare base model face image for identity reference
+  const baseModelBase64 = await ensureBase64(baseModelFaceImageSource);
 
   // Prepare additional model images
   const extraImages: string[] = [];
@@ -449,6 +471,12 @@ IDENTITY PRESERVATION (CRITICAL):
     for (const img of additionalModelImages) {
       extraImages.push(await ensureBase64(img));
     }
+  }
+
+  // Prepare body image for body type/proportions reference
+  let bodyImageBase64: string | null = null;
+  if (bodyImageSource) {
+    bodyImageBase64 = await ensureBase64(bodyImageSource);
   }
 
   // Prepare reference image for photographic quality matching
@@ -467,18 +495,19 @@ IDENTITY PRESERVATION (CRITICAL):
       imageConfig.aspectRatio = aspectRatio; // '1:1', '4:3', '16:9', etc.
     }
 
-    // Build image parts:
-    // 1. Model reference images (for face/identity) — first
-    // 2. Reference photo (for scene quality matching) — last
-    // This order tells the model: "identity from the first images, match the photographic
-    // quality, lighting and atmosphere of the last image"
+    // Build image parts in order matching the prompt instructions:
+    // [FACE] → [BODY?] → [EXTRA ANGLES...] → [SCENE REFERENCE]
     const modelImageParts: any[] = [
-      { inlineData: { mimeType: 'image/jpeg', data: baseModelBase64 } },
+      { inlineData: { mimeType: 'image/jpeg', data: baseModelBase64 } }, // face
     ];
+    // Body photo right after face so model clearly associates it with same person
+    if (bodyImageBase64) {
+      modelImageParts.push({ inlineData: { mimeType: 'image/jpeg', data: bodyImageBase64 } });
+    }
     for (const extra of extraImages) {
       modelImageParts.push({ inlineData: { mimeType: 'image/jpeg', data: extra } });
     }
-    // Append the reference photo last so the model can see the real photographic style
+    // Scene reference photo last — for photographic quality matching
     if (refImageBase64) {
       modelImageParts.push({ inlineData: { mimeType: 'image/jpeg', data: refImageBase64 } });
     }
@@ -547,10 +576,11 @@ export const generatePoseVariation = async (
   originalPayload: ZakraPayload,
   previouslyGeneratedImage: string, // The image we want to change the pose of
   newPoseDescription: string, // "auto" for AI-chosen pose, or custom description
-  baseModelImageSource: string,
+  baseModelFaceImageSource: string,
   imageSize?: string,
   aspectRatio?: string,
-  additionalModelImages?: string[]
+  additionalModelImages?: string[],
+  bodyImageSource?: string // Full-body photo — body type reference
 ): Promise<string> => {
 
   if (!apiKey) throw new Error("FALTA_CLAVE_API");
@@ -559,8 +589,9 @@ export const generatePoseVariation = async (
   const modelId = 'gemini-3-pro-image-preview';
 
   // Prepare all images
-  const baseModelBase64 = await ensureBase64(baseModelImageSource);
+  const baseModelBase64 = await ensureBase64(baseModelFaceImageSource);
   const generatedImageBase64 = await ensureBase64(previouslyGeneratedImage);
+  const bodyImageBase64 = bodyImageSource ? await ensureBase64(bodyImageSource) : null;
 
   const extraModelImages: string[] = [];
   if (additionalModelImages && additionalModelImages.length > 0) {
@@ -646,6 +677,7 @@ WHAT CHANGES: The person's pose and expression to: ${poseInstruction}
 ═══════════════════════════════════════
 SUBJECT IDENTITY (from model references):
   - Face: ${originalPayload.subject.description}
+  ${originalPayload.subject.body_type ? `- BODY TYPE (MUST REPRODUCE EXACTLY): ${originalPayload.subject.body_type}` : ''}
 ${pv_hairSection}
   ${originalPayload.subject.face_accessories && originalPayload.subject.face_accessories !== 'none' ? `- FACE ACCESSORIES (MUST INCLUDE): ${originalPayload.subject.face_accessories}` : ''}
   - Skin: ${originalPayload.subject.skin_notes || 'Clean, clear skin without tattoos'}
@@ -698,11 +730,13 @@ IDENTITY PRESERVATION (CRITICAL):
       imageConfig.aspectRatio = aspectRatio;
     }
 
-    // Build image parts: model references + the generated image we're varying
+    // Build image parts: [FACE] → [BODY?] → [EXTRA ANGLES...] → [GENERATED IMAGE]
     const imageParts: any[] = [
-      // First: model reference images for face consistency
-      { inlineData: { mimeType: 'image/jpeg', data: baseModelBase64 } },
+      { inlineData: { mimeType: 'image/jpeg', data: baseModelBase64 } }, // face
     ];
+    if (bodyImageBase64) {
+      imageParts.push({ inlineData: { mimeType: 'image/jpeg', data: bodyImageBase64 } }); // body
+    }
     for (const extra of extraModelImages) {
       imageParts.push({ inlineData: { mimeType: 'image/jpeg', data: extra } });
     }

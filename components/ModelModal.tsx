@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { X, Loader2, Plus, ImagePlus } from 'lucide-react';
+import { X, Loader2, ImagePlus } from 'lucide-react';
 
 interface ModelModalProps {
     isOpen: boolean;
@@ -9,15 +9,12 @@ interface ModelModalProps {
     onSuccess: () => void;
 }
 
-const MAX_EXTRA_IMAGES = 4;
-
 const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const { user } = useAuth();
     const [nombre, setNombre] = useState('');
-    const [url, setUrl] = useState(''); // Primary image (base64 or URL)
-    const [extraImages, setExtraImages] = useState<string[]>([]); // Additional reference images
+    const [faceImage, setFaceImage] = useState('');   // Close-up face photo
+    const [bodyImage, setBodyImage] = useState('');   // Full body photo
     const [loading, setLoading] = useState(false);
-    const extraInputRef = useRef<HTMLInputElement>(null);
 
     const dataUrlToBlob = (dataUrl: string): Blob => {
         const [header, base64] = dataUrl.split(',');
@@ -50,37 +47,41 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
         return publicUrlData.publicUrl;
     };
 
+    const readFile = (file: File): Promise<string> =>
+        new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+
     const handleSubmit = async () => {
-        if (!nombre || !url) {
-            alert("Image and name are required");
+        if (!nombre || !faceImage || !bodyImage) {
+            alert("Model name, face photo, and body photo are all required.");
             return;
         }
 
         setLoading(true);
 
         try {
-            // Upload primary image
-            let finalImageUrl = url;
-            if (url.startsWith('data:')) {
-                finalImageUrl = await uploadImageToStorage(url, nombre.replace(/\s+/g, '_'));
-            }
+            const prefix = nombre.replace(/\s+/g, '_');
 
-            // Upload extra reference images
-            const referenceUrls: string[] = [];
-            for (const extra of extraImages) {
-                if (extra.startsWith('data:')) {
-                    const uploadedUrl = await uploadImageToStorage(extra, `${nombre.replace(/\s+/g, '_')}_ref`);
-                    referenceUrls.push(uploadedUrl);
-                } else {
-                    referenceUrls.push(extra);
-                }
-            }
+            // Upload face photo
+            const finalFaceUrl = faceImage.startsWith('data:')
+                ? await uploadImageToStorage(faceImage, `${prefix}_face`)
+                : faceImage;
+
+            // Upload body photo
+            const finalBodyUrl = bodyImage.startsWith('data:')
+                ? await uploadImageToStorage(bodyImage, `${prefix}_body`)
+                : bodyImage;
 
             const { error } = await supabase.from('saved_models').insert([
                 {
                     model_name: nombre,
-                    image_url: finalImageUrl,
-                    reference_images: referenceUrls.length > 0 ? referenceUrls : null,
+                    image_url: finalFaceUrl,         // face = primary identity source
+                    body_image: finalBodyUrl,         // body = proportions/type source
+                    reference_images: null,           // legacy field, not used in new flow
                     face_description: "PENDING_AUTO_ANALYSIS",
                     hair_description: "PENDING_AUTO_ANALYSIS",
                     user_id: user?.id
@@ -92,8 +93,8 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
             onSuccess();
             onClose();
             setNombre('');
-            setUrl('');
-            setExtraImages([]);
+            setFaceImage('');
+            setBodyImage('');
 
         } catch (error: any) {
             alert("Error: " + error.message);
@@ -102,36 +103,72 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
         }
     };
 
-    const handleExtraImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files) return;
-
-        const remaining = MAX_EXTRA_IMAGES - extraImages.length;
-        const filesToProcess = Array.from(files).slice(0, remaining);
-
-        filesToProcess.forEach(file => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setExtraImages(prev => {
-                    if (prev.length >= MAX_EXTRA_IMAGES) return prev;
-                    return [...prev, reader.result as string];
-                });
-            };
-            reader.readAsDataURL(file);
-        });
-
-        e.target.value = '';
-    };
-
-    const removeExtraImage = (index: number) => {
-        setExtraImages(prev => prev.filter((_, i) => i !== index));
-    };
-
     if (!isOpen) return null;
+
+    const ImageSlot = ({
+        id,
+        label,
+        hint,
+        required,
+        value,
+        onSet,
+        onClear,
+        aspect,
+    }: {
+        id: string;
+        label: string;
+        hint: string;
+        required?: boolean;
+        value: string;
+        onSet: (v: string) => void;
+        onClear: () => void;
+        aspect: string; // tailwind aspect class e.g. 'aspect-[3/4]'
+    }) => (
+        <div className="flex flex-col gap-1.5">
+            <label className="text-xs text-gray-500 uppercase font-medium tracking-wide">
+                {label} {required && <span className="text-reed-red">*</span>}
+            </label>
+            <p className="text-xs text-[var(--text-muted)] -mt-1">{hint}</p>
+            <div
+                className={`${aspect} w-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-reed-red transition-colors overflow-hidden bg-[var(--bg-secondary)] relative ${value ? 'border-reed-red/60' : 'border-[var(--border-color)]'}`}
+                onClick={() => document.getElementById(id)?.click()}
+            >
+                {value ? (
+                    <>
+                        <img src={value} alt={label} className="w-full h-full object-cover" />
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onClear(); }}
+                            className="absolute top-2 right-2 bg-black/70 text-white p-1 rounded-full hover:bg-red-500 transition-colors"
+                        >
+                            <X size={12} />
+                        </button>
+                    </>
+                ) : (
+                    <div className="text-center py-4 px-2">
+                        <ImagePlus className="w-7 h-7 text-gray-400 mx-auto mb-2" />
+                        <span className="text-[11px] text-gray-500 uppercase tracking-wide font-medium">Upload</span>
+                    </div>
+                )}
+            </div>
+            <input
+                id={id}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) onSet(await readFile(file));
+                    e.target.value = '';
+                }}
+            />
+        </div>
+    );
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="w-full max-w-lg border border-[var(--border-color)] bg-[var(--bg-primary)] rounded-xl p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+
+                {/* Header */}
                 <div className="flex justify-between items-center border-b border-[var(--border-color)] pb-4">
                     <div className="flex items-center gap-2">
                         <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-5 w-auto" />
@@ -148,109 +185,57 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
                 <div className="space-y-4">
                     {/* Model Name */}
                     <div className="flex flex-col gap-2">
-                        <label className="text-xs text-gray-500 uppercase font-medium">Model Name</label>
+                        <label className="text-xs text-gray-500 uppercase font-medium tracking-wide">Model Name <span className="text-reed-red">*</span></label>
                         <input
                             value={nombre}
                             onChange={e => setNombre(e.target.value)}
                             className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-3 text-sm text-[var(--text-primary)] outline-none focus:border-reed-red transition-colors"
-                            placeholder="e.g., Aisah, Sofia, Luna, Emma"
+                            placeholder="e.g., Sofia, Luna, Emma"
                         />
                     </div>
 
-                    {/* Primary Image */}
-                    <div className="flex flex-col gap-2">
-                        <label className="text-xs text-gray-500 uppercase font-medium">Main Face Photo <span className="text-reed-red">*</span></label>
-                        <div
-                            className="border-2 border-dashed border-gray-300 bg-[var(--bg-secondary)] rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-reed-red transition-colors"
-                            onClick={() => document.getElementById('model-upload')?.click()}
-                        >
-                            {url ? (
-                                <div className="relative w-full aspect-square max-h-40">
-                                    <img src={url} alt="Preview" className="w-full h-full object-contain rounded-lg" />
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setUrl(''); }}
-                                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="text-center py-6">
-                                    <ImagePlus className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                                    <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">Upload Main Photo (JPG/PNG)</span>
-                                </div>
-                            )}
-                            <input
-                                id="model-upload"
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => setUrl(reader.result as string);
-                                        reader.readAsDataURL(file);
-                                    }
-                                }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Additional Reference Images */}
-                    <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
-                            <label className="text-xs text-gray-500 uppercase font-medium">More Angles <span className="text-[var(--text-muted)] normal-case">(optional)</span></label>
-                            <span className="text-xs text-[var(--text-muted)]">{extraImages.length}/{MAX_EXTRA_IMAGES}</span>
-                        </div>
-                        <p className="text-xs text-[var(--text-muted)] -mt-1">Different angles help AI match the face more accurately</p>
-
-                        <div className="grid grid-cols-4 gap-2">
-                            {extraImages.map((img, index) => (
-                                <div key={index} className="relative aspect-square bg-[var(--bg-secondary)] rounded-lg overflow-hidden border border-[var(--border-color)]">
-                                    <img src={img} alt={`Ref ${index + 1}`} className="w-full h-full object-cover" />
-                                    <button
-                                        onClick={() => removeExtraImage(index)}
-                                        className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                                    >
-                                        <X size={10} />
-                                    </button>
-                                </div>
-                            ))}
-
-                            {extraImages.length < MAX_EXTRA_IMAGES && (
-                                <button
-                                    onClick={() => extraInputRef.current?.click()}
-                                    className="aspect-square border-2 border-dashed border-[var(--border-color)] rounded-lg flex flex-col items-center justify-center hover:border-reed-red hover:text-reed-red text-[var(--text-muted)] transition-colors"
-                                >
-                                    <Plus size={16} />
-                                </button>
-                            )}
-                        </div>
-
-                        <input
-                            ref={extraInputRef}
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                            onChange={handleExtraImageUpload}
+                    {/* Two slots side by side: Face + Body */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <ImageSlot
+                            id="upload-face"
+                            label="Face Photo"
+                            hint="Clear close-up of the face"
+                            required
+                            value={faceImage}
+                            onSet={setFaceImage}
+                            onClear={() => setFaceImage('')}
+                            aspect="aspect-[3/4]"
+                        />
+                        <ImageSlot
+                            id="upload-body"
+                            label="Body Photo"
+                            hint="Full body — shows curves, height & build"
+                            required
+                            value={bodyImage}
+                            onSet={setBodyImage}
+                            onClear={() => setBodyImage('')}
+                            aspect="aspect-[3/4]"
                         />
                     </div>
+
+                    {/* Helper note */}
+                    <p className="text-[11px] text-[var(--text-muted)] leading-relaxed bg-[var(--bg-secondary)] rounded-lg px-3 py-2 border border-[var(--border-color)]">
+                        The <span className="text-[var(--text-primary)] font-medium">face photo</span> is used to extract identity (eyes, skin tone, features). The <span className="text-[var(--text-primary)] font-medium">body photo</span> is used to capture body type, proportions, and curves — so the AI never guesses or invents them.
+                    </p>
                 </div>
 
                 <button
                     onClick={handleSubmit}
-                    disabled={loading}
-                    className="w-full py-3 bg-reed-red text-white text-sm font-bold uppercase rounded-lg hover:bg-reed-red-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2 flex items-center justify-center gap-2"
+                    disabled={loading || !nombre || !faceImage || !bodyImage}
+                    className="w-full py-3 bg-reed-red text-white text-sm font-bold uppercase rounded-lg hover:bg-reed-red-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-2 flex items-center justify-center gap-2"
                 >
                     {loading ? (
                         <>
                             <Loader2 size={16} className="animate-spin" />
-                            {extraImages.length > 0 ? 'Uploading images...' : 'Saving...'}
+                            Uploading...
                         </>
                     ) : (
-                        'Create Record'
+                        'Create Model'
                     )}
                 </button>
             </div>

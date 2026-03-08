@@ -2,8 +2,9 @@ export interface ModeloBase {
   id: string; // UUID in Supabase
   created_at: string;
   model_name: string;
-  image_url: string;
-  reference_images?: string[]; // Additional face reference URLs
+  image_url: string; // Close-up face photo (primary identity)
+  body_image?: string; // Full-body photo (body type, curves, proportions)
+  reference_images?: string[]; // Legacy extra angles (kept for backward compat)
   face_description?: string; // Optional/Ignored in new flow
   hair_description?: string; // Optional/Ignored in new flow
 }
@@ -22,7 +23,8 @@ export interface ZakraPayload {
   prompt_type: string;
   main_composition: string;
   subject: {
-    description: string;
+    description: string;        // Facial identity from face photo
+    body_type?: string;         // Body type and proportions from body photo
     hair: string;
     face_accessories?: string;  // Face mask, glasses, sunglasses FROM MODEL
     clothing: string;
