@@ -65,17 +65,17 @@ export const generateUnifiedPayload = async (
   imgIndex += extraImages.length;
   const refIndex = imgIndex;
 
-  const faceRule = `- IMAGE ${faceIndex} (FACE — BASE MODEL): Close-up face photo. Extract ONLY facial identity: eye color/shape, skin tone with undertones, nose shape, lip shape, jawline, age estimate, ethnicity, any face accessories (glasses, mask, etc.).`;
+  const faceRule = `- IMAGE ${faceIndex} (FACE — BASE MODEL): Close-up face photo of the model. Extract ONLY AND EXCLUSIVELY: eye color/shape, skin tone with undertones, nose shape, lip shape, jawline, age estimate, ethnicity, hair color/texture/length/style, any face accessories (glasses, mask, etc.). IGNORE COMPLETELY: background, lighting, setting, clothing, photographic quality, environment — everything that is NOT the person's face and hair.`;
 
   const bodyRule = bodyIndex
-    ? `- IMAGE ${bodyIndex} (BODY — BASE MODEL): Full-body photo of THE SAME PERSON. Extract ONLY physical body characteristics: height impression, body type (slim/athletic/curvy/plus-size/petite), proportions (shoulder width, hip width, waist definition), visible curves, posture tendency. NEVER copy clothing from this image — only body shape.`
+    ? `- IMAGE ${bodyIndex} (BODY — BASE MODEL): Full-body photo of THE SAME PERSON. Extract ONLY AND EXCLUSIVELY: body type (slim/athletic/curvy/plus-size/petite), proportions (shoulder width, hip width, waist definition), visible curves, height impression, posture tendency. IGNORE COMPLETELY: clothing, background, lighting, setting, environment, photographic quality — everything that is NOT the physical body shape.`
     : '';
 
   const extraRule = extraImages.length > 0
-    ? `- IMAGES ${extraStartIndex}–${extraStartIndex + extraImages.length - 1} (EXTRA ANGLES — BASE MODEL): Additional photos of the same person. Use to refine face/identity accuracy.`
+    ? `- IMAGES ${extraStartIndex}–${extraStartIndex + extraImages.length - 1} (EXTRA ANGLES — BASE MODEL): Additional photos of the same person for face/identity accuracy only. IGNORE their backgrounds and lighting completely.`
     : '';
 
-  const refRule = `- IMAGE ${refIndex} (SCENE REFERENCE): Extract EVERYTHING ELSE: pose, expression, clothing, background, lighting, accessories, color grading, photographic style.`;
+  const refRule = `- IMAGE ${refIndex} (SCENE REFERENCE — THE ONLY SOURCE FOR EVERYTHING ELSE): This is the ONLY image from which you extract: pose, expression, clothing, background, lighting, environment, accessories, color grading, photographic style, camera quality, depth of field, grain, color temperature. ALL scene and quality information comes exclusively from THIS image. Nothing from the model photos should influence the scene, background, or photographic quality.`;
 
   const prompt = `
 You are an expert visual analysis specialist and prompt engineer with 15+ years of experience in photography, digital art, and AI image generation. You excel at deconstructing every visual element and translating them into precise technical specifications.
@@ -105,14 +105,20 @@ The final image MUST look like a real, candid photograph taken with an iPhone or
 
 ALWAYS emphasize: realistic skin texture with visible pores, natural imperfections, authentic lighting, genuine spontaneous moment.
 
-ANALYSIS RULES:
-- Hair: Measure exact length using body reference points. Identify specific cut style by name. Note texture AND quality. Capture natural imperfections (flyaways, frizz, uneven sections). AVOID describing hair as "perfect" - real hair has variation.
-- Hands: Describe EACH hand separately with exact position. Note if visible or hidden. Document finger positions and tension level. Assess naturalness.
-- Facial expression: Capture exact mouth position, quantify smile intensity, note eye expression, assess genuine vs posed quality.
-- Background: Catalog EVERY visible object with position. For plants identify species. Analyze wall material (painted drywall vs concrete vs brick). Document floor type, spatial depth layers.
-- Lighting: Distinguish dramatic directional vs flat even. Assess shadow edge quality (harsh vs soft), density, placement. Note if ambient fill is present. This is CRITICAL for recreation.
-- Color: Extract dominant colors with hex values. Identify temperature (warm/cool), saturation level, and contrast.
-- PHOTOGRAPHIC QUALITY (CRITICAL): Analyze the reference image as if you are a professional photographer. Determine: is it shot on iPhone/smartphone (natural noise, slightly soft edges, vivid colors, auto HDR) or DSLR (crisper, more neutral rendering)? What is the exact grain/noise level? What is the rendering style — hyper-sharp, slightly soft, cinematic? This MUST be captured precisely in technical_specs and technical_quality so the generator can reproduce the same camera feel.
+ANALYSIS RULES — SOURCE IS CRITICAL:
+
+FROM THE MODEL PHOTOS (face + body) ONLY:
+- Hair: Measure exact length using body reference points. Identify specific cut style by name. Note texture AND quality. Capture natural imperfections (flyaways, frizz, uneven sections). Real hair has variation — never describe as "perfect".
+- Face & identity: eye color, skin tone, facial features, face accessories.
+- Body type: honest specific description of proportions and curves as they actually appear.
+
+FROM THE SCENE REFERENCE ONLY (ignore model photos for these):
+- Hands: Describe EACH hand separately with exact position, finger positions, tension, naturalness — from REFERENCE pose.
+- Facial expression: Capture exact mouth position, smile intensity, eye expression — from REFERENCE.
+- Background: Catalog EVERY visible object with position. For plants identify species. Analyze wall material (painted drywall vs concrete vs brick). Document floor type, spatial depth layers. FROM REFERENCE ONLY.
+- Lighting: Distinguish dramatic directional vs flat even. Shadow edge quality (harsh vs soft), density, placement, ambient fill. CRITICAL for recreation. FROM REFERENCE ONLY.
+- Color: Dominant colors with hex values, temperature (warm/cool), saturation, contrast. FROM REFERENCE ONLY.
+- PHOTOGRAPHIC QUALITY (CRITICAL — FROM REFERENCE ONLY): Analyze the REFERENCE image as a professional photographer would. Is it iPhone/smartphone (natural noise, vivid HDR, slightly soft edges) or DSLR? Exact grain level, rendering style. Capture precisely in technical_specs and technical_quality. The model photos' photographic quality is IRRELEVANT — only the reference image's quality matters.
 
 OUTPUT FORMAT (JSON ONLY, NO MARKDOWN, NO BACKTICKS):
 {
@@ -121,12 +127,12 @@ OUTPUT FORMAT (JSON ONLY, NO MARKDOWN, NO BACKTICKS):
   "subject": {
     "description": "[FROM FACE PHOTO ONLY: eye color/shape, skin tone with undertones, nose shape, lip shape, jawline, age estimate, ethnicity. Be hyper-specific: 'striking light green/hazel almond-shaped eyes, defined dark arched eyebrows, warm olive skin with visible pores and natural texture']",
     "body_type": "[FROM BODY PHOTO: exact body type and proportions. Be honest and specific — e.g., 'curvy plus-size woman with wide hips, full bust, defined waist, rounded arms, soft belly' OR 'petite slim build, narrow shoulders, small bust, straight silhouette' OR 'athletic medium build, broad shoulders, toned arms, flat stomach'. Include: height impression (petite/average/tall), weight impression (slim/medium/full-figured/plus-size), shoulder-to-hip ratio, visible curves. This MUST be reproduced exactly — never make the model slimmer or curvier than shown.]",
-    "hair": "[FROM FACE/BODY PHOTO: color with undertones, texture, length, style. e.g., 'Extra long sleek straight dark chocolate brown hair (deep chestnut, warm tones) with precise middle part']",
+    "hair": "[FROM MODEL PHOTOS (face/body) ONLY — IGNORE reference image hair: color with undertones, texture, length, style. e.g., 'Extra long sleek straight dark chocolate brown hair (deep chestnut, warm tones) with precise middle part']",
     "face_accessories": "[FROM FACE PHOTO: face mask/surgical mask/bandana/glasses/sunglasses/eye patch or 'none'. CRITICAL: If model wears a mask, describe it exactly: color, type, coverage]",
     "clothing": "[FROM REFERENCE: detailed clothing description including fabric type, fit, color, condition]",
     "pose_and_expression": "[FROM REFERENCE: exact body pose AND facial expression combined]",
     "body_accessories": "[FROM REFERENCE: jewelry, watches, bags, hats (non-face), or 'none']",
-    "skin_notes": "[FROM FACE/BODY PHOTO: note if skin is clean/clear, any visible tattoos ON THE MODEL, birthmarks. IMPORTANT: Do NOT include tattoos from REFERENCE - only from BASE MODEL]",
+    "skin_notes": "[FROM MODEL PHOTOS ONLY: note if skin is clean/clear, any visible tattoos on the MODEL, birthmarks. NEVER include tattoos or marks from the REFERENCE image]",
     "hair_detailed": {
       "length": "[Exact length using body reference: pixie/short/chin-length/shoulder-length/mid-back/long/very long]",
       "cut": "[Specific style name: blunt bob/layered/shaggy/undercut/fade/tapered/disconnected]",
