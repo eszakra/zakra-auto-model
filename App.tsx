@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { supabase, uploadBase64Image } from './services/supabaseClient';
 import { constructPayload, generateIndustrialImage } from './services/geminiService';
+import { stripAndInjectIphoneExif } from './services/imageMetadata';
 import { AppState, ModeloBase, QueueItem } from './types';
 import ModelModal from './components/ModelModal';
 import OnboardingGuide from './components/OnboardingGuide';
@@ -608,7 +609,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       if (!currentItem.base64 && !currentItem.file) throw new Error("Image data unavailable — please re-upload this reference.");
       const sceneRef = currentItem.base64 || await readFileAsBase64(currentItem.file!);
 
-      const resultBase64 = await generateIndustrialImage(
+      const rawResult = await generateIndustrialImage(
         currentKey,
         currentItem.payload,
         selectedModel.image_url,
@@ -621,7 +622,10 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         selectedModel.body_image || undefined // body type reference
       );
 
-      const fileName = `batch_${Date.now()}_${item.id}.png`;
+      // Strip Google/SynthID metadata and inject realistic iPhone EXIF
+      const resultBase64 = await stripAndInjectIphoneExif(rawResult);
+
+      const fileName = `batch_${Date.now()}_${item.id}.jpg`;
       const publicUrl = await uploadBase64Image(resultBase64, 'generations', fileName);
       await supabase.from('generation_logs').insert({
         user_id: user?.id,
@@ -862,7 +866,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
     try {
       const { generateIndustrialImage } = await import('./services/geminiService');
-      const result = await generateIndustrialImage(
+      const rawResult = await generateIndustrialImage(
         currentKey,
         finalPayload,
         selectedModel?.image_url || "",
@@ -874,6 +878,10 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         refImage || undefined, // scene reference — photographic quality matching
         selectedModel?.body_image || undefined // body type reference
       );
+
+      // Strip Google/SynthID metadata and inject realistic iPhone EXIF
+      const result = await stripAndInjectIphoneExif(rawResult);
+
       setGeneratedImage(result);
       setAppState(AppState.COMPLETE);
 
@@ -897,7 +905,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     try {
       if (!selectedModel || !user) return;
 
-      const fileName = `gen_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+      const fileName = `gen_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
       const publicUrl = await uploadBase64Image(base64Image, 'generations', fileName);
 
       await supabase.from('generation_logs').insert({
