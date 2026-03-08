@@ -57,12 +57,14 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       const saved = localStorage.getItem(QUEUE_STORAGE_KEY);
       if (!saved) return [];
       const parsed: QueueItem[] = JSON.parse(saved);
-      // Restore: previewUrl = base64 (blob URLs don't survive page reload)
       return parsed.map(item => ({
         ...item,
         file: undefined, // File objects can't be persisted
-        previewUrl: item.base64 || item.previewUrl, // use base64 as preview when blob URL is gone
-        // Items that were mid-flight get reset so they can be retried
+        // blob: URLs die on reload — use base64 as preview fallback
+        previewUrl: item.base64 || item.previewUrl,
+        // COMPLETED items: restore resultImage from resultUrl so the thumbnail shows
+        resultImage: item.resultUrl || item.resultImage,
+        // Items mid-flight when closed get reset to retryable states
         status: (item.status === 'ANALYZING' || item.status === 'GENERATING')
           ? (item.payload ? 'ANALYZED' : 'PENDING')
           : item.status,
@@ -77,17 +79,37 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   // Persist queue to localStorage whenever it changes
-  // We omit: file (not serializable), resultImage (large base64 — resultUrl is enough)
   useEffect(() => {
     if (queue.length === 0) {
       localStorage.removeItem(QUEUE_STORAGE_KEY);
       return;
     }
     try {
-      const serializable = queue.map(({ file: _file, resultImage: _ri, ...rest }) => rest);
+      const serializable = queue.map(({ file: _file, resultImage: _ri, ...item }) => ({
+        ...item,
+        // Drop base64 for items that are already ANALYZED/COMPLETED/GENERATING —
+        // they have payload + resultUrl and don't need the raw image anymore.
+        // Only PENDING and ERROR items keep base64 so they can be re-analyzed.
+        base64: (item.status === 'PENDING' || item.status === 'ERROR') ? item.base64 : undefined,
+        // previewUrl: keep a tiny version — if base64 is dropped use resultUrl as preview
+        previewUrl: (item.status === 'COMPLETED' && item.resultUrl)
+          ? item.resultUrl
+          : (item.status === 'PENDING' || item.status === 'ERROR')
+            ? (item.base64 || item.previewUrl)
+            : item.previewUrl,
+      }));
       localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(serializable));
-    } catch {
-      // If localStorage is full (quota), fail silently — not critical
+    } catch (e: any) {
+      // localStorage quota exceeded — try saving without base64 at all as fallback
+      try {
+        const minimal = queue.map(({ file: _f, resultImage: _ri, base64: _b64, ...item }) => ({
+          ...item,
+          previewUrl: (item.status === 'COMPLETED' && item.resultUrl) ? item.resultUrl : item.previewUrl,
+        }));
+        localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(minimal));
+      } catch {
+        // If even minimal save fails, nothing we can do
+      }
     }
   }, [queue]);
 
