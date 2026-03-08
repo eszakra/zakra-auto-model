@@ -398,16 +398,21 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // Copy files array BEFORE clearing the input — clearing early can make files inaccessible
     const fileArray = Array.from(files) as File[];
-    e.target.value = ''; // reset so the same file can be picked again later
+    e.target.value = '';
 
-    if (queue.length > 0) {
+    // Read current queue length from live state (not stale closure)
+    let currentQueueLength = 0;
+    setQueue(prev => { currentQueueLength = prev.length; return prev; });
+
+    if (currentQueueLength > 0) {
       const newItems = await buildQueueItems(fileArray);
       setQueue(prev => [...prev, ...newItems]);
       return;
     }
 
+    // Starting fresh — clear everything including persisted queue
+    localStorage.removeItem(QUEUE_STORAGE_KEY);
     setGeneratedPayload(null);
     setGeneratedImage(null);
     setCustomInstructions('');
@@ -472,6 +477,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       return;
     }
 
+    // Starting fresh — clear everything including persisted queue
+    localStorage.removeItem(QUEUE_STORAGE_KEY);
     setGeneratedPayload(null);
     setGeneratedImage(null);
     setCustomInstructions('');
