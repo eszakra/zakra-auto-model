@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { X, Loader2, ImagePlus } from 'lucide-react';
+import { X, Loader2, Camera, PersonStanding } from 'lucide-react';
 
 interface ModelModalProps {
     isOpen: boolean;
@@ -12,8 +12,8 @@ interface ModelModalProps {
 const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const { user } = useAuth();
     const [nombre, setNombre] = useState('');
-    const [faceImage, setFaceImage] = useState('');   // Close-up face photo
-    const [bodyImage, setBodyImage] = useState('');   // Full body photo
+    const [faceImage, setFaceImage] = useState('');
+    const [bodyImage, setBodyImage] = useState('');
     const [loading, setLoading] = useState(false);
 
     const dataUrlToBlob = (dataUrl: string): Blob => {
@@ -21,226 +21,219 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
         const mime = header.match(/:(.*?);/)?.[1] || 'image/png';
         const binary = atob(base64);
         const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-            bytes[i] = binary.charCodeAt(i);
-        }
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
         return new Blob([bytes], { type: mime });
     };
 
-    const uploadImageToStorage = async (dataUrl: string, prefix: string): Promise<string> => {
+    const uploadToStorage = async (dataUrl: string, prefix: string): Promise<string> => {
         const blob = dataUrlToBlob(dataUrl);
         const ext = blob.type === 'image/jpeg' ? 'jpg' : 'png';
         const fileName = `${prefix}_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-
-        const { error: uploadError } = await supabase.storage
-            .from('models')
-            .upload(fileName, blob, { contentType: blob.type });
-
-        if (uploadError) {
-            throw new Error("Error uploading image: " + uploadError.message);
-        }
-
-        const { data: publicUrlData } = supabase.storage
-            .from('models')
-            .getPublicUrl(fileName);
-
-        return publicUrlData.publicUrl;
+        const { error } = await supabase.storage.from('models').upload(fileName, blob, { contentType: blob.type });
+        if (error) throw new Error("Upload failed: " + error.message);
+        return supabase.storage.from('models').getPublicUrl(fileName).data.publicUrl;
     };
 
     const readFile = (file: File): Promise<string> =>
-        new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
+        new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onloadend = () => res(r.result as string);
+            r.onerror = rej;
+            r.readAsDataURL(file);
         });
 
     const handleSubmit = async () => {
-        if (!nombre || !faceImage || !bodyImage) {
-            alert("Model name, face photo, and body photo are all required.");
-            return;
-        }
+        if (!nombre.trim()) { alert("Enter a model name."); return; }
+        if (!faceImage) { alert("Upload a face photo."); return; }
+        if (!bodyImage) { alert("Upload a body photo."); return; }
 
         setLoading(true);
-
         try {
-            const prefix = nombre.replace(/\s+/g, '_');
-
-            // Upload face photo
-            const finalFaceUrl = faceImage.startsWith('data:')
-                ? await uploadImageToStorage(faceImage, `${prefix}_face`)
-                : faceImage;
-
-            // Upload body photo
-            const finalBodyUrl = bodyImage.startsWith('data:')
-                ? await uploadImageToStorage(bodyImage, `${prefix}_body`)
-                : bodyImage;
-
-            const { error } = await supabase.from('saved_models').insert([
-                {
-                    model_name: nombre,
-                    image_url: finalFaceUrl,         // face = primary identity source
-                    body_image: finalBodyUrl,         // body = proportions/type source
-                    reference_images: null,           // legacy field, not used in new flow
-                    face_description: "PENDING_AUTO_ANALYSIS",
-                    hair_description: "PENDING_AUTO_ANALYSIS",
-                    user_id: user?.id
-                }
+            const prefix = nombre.trim().replace(/\s+/g, '_');
+            const [faceUrl, bodyUrl] = await Promise.all([
+                faceImage.startsWith('data:') ? uploadToStorage(faceImage, `${prefix}_face`) : Promise.resolve(faceImage),
+                bodyImage.startsWith('data:') ? uploadToStorage(bodyImage, `${prefix}_body`) : Promise.resolve(bodyImage),
             ]);
 
+            const { error } = await supabase.from('saved_models').insert([{
+                model_name: nombre.trim(),
+                image_url: faceUrl,
+                body_image: bodyUrl,
+                reference_images: null,
+                face_description: "PENDING_AUTO_ANALYSIS",
+                hair_description: "PENDING_AUTO_ANALYSIS",
+                user_id: user?.id,
+            }]);
             if (error) throw error;
 
             onSuccess();
             onClose();
-            setNombre('');
-            setFaceImage('');
-            setBodyImage('');
-
-        } catch (error: any) {
-            alert("Error: " + error.message);
+            setNombre(''); setFaceImage(''); setBodyImage('');
+        } catch (e: any) {
+            alert("Error: " + e.message);
         } finally {
             setLoading(false);
         }
     };
 
-    if (!isOpen) return null;
+    const canSubmit = nombre.trim() && faceImage && bodyImage && !loading;
 
-    const ImageSlot = ({
-        id,
-        label,
-        hint,
-        required,
-        value,
-        onSet,
-        onClear,
-        aspect,
-    }: {
-        id: string;
-        label: string;
-        hint: string;
-        required?: boolean;
-        value: string;
-        onSet: (v: string) => void;
-        onClear: () => void;
-        aspect: string; // tailwind aspect class e.g. 'aspect-[3/4]'
-    }) => (
-        <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-gray-500 uppercase font-medium tracking-wide">
-                {label} {required && <span className="text-reed-red">*</span>}
-            </label>
-            <p className="text-xs text-[var(--text-muted)] -mt-1">{hint}</p>
-            <div
-                className={`${aspect} w-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-reed-red transition-colors overflow-hidden bg-[var(--bg-secondary)] relative ${value ? 'border-reed-red/60' : 'border-[var(--border-color)]'}`}
-                onClick={() => document.getElementById(id)?.click()}
-            >
-                {value ? (
-                    <>
-                        <img src={value} alt={label} className="w-full h-full object-cover" />
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onClear(); }}
-                            className="absolute top-2 right-2 bg-black/70 text-white p-1 rounded-full hover:bg-red-500 transition-colors"
-                        >
-                            <X size={12} />
-                        </button>
-                    </>
-                ) : (
-                    <div className="text-center py-4 px-2">
-                        <ImagePlus className="w-7 h-7 text-gray-400 mx-auto mb-2" />
-                        <span className="text-[11px] text-gray-500 uppercase tracking-wide font-medium">Upload</span>
-                    </div>
-                )}
-            </div>
-            <input
-                id={id}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) onSet(await readFile(file));
-                    e.target.value = '';
-                }}
-            />
-        </div>
-    );
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="w-full max-w-lg border border-[var(--border-color)] bg-[var(--bg-primary)] rounded-xl p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+            <div className="w-full max-w-md bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[92vh]">
 
                 {/* Header */}
-                <div className="flex justify-between items-center border-b border-[var(--border-color)] pb-4">
-                    <div className="flex items-center gap-2">
-                        <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-5 w-auto" />
-                        <h2 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wide">Add New Model</h2>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-[var(--text-primary)] p-1 hover:bg-[var(--bg-secondary)] rounded-lg transition-colors"
-                    >
-                        <X size={18} />
+                <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-color)] shrink-0">
+                    <h2 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-widest">New Model</h2>
+                    <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors">
+                        <X size={16} />
                     </button>
                 </div>
 
-                <div className="space-y-4">
-                    {/* Model Name */}
-                    <div className="flex flex-col gap-2">
-                        <label className="text-xs text-gray-500 uppercase font-medium tracking-wide">Model Name <span className="text-reed-red">*</span></label>
+                {/* Body — scrollable */}
+                <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5">
+
+                    {/* Name */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Model Name</label>
                         <input
                             value={nombre}
                             onChange={e => setNombre(e.target.value)}
-                            className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-3 text-sm text-[var(--text-primary)] outline-none focus:border-reed-red transition-colors"
-                            placeholder="e.g., Sofia, Luna, Emma"
+                            placeholder="e.g. Sofia, Luna, Emma..."
+                            className="bg-[var(--bg-secondary)] border border-[var(--border-color)] focus:border-reed-red outline-none rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] transition-colors placeholder:text-gray-500"
                         />
                     </div>
 
-                    {/* Two slots side by side: Face + Body */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <ImageSlot
-                            id="upload-face"
-                            label="Face Photo"
-                            hint="Clear close-up of the face"
-                            required
-                            value={faceImage}
-                            onSet={setFaceImage}
-                            onClear={() => setFaceImage('')}
-                            aspect="aspect-[3/4]"
-                        />
-                        <ImageSlot
-                            id="upload-body"
-                            label="Body Photo"
-                            hint="Full body — shows curves, height & build"
-                            required
-                            value={bodyImage}
-                            onSet={setBodyImage}
-                            onClear={() => setBodyImage('')}
-                            aspect="aspect-[3/4]"
-                        />
+                    {/* Photos row */}
+                    <div className="flex flex-col gap-3">
+                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Reference Photos <span className="text-reed-red">*</span></label>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <PhotoSlot
+                                id="slot-face"
+                                icon={<Camera size={22} className="text-gray-400" />}
+                                title="Face"
+                                description="Clear close-up"
+                                value={faceImage}
+                                onSet={setFaceImage}
+                                onClear={() => setFaceImage('')}
+                                onRead={readFile}
+                            />
+                            <PhotoSlot
+                                id="slot-body"
+                                icon={<PersonStanding size={22} className="text-gray-400" />}
+                                title="Body"
+                                description="Full body visible"
+                                value={bodyImage}
+                                onSet={setBodyImage}
+                                onClear={() => setBodyImage('')}
+                                onRead={readFile}
+                            />
+                        </div>
+
+                        {/* What each photo is used for */}
+                        <div className="grid grid-cols-2 gap-3 text-[10px] text-gray-500 leading-relaxed">
+                            <p><span className="text-[var(--text-primary)] font-medium">Face →</span> Identity: eyes, skin tone, features, hair</p>
+                            <p><span className="text-[var(--text-primary)] font-medium">Body →</span> Build: curves, proportions, height, weight</p>
+                        </div>
                     </div>
 
-                    {/* Helper note */}
-                    <p className="text-[11px] text-[var(--text-muted)] leading-relaxed bg-[var(--bg-secondary)] rounded-lg px-3 py-2 border border-[var(--border-color)]">
-                        The <span className="text-[var(--text-primary)] font-medium">face photo</span> is used to extract identity (eyes, skin tone, features). The <span className="text-[var(--text-primary)] font-medium">body photo</span> is used to capture body type, proportions, and curves — so the AI never guesses or invents them.
-                    </p>
+                    {/* Info callout */}
+                    <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 text-[11px] text-gray-500 leading-relaxed">
+                        The AI extracts <span className="text-[var(--text-primary)]">only person identity</span> from these photos — background, lighting, and scene always come from the reference image you upload when generating.
+                    </div>
                 </div>
 
-                <button
-                    onClick={handleSubmit}
-                    disabled={loading || !nombre || !faceImage || !bodyImage}
-                    className="w-full py-3 bg-reed-red text-white text-sm font-bold uppercase rounded-lg hover:bg-reed-red-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-2 flex items-center justify-center gap-2"
-                >
-                    {loading ? (
-                        <>
-                            <Loader2 size={16} className="animate-spin" />
-                            Uploading...
-                        </>
-                    ) : (
-                        'Create Model'
-                    )}
-                </button>
+                {/* Footer */}
+                <div className="px-5 py-4 border-t border-[var(--border-color)] shrink-0">
+                    <button
+                        onClick={handleSubmit}
+                        disabled={!canSubmit}
+                        className="w-full py-3 rounded-xl bg-reed-red text-white text-sm font-bold uppercase tracking-wide transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-reed-red-dark flex items-center justify-center gap-2"
+                    >
+                        {loading ? <><Loader2 size={15} className="animate-spin" /> Uploading...</> : 'Create Model'}
+                    </button>
+                </div>
             </div>
         </div>
     );
 };
+
+/* ── Reusable photo slot ── */
+interface PhotoSlotProps {
+    id: string;
+    icon: React.ReactNode;
+    title: string;
+    description: string;
+    value: string;
+    onSet: (v: string) => void;
+    onClear: () => void;
+    onRead: (f: File) => Promise<string>;
+}
+
+const PhotoSlot: React.FC<PhotoSlotProps> = ({ id, icon, title, description, value, onSet, onClear, onRead }) => (
+    <div className="flex flex-col gap-1.5">
+        {/* Upload area */}
+        <div
+            onClick={() => !value && document.getElementById(id)?.click()}
+            className={`
+                relative aspect-[3/4] w-full rounded-xl overflow-hidden border-2 transition-all
+                ${value
+                    ? 'border-reed-red/50 cursor-default'
+                    : 'border-dashed border-[var(--border-color)] hover:border-reed-red cursor-pointer bg-[var(--bg-secondary)]'
+                }
+            `}
+        >
+            {value ? (
+                <>
+                    <img src={value} alt={title} className="w-full h-full object-cover" />
+                    {/* Overlay label */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent pt-6 pb-2 px-2">
+                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">{title}</span>
+                    </div>
+                    {/* Remove button */}
+                    <button
+                        onClick={e => { e.stopPropagation(); onClear(); }}
+                        className="absolute top-2 right-2 w-6 h-6 bg-black/60 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition-colors"
+                    >
+                        <X size={11} />
+                    </button>
+                </>
+            ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3">
+                    {icon}
+                    <div className="text-center">
+                        <p className="text-[11px] font-semibold text-[var(--text-primary)]">{title}</p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">{description}</p>
+                    </div>
+                </div>
+            )}
+        </div>
+
+        {/* Click to change when filled */}
+        {value && (
+            <button
+                onClick={() => document.getElementById(id)?.click()}
+                className="text-[10px] text-gray-500 hover:text-reed-red transition-colors text-center"
+            >
+                Change photo
+            </button>
+        )}
+
+        <input
+            id={id}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async e => {
+                const file = e.target.files?.[0];
+                if (file) onSet(await onRead(file));
+                e.target.value = '';
+            }}
+        />
+    </div>
+);
 
 export default ModelModal;
