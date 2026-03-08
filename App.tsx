@@ -48,7 +48,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   const [refImage, setRefImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const dragCounterRef = useRef(0); // tracks nested dragenter/dragleave correctly
+  const dragCounterRef = useRef(0);
+  const justDroppedRef = useRef(false); // prevents the post-drop click from opening the picker
 
   // --- BATCH MODE ---
   const QUEUE_STORAGE_KEY = 'reed_batch_queue';
@@ -453,6 +454,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
     e.stopPropagation();
     dragCounterRef.current = 0;
     setIsDragging(false);
+    justDroppedRef.current = true;
+    setTimeout(() => { justDroppedRef.current = false; }, 300);
     const files = e.dataTransfer.files;
     if (!files || files.length === 0) return;
 
@@ -1206,7 +1209,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                      </div>
                    ))}
                   <div
-                    onClick={() => fileInputRef.current?.click()}
+              onClick={() => { if (!justDroppedRef.current) fileInputRef.current?.click(); }}
                     className="cursor-pointer flex items-center justify-center border-2 border-dashed border-[var(--border-color)] text-[var(--text-muted)] text-xs aspect-square rounded-lg hover:border-reed-red hover:text-reed-red transition-colors"
                   >
                     <Plus size={16} />
