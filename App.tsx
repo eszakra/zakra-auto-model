@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { supabase, uploadBase64Image } from './services/supabaseClient';
-import { constructPayload, generateIndustrialImage } from './services/geminiService';
+import { constructPayload, generateIndustrialImage, GeminiModelVersion } from './services/geminiService';
 import { stripAndInjectIphoneExif } from './services/imageMetadata';
 import { AppState, ModeloBase, QueueItem } from './types';
 import ModelModal from './components/ModelModal';
@@ -153,6 +153,17 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   const [customPoseText, setCustomPoseText] = useState('');
   const [isGeneratingVariation, setIsGeneratingVariation] = useState(false);
 
+  // --- GEMINI MODEL SELECTOR ---
+  const [geminiModel, setGeminiModel] = useState<GeminiModelVersion>(() => {
+    const saved = localStorage.getItem('reed_gemini_model');
+    return (saved === 'flash' ? 'flash' : 'pro') as GeminiModelVersion;
+  });
+
+  const handleGeminiModelChange = (version: GeminiModelVersion) => {
+    setGeminiModel(version);
+    localStorage.setItem('reed_gemini_model', version);
+  };
+
   // Check if user has pose variation feature (Creator, Pro, Studio)
   const hasPoseVariationFeature = () => {
     const plan = user?.plan_type || 'free';
@@ -238,7 +249,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         selectedResolution === 'AUTO' ? undefined : selectedResolution,
         selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio,
         selectedModel.reference_images || [],
-        selectedModel.body_image || undefined // body type reference for pose variations
+        selectedModel.body_image || undefined, // body type reference for pose variations
+        geminiModel
       );
 
       // Update the displayed image
@@ -528,7 +540,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         selectedModel.image_url,
         base64Ref,
         selectedModel.reference_images || [],
-        selectedModel.body_image || undefined
+        selectedModel.body_image || undefined,
+        geminiModel
       );
 
       setQueue(prev => prev.map(q => q.id === itemId ? { ...q, status: 'ANALYZED', payload } : q));
@@ -619,7 +632,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         selectedModel.reference_images || [],
         undefined, // no custom instructions in batch mode
         sceneRef, // scene reference — real base64, not a blob URL
-        selectedModel.body_image || undefined // body type reference
+        selectedModel.body_image || undefined, // body type reference
+        geminiModel
       );
 
       // Strip Google/SynthID metadata and inject realistic iPhone EXIF
@@ -821,7 +835,7 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       const currentKey = getCurrentApiKey();
       const { generateUnifiedPayload } = await import('./services/geminiService');
 
-      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, refImage, selectedModel.reference_images || [], selectedModel.body_image || undefined);
+      const payload = await generateUnifiedPayload(currentKey, selectedModel.image_url, refImage, selectedModel.reference_images || [], selectedModel.body_image || undefined, geminiModel);
       setGeneratedPayload(payload);
       setAppState(AppState.IDLE);
 
@@ -876,7 +890,8 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
         selectedModel?.reference_images || [],
         customInstructions?.trim() || undefined,
         refImage || undefined, // scene reference — photographic quality matching
-        selectedModel?.body_image || undefined // body type reference
+        selectedModel?.body_image || undefined, // body type reference
+        geminiModel
       );
 
       // Strip Google/SynthID metadata and inject realistic iPhone EXIF
@@ -1675,6 +1690,33 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* MODEL SELECTOR — Nano Banana Pro vs Nano Banana 2 */}
+            <div className="mb-4 flex gap-2">
+              <button
+                onClick={() => handleGeminiModelChange('pro')}
+                className={`flex-1 py-2 text-xs font-bold uppercase rounded-lg border-2 transition-all ${
+                  geminiModel === 'pro'
+                    ? 'border-reed-red bg-reed-red/10 text-reed-red'
+                    : 'border-[var(--border-color)] text-[var(--text-muted)] hover:border-[var(--text-muted)]'
+                }`}
+              >
+                Nano Banana Pro
+              </button>
+              <button
+                onClick={() => handleGeminiModelChange('flash')}
+                className={`flex-1 py-2 text-xs font-bold uppercase rounded-lg border-2 transition-all flex items-center justify-center gap-1.5 ${
+                  geminiModel === 'flash'
+                    ? 'border-reed-red bg-reed-red/10 text-reed-red'
+                    : 'border-[var(--border-color)] text-[var(--text-muted)] hover:border-[var(--text-muted)]'
+                }`}
+              >
+                Nano Banana 2
+                <span className="text-[9px] font-bold uppercase bg-amber-400/20 text-amber-500 border border-amber-400/40 px-1.5 py-0.5 rounded-full leading-none">
+                  less censorship
+                </span>
+              </button>
             </div>
 
             {/* EXECUTE BUTTON */}

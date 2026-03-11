@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { ZakraPayload, ModeloBase } from "../types";
 
 // DEPRECATED: constructPayload replaced by generateUnifiedPayload
@@ -9,6 +9,26 @@ export const constructPayload = (
 ): ZakraPayload => {
   return {} as ZakraPayload; // Placeholder
 };
+
+// ─── Model version config ────────────────────────────────────────────────────
+// 'pro'   = Nano Banana Pro  (gemini-3-pro-preview / gemini-3-pro-image-preview)
+//            Default safety settings, most accurate analysis
+// 'flash' = Nano Banana 2    (gemini-2.0-flash / gemini-2.0-flash-preview-image-generation)
+//            Faster, less censorship, temperature 0.95, BLOCK_NONE safety
+export type GeminiModelVersion = 'pro' | 'flash';
+
+const MODEL_IDS = {
+  pro:   { text: 'gemini-3-pro-preview',              image: 'gemini-3-pro-image-preview' },
+  flash: { text: 'gemini-2.0-flash',                  image: 'gemini-2.0-flash-preview-image-generation' },
+} as const;
+
+// BLOCK_NONE safety settings — applied only on the flash model
+const SAFETY_BLOCK_NONE = [
+  { category: HarmCategory.HARM_CATEGORY_HARASSMENT,        threshold: HarmBlockThreshold.BLOCK_NONE },
+  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,       threshold: HarmBlockThreshold.BLOCK_NONE },
+  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+];
 
 // Helper to ensure we have a clean base64 string (no data: prefix) AND the correct MIME type.
 // Handles: http/https URLs, blob: URLs, data: URLs
@@ -42,13 +62,14 @@ export const generateUnifiedPayload = async (
   modelFaceImageSource: string, // Close-up face photo — identity (face, eyes, skin tone)
   refImageSource: string,       // Scene reference — pose, clothing, background, lighting
   additionalModelImages?: string[], // Legacy extra angles (kept for backward compat)
-  modelBodyImageSource?: string // Full-body photo — body type, proportions, curves
+  modelBodyImageSource?: string, // Full-body photo — body type, proportions, curves
+  modelVersion: GeminiModelVersion = 'pro'
 ): Promise<ZakraPayload> => {
   if (!apiKey) throw new Error("FALTA_CLAVE_API");
 
   const ai = new GoogleGenAI({ apiKey });
-  // Using Gemini 3.0 Pro for payload/text generation
-  const modelId = 'gemini-3-pro-preview';
+  const modelId = MODEL_IDS[modelVersion].text;
+  const isFlash = modelVersion === 'flash';
 
   // Fetch all images in parallel — face, ref, body, and extras all at once
   const [cleanFace, cleanRef, cleanBody, ...extraImages] = await Promise.all([
@@ -267,7 +288,11 @@ CRITICAL REMINDERS:
         }
       ],
       config: {
-        responseMimeType: 'application/json'
+        responseMimeType: 'application/json',
+        ...(isFlash && {
+          temperature: 0.95,
+          safetySettings: SAFETY_BLOCK_NONE,
+        }),
       }
     });
 
@@ -306,7 +331,8 @@ export const generateIndustrialImage = async (
   additionalModelImages?: string[], // Legacy extra angles
   customInstructions?: string, // Optional user instructions to refine the output
   refImageSource?: string, // Scene reference — used to match photographic quality
-  bodyImageSource?: string // Full-body photo — body type/proportions reference
+  bodyImageSource?: string, // Full-body photo — body type/proportions reference
+  modelVersion: GeminiModelVersion = 'pro'
 ): Promise<string> => {
 
   if (!apiKey) throw new Error("FALTA_CLAVE_API");
@@ -318,10 +344,8 @@ export const generateIndustrialImage = async (
   }
 
   const ai = new GoogleGenAI({ apiKey });
-
-  // Using Nano Banana Pro (Gemini 3 Pro Image Preview) for image generation
-  // Model: gemini-3-pro-image-preview
-  const modelId = 'gemini-3-pro-image-preview';
+  const modelId = MODEL_IDS[modelVersion].image;
+  const isFlash = modelVersion === 'flash';
 
   // Convert the JSON payload to a natural language prompt for image generation
   // Custom instructions are added as refinements without overriding core quality requirements
@@ -523,11 +547,15 @@ IDENTITY PRESERVATION (CRITICAL):
       config: {
         responseModalities: ['TEXT', 'IMAGE'], // Must be uppercase per Gemini API docs
         // Use imageConfig to specify resolution and aspect ratio
-        ...(Object.keys(imageConfig).length > 0 && { imageConfig })
+        ...(Object.keys(imageConfig).length > 0 && { imageConfig }),
+        // Nano Banana 2 (flash): disable safety filters + higher temperature
+        ...(isFlash && {
+          temperature: 0.95,
+          safetySettings: SAFETY_BLOCK_NONE,
+        }),
       }
     });
 
-    // Check for image in response
     // Check for image in response
     const candidates = response.candidates;
     const candidate = candidates?.[0];
@@ -577,13 +605,15 @@ export const generatePoseVariation = async (
   imageSize?: string,
   aspectRatio?: string,
   additionalModelImages?: string[],
-  bodyImageSource?: string // Full-body photo — body type reference
+  bodyImageSource?: string, // Full-body photo — body type reference
+  modelVersion: GeminiModelVersion = 'pro'
 ): Promise<string> => {
 
   if (!apiKey) throw new Error("FALTA_CLAVE_API");
 
   const ai = new GoogleGenAI({ apiKey });
-  const modelId = 'gemini-3-pro-image-preview';
+  const modelId = MODEL_IDS[modelVersion].image;
+  const isFlash = modelVersion === 'flash';
 
   // Fetch all images in parallel
   const [baseModelImg, generatedImg, bodyImg, ...extraModelImages] = await Promise.all([
@@ -753,7 +783,12 @@ IDENTITY PRESERVATION (CRITICAL):
       ],
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
-        ...(Object.keys(imageConfig).length > 0 && { imageConfig })
+        ...(Object.keys(imageConfig).length > 0 && { imageConfig }),
+        // Nano Banana 2 (flash): disable safety filters + higher temperature
+        ...(isFlash && {
+          temperature: 0.95,
+          safetySettings: SAFETY_BLOCK_NONE,
+        }),
       }
     });
 
