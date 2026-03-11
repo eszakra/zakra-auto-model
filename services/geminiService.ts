@@ -13,13 +13,13 @@ export const constructPayload = (
 // ─── Model version config ────────────────────────────────────────────────────
 // 'pro'   = Nano Banana Pro  (gemini-3-pro-preview / gemini-3-pro-image-preview)
 //            Default safety settings, most accurate analysis
-// 'flash' = Nano Banana 2    (gemini-2.0-flash / gemini-2.0-flash-preview-image-generation)
+// 'flash' = Nano Banana 2    (gemini-2.0-flash / gemini-3.1-flash-image-preview)
 //            Faster, less censorship, temperature 0.95, BLOCK_NONE safety
 export type GeminiModelVersion = 'pro' | 'flash';
 
 const MODEL_IDS = {
   pro:   { text: 'gemini-3-pro-preview',              image: 'gemini-3-pro-image-preview' },
-  flash: { text: 'gemini-2.0-flash',                  image: 'gemini-2.0-flash-preview-image-generation' },
+  flash: { text: 'gemini-2.0-flash',                  image: 'gemini-3.1-flash-image-preview' },
 } as const;
 
 // BLOCK_NONE safety settings — applied only on the flash model
