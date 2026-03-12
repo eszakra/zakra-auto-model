@@ -245,7 +245,7 @@ OUTPUT FORMAT (JSON ONLY, NO MARKDOWN, NO BACKTICKS):
     "depth_of_field": "[DOF: shallow (blurred background)/medium/deep (everything sharp) - describe subject isolation]",
     "perspective": "[Viewpoint: straight on/low angle/high angle/dutch angle/eye level]"
   },
-  "technical_quality": "[MUST describe the EXACT photographic rendering style of the REFERENCE image. Example: 'iPhone 15 Pro photograph quality — natural digital sensor noise, vivid saturated colors, auto-HDR tone mapping, slightly warm rendering, tack-sharp subject with gentle background bokeh, realistic skin pores and texture, zero CGI or artificial smoothing, authentic spontaneous moment feel'. Be camera-specific: if it looks like an iPhone shot, say iPhone. If DSLR, say DSLR. Capture grain level, sharpness, and color rendering precisely.']"
+  "technical_quality": "[Describe the photographic rendering style of the REFERENCE image, then always frame it as iPhone spontaneous quality. Capture: grain level, sharpness, bokeh amount, color rendering, skin texture. ALWAYS end with these fixed qualities regardless of reference: 'Render as a candid iPhone 15 Pro photograph — natural digital sensor noise, realistic skin pores and texture visible, authentic spontaneous moment, zero CGI smoothing, zero artificial perfection, real light behavior on skin, genuine unposed feel.' If the reference is DSLR or studio, still apply iPhone spontaneous rendering on top of its composition and lighting.]"
 }
 
 IMPORTANT: 
@@ -493,8 +493,8 @@ QUALITY: ${payload.technical_quality ?? ''}${customSection}
 CRITICAL REQUIREMENTS:
 1. FACE: The output face must be the person from IMAGE 1 — their exact eyes, nose, lips, jaw, skin tone. Do not blend or average with any other image. The scene reference person's face must be completely replaced by IMAGE 1's face.
 2. BODY: Reproduce body type and proportions exactly as described above. NEVER alter curves or weight.
-3. PHOTOREALISM: Real photograph look — visible skin pores, natural imperfections. NOT CGI, NOT plastic, NOT airbrushed.
-4. PHOTOGRAPHIC QUALITY: Match the scene reference camera feel — grain, bokeh, sharpness, color rendering.
+3. PHOTOREALISM: Real photograph look — visible skin pores, natural imperfections, authentic light on skin. NOT CGI, NOT plastic, NOT airbrushed, NOT AI-smooth.
+4. PHOTOGRAPHIC QUALITY: Always render as a candid iPhone 15 Pro photo — natural digital sensor noise, genuine spontaneous feel, realistic skin texture with visible pores, soft natural bokeh, vivid but not oversaturated colors, authentic imperfect real-world lighting. Even if the scene reference is studio or DSLR quality, the final render must feel like a real unposed iPhone moment.
 5. LIGHTING: Match the scene reference lighting direction, shadows, and contrast exactly.
 6. HAIR: Natural variation — flyaways, texture, real movement. Not AI-perfect.
 7. HANDS: Correct finger anatomy, natural relaxed positions.
