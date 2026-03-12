@@ -171,10 +171,17 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
                             ))}
                             {/* Add button — only show if less than 3 */}
                             {extraAngles.length < 3 && (
-                                <label className="w-16 h-20 rounded-lg border-2 border-dashed border-[var(--border-color)] hover:border-reed-red flex flex-col items-center justify-center cursor-pointer transition-colors shrink-0 bg-[var(--bg-secondary)]">
-                                    <Plus size={16} className="text-gray-400" />
-                                    <span className="text-[9px] text-gray-500 mt-1">Add</span>
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => document.getElementById('extra-angle-input')?.click()}
+                                        className="w-16 h-20 rounded-lg border-2 border-dashed border-[var(--border-color)] hover:border-reed-red flex flex-col items-center justify-center cursor-pointer transition-colors shrink-0 bg-[var(--bg-secondary)]"
+                                    >
+                                        <Plus size={16} className="text-gray-400" />
+                                        <span className="text-[9px] text-gray-500 mt-1">Add</span>
+                                    </button>
                                     <input
+                                        id="extra-angle-input"
                                         type="file"
                                         accept="image/*"
                                         className="hidden"
@@ -187,7 +194,7 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
                                             e.target.value = '';
                                         }}
                                     />
-                                </label>
+                                </>
                             )}
                         </div>
                     </div>
