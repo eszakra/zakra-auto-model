@@ -449,9 +449,17 @@ ENVIRONMENT DETAILS:
     : 'SKIN: Clean, clear skin without tattoos (unless specifically noted above)';
 
   // Add a section describing how to use each image type
+  // Build numbered image role instructions matching the EXACT order images are sent
+  let imgPos = 1;
+  const facePos = imgPos++;
+  const bodyPos = bodyImageSource ? imgPos++ : null;
+  const refPos = refImageSource ? imgPos : null; // ref is always last
+
   const refImageInstruction = `
-IMAGE ROLES (follow strictly):
-- FIRST IMAGE: Face close-up — use ONLY for facial identity (eyes, skin, features, face accessories). This is the BASE MODEL whose face must appear in the output.${bodyImageSource ? '\n- SECOND IMAGE: Full-body photo — use ONLY for body type, proportions, and curves. NEVER copy clothing from it.' : ''}${additionalModelImages && additionalModelImages.length > 0 ? '\n- MIDDLE IMAGES: Extra angles of the SAME BASE MODEL — use to strengthen facial identity accuracy only.' : ''}${refImageSource ? '\n- LAST IMAGE: Scene reference — use ONLY for pose, clothing, background, lighting, and photographic quality. Do not copy the face or identity of the person in this image.' : ''}
+IMAGE ASSIGNMENTS — these are the exact images attached, in order:
+- IMAGE ${facePos}: MODEL FACE. Extract ONLY the face identity from this image: eyes, nose, lips, jaw, skin tone, hair. This person's face is WHO must appear in the output. Do not use any other image for the face.${bodyPos ? `\n- IMAGE ${bodyPos}: MODEL BODY. Extract ONLY body proportions and build from this image. Same person as IMAGE ${facePos}. Ignore clothing.` : ''}${refPos ? `\n- IMAGE ${refPos}: SCENE REFERENCE. A completely different person. Extract ONLY: pose, expression, clothing, background, lighting, camera quality. Ignore this person's face entirely — their face must NOT appear in the output at all.` : ''}
+
+The output must show IMAGE ${facePos}'s face on IMAGE ${refPos ?? facePos}'s scene.
 `;
 
   const bodyTypeSection = subj.body_type
@@ -483,27 +491,23 @@ ${techSpecsSection ? `${techSpecsSection}` : ''}
 QUALITY: ${payload.technical_quality ?? ''}${customSection}
 
 CRITICAL REQUIREMENTS:
-1. This must look like a REAL photograph, NOT CGI. Realistic skin with visible pores, natural imperfections, authentic lighting.
-2. The person's FACE AND IDENTITY must exactly match the face reference image provided (FIRST IMAGE).
-3. The person's BODY TYPE AND PROPORTIONS must exactly match the body reference image — reproduce curves, weight, and build faithfully. NEVER slim down or alter the body.
-4. The PHOTOGRAPHIC QUALITY (sharpness, grain, color rendering, bokeh, dynamic range) must match the last reference image provided — replicate how a real iPhone captures light, texture, and depth.
-5. Maintain the exact color temperature, saturation, and contrast described above.
-6. Reproduce the lighting direction, shadow quality, and highlight placement precisely.
-7. Hair must show natural variation - flyaways, texture inconsistencies, not "AI perfect" smoothness.
-8. Hands must look natural with correct finger anatomy and relaxed positioning.
-
-IDENTITY PRESERVATION (CRITICAL):
-9. FACE ACCESSORIES: If the model wears a face mask, glasses, or any face covering, it MUST appear in the output exactly as described above.
-10. NO TATTOOS: The output person must NOT have any tattoos unless the BASE MODEL specifically has tattoos. Do NOT copy tattoos from reference poses.
-11. CLEAN SKIN: The model's skin should match their reference photos - typically clean and clear without tattoos or body modifications from the pose reference.
+1. FACE: The output face must be the person from IMAGE 1 — their exact eyes, nose, lips, jaw, skin tone. Do not blend or average with any other image. The scene reference person's face must be completely replaced by IMAGE 1's face.
+2. BODY: Reproduce body type and proportions exactly as described above. NEVER alter curves or weight.
+3. PHOTOREALISM: Real photograph look — visible skin pores, natural imperfections. NOT CGI, NOT plastic, NOT airbrushed.
+4. PHOTOGRAPHIC QUALITY: Match the scene reference camera feel — grain, bokeh, sharpness, color rendering.
+5. LIGHTING: Match the scene reference lighting direction, shadows, and contrast exactly.
+6. HAIR: Natural variation — flyaways, texture, real movement. Not AI-perfect.
+7. HANDS: Correct finger anatomy, natural relaxed positions.
+8. NO TATTOOS: Never copy tattoos or body marks from the scene reference onto the model.
+9. FACE ACCESSORIES: Any mask, glasses, or face covering from the model description MUST appear.
   `.trim();
 
-  // Fetch all images in parallel — face, extras, body, and scene reference all at once
-  const [baseModelImg, bodyImg, refImg, ...extraImages] = await Promise.all([
+  // Fetch all images in parallel
+  // Order kept as: face, body, ref — extras ignored since modal no longer supports them
+  const [baseModelImg, bodyImg, refImg] = await Promise.all([
     ensureBase64(baseModelFaceImageSource),
     bodyImageSource ? ensureBase64(bodyImageSource) : Promise.resolve(null),
     refImageSource ? ensureBase64(refImageSource) : Promise.resolve(null),
-    ...(additionalModelImages ?? []).map(img => ensureBase64(img)),
   ]);
 
   try {
@@ -516,21 +520,16 @@ IDENTITY PRESERVATION (CRITICAL):
       imageConfig.aspectRatio = aspectRatio; // '1:1', '4:3', '16:9', etc.
     }
 
-    // Build image parts in order matching the prompt instructions:
-    // [FACE] → [BODY?] → [EXTRA ANGLES...] → [SCENE REFERENCE]
+    // Build image parts in exact order the prompt describes:
+    // IMAGE 1: face → IMAGE 2: body (if any) → IMAGE 3: scene reference (always last)
     const modelImageParts: any[] = [
-      { inlineData: { mimeType: baseModelImg.mimeType, data: baseModelImg.data } }, // face
+      { inlineData: { mimeType: baseModelImg.mimeType, data: baseModelImg.data } }, // face — IMAGE 1
     ];
-    // Body photo right after face so model clearly associates it with same person
     if (bodyImg) {
-      modelImageParts.push({ inlineData: { mimeType: bodyImg.mimeType, data: bodyImg.data } });
+      modelImageParts.push({ inlineData: { mimeType: bodyImg.mimeType, data: bodyImg.data } }); // body — IMAGE 2
     }
-    for (const extra of extraImages) {
-      modelImageParts.push({ inlineData: { mimeType: extra.mimeType, data: extra.data } });
-    }
-    // Scene reference photo last — for photographic quality matching
     if (refImg) {
-      modelImageParts.push({ inlineData: { mimeType: refImg.mimeType, data: refImg.data } });
+      modelImageParts.push({ inlineData: { mimeType: refImg.mimeType, data: refImg.data } }); // scene ref — always LAST
     }
 
     const response = await ai.models.generateContent({

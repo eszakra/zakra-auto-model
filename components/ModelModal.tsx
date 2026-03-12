@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { X, Loader2, Camera, PersonStanding, Plus } from 'lucide-react';
+import { X, Loader2, Camera, PersonStanding } from 'lucide-react';
 
 interface ModelModalProps {
     isOpen: boolean;
@@ -14,7 +14,6 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
     const [nombre, setNombre] = useState('');
     const [faceImage, setFaceImage] = useState('');
     const [bodyImage, setBodyImage] = useState('');
-    const [extraAngles, setExtraAngles] = useState<string[]>([]); // up to 3 extra face angles
     const [loading, setLoading] = useState(false);
 
     const dataUrlToBlob = (dataUrl: string): Blob => {
@@ -51,21 +50,16 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
         setLoading(true);
         try {
             const prefix = nombre.trim().replace(/\s+/g, '_');
-
-            // Upload face, body, and extra angles in parallel
-            const [faceUrl, bodyUrl, ...extraUrls] = await Promise.all([
+            const [faceUrl, bodyUrl] = await Promise.all([
                 faceImage.startsWith('data:') ? uploadToStorage(faceImage, `${prefix}_face`) : Promise.resolve(faceImage),
                 bodyImage.startsWith('data:') ? uploadToStorage(bodyImage, `${prefix}_body`) : Promise.resolve(bodyImage),
-                ...extraAngles.map((img, i) =>
-                    img.startsWith('data:') ? uploadToStorage(img, `${prefix}_angle${i + 1}`) : Promise.resolve(img)
-                ),
             ]);
 
             const { error } = await supabase.from('saved_models').insert([{
                 model_name: nombre.trim(),
                 image_url: faceUrl,
                 body_image: bodyUrl,
-                reference_images: extraUrls.length > 0 ? extraUrls : null,
+                reference_images: null,
                 face_description: "PENDING_AUTO_ANALYSIS",
                 hair_description: "PENDING_AUTO_ANALYSIS",
                 user_id: user?.id,
@@ -74,7 +68,7 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
 
             onSuccess();
             onClose();
-            setNombre(''); setFaceImage(''); setBodyImage(''); setExtraAngles([]);
+            setNombre(''); setFaceImage(''); setBodyImage('');
         } catch (e: any) {
             alert("Error: " + e.message);
         } finally {
@@ -143,59 +137,6 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
                         <div className="grid grid-cols-2 gap-3 text-[10px] text-gray-500 leading-relaxed">
                             <p><span className="text-[var(--text-primary)] font-medium">Face →</span> Identity: eyes, skin tone, features, hair</p>
                             <p><span className="text-[var(--text-primary)] font-medium">Body →</span> Build: curves, proportions, height, weight</p>
-                        </div>
-                    </div>
-
-                    {/* Extra face angles */}
-                    <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
-                            <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                                Extra Face Angles <span className="normal-case font-normal text-gray-500">(optional, up to 3)</span>
-                            </label>
-                        </div>
-                        <p className="text-[10px] text-gray-500 leading-relaxed">
-                            Add 3/4 view, profile, or other angles of the same face. The AI uses these to better understand the face structure and improve identity accuracy.
-                        </p>
-                        <div className="flex gap-2">
-                            {/* Existing extra angles */}
-                            {extraAngles.map((img, i) => (
-                                <div key={i} className="relative w-16 h-20 rounded-lg overflow-hidden border border-reed-red/50 shrink-0">
-                                    <img src={img} className="w-full h-full object-cover" />
-                                    <button
-                                        onClick={() => setExtraAngles(prev => prev.filter((_, idx) => idx !== i))}
-                                        className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition-colors"
-                                    >
-                                        <X size={8} />
-                                    </button>
-                                </div>
-                            ))}
-                            {/* Add button — only show if less than 3 */}
-                            {extraAngles.length < 3 && (
-                                <>
-                                    <button
-                                        type="button"
-                                        onClick={() => document.getElementById('extra-angle-input')?.click()}
-                                        className="w-16 h-20 rounded-lg border-2 border-dashed border-[var(--border-color)] hover:border-reed-red flex flex-col items-center justify-center cursor-pointer transition-colors shrink-0 bg-[var(--bg-secondary)]"
-                                    >
-                                        <Plus size={16} className="text-gray-400" />
-                                        <span className="text-[9px] text-gray-500 mt-1">Add</span>
-                                    </button>
-                                    <input
-                                        id="extra-angle-input"
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={async e => {
-                                            const file = e.target.files?.[0];
-                                            if (file) {
-                                                const b64 = await readFile(file);
-                                                setExtraAngles(prev => [...prev, b64]);
-                                            }
-                                            e.target.value = '';
-                                        }}
-                                    />
-                                </>
-                            )}
                         </div>
                     </div>
 
