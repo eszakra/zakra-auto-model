@@ -88,17 +88,17 @@ export const generateUnifiedPayload = async (
   imgIndex += extraImages.length;
   const refIndex = imgIndex;
 
-  const faceRule = `- IMAGE ${faceIndex} (FACE — BASE MODEL): Close-up face photo of the model. Extract ONLY AND EXCLUSIVELY: eye color/shape, skin tone with undertones, nose shape, lip shape, jawline, age estimate, ethnicity, hair color/texture/length/style, any face accessories (glasses, mask, etc.). IGNORE COMPLETELY: background, lighting, setting, clothing, photographic quality, environment — everything that is NOT the person's face and hair.`;
+  const faceRule = `- IMAGE ${faceIndex} (MODEL FACE — PRIMARY IDENTITY SOURCE): This is the face of the BASE MODEL. Study every detail with maximum precision: exact eye shape, color, spacing, lid thickness, iris pattern; exact nose shape (bridge width, tip shape, nostril width); exact lip shape (cupid's bow, lip thickness, philtrum); exact jawline and chin shape; exact cheekbone prominence; skin tone and undertones; age; ethnicity. This face is THE ONLY FACE that must appear in the generated output. IGNORE: background, lighting, clothing.`;
 
   const bodyRule = bodyIndex
-    ? `- IMAGE ${bodyIndex} (BODY — BASE MODEL): Full-body photo of THE SAME PERSON. Extract ONLY AND EXCLUSIVELY: body type (slim/athletic/curvy/plus-size/petite), proportions (shoulder width, hip width, waist definition), visible curves, height impression, posture tendency. IGNORE COMPLETELY: clothing, background, lighting, setting, environment, photographic quality — everything that is NOT the physical body shape.`
+    ? `- IMAGE ${bodyIndex} (MODEL BODY — BODY TYPE SOURCE): Full-body of the SAME person as IMAGE ${faceIndex}. Extract ONLY body type, proportions, curves, shoulder/hip/waist ratio. IGNORE: clothing, background, lighting.`
     : '';
 
   const extraRule = extraImages.length > 0
-    ? `- IMAGES ${extraStartIndex}–${extraStartIndex + extraImages.length - 1} (EXTRA ANGLES — BASE MODEL): Additional photos of the same person for face/identity accuracy only. IGNORE their backgrounds and lighting completely.`
+    ? `- IMAGES ${extraStartIndex}–${extraStartIndex + extraImages.length - 1} (MODEL EXTRA ANGLES): Additional angles of the SAME BASE MODEL person. Use these to improve facial identity accuracy — cross-reference with IMAGE ${faceIndex} to capture features that may not be fully visible from one angle (e.g., profile of nose, side view of jaw, 3/4 view). These are the SAME person as IMAGE ${faceIndex}. IGNORE backgrounds and lighting.`
     : '';
 
-  const refRule = `- IMAGE ${refIndex} (SCENE REFERENCE — THE ONLY SOURCE FOR EVERYTHING ELSE): This is the ONLY image from which you extract: pose, expression, clothing, background, lighting, environment, accessories, color grading, photographic style, camera quality, depth of field, grain, color temperature. ALL scene and quality information comes exclusively from THIS image. Nothing from the model photos should influence the scene, background, or photographic quality.`;
+  const refRule = `- IMAGE ${refIndex} (SCENE REFERENCE — POSE/SCENE/QUALITY ONLY): Extract from this image: pose, body position, facial expression (mouth/eyes/emotion state only — NOT the face shape or identity), clothing, background, lighting, environment, color grading, photographic style, camera quality. CRITICAL: The person in this image is a DIFFERENT PERSON. Their face, facial structure, skin tone, and identity must NOT appear in the output in any way. Treat their face as a mannequin — use ONLY the expression (smile/neutral/serious) and head angle, never the actual face.`;
 
   const prompt = `
 You are an expert visual analysis specialist and prompt engineer with 15+ years of experience in photography, digital art, and AI image generation. You excel at deconstructing every visual element and translating them into precise technical specifications.
@@ -148,7 +148,7 @@ OUTPUT FORMAT (JSON ONLY, NO MARKDOWN, NO BACKTICKS):
   "prompt_type": "[Type of photo from REFERENCE: 'candid indoor smartphone selfie', 'professional studio portrait', 'outdoor natural light portrait', etc.]",
   "main_composition": "[Describe scene/action from REFERENCE. Include: rule applied (rule of thirds/center/symmetry), focal points, visual hierarchy, how eye moves through image]",
   "subject": {
-    "description": "[FROM FACE PHOTO ONLY: eye color/shape, skin tone with undertones, nose shape, lip shape, jawline, age estimate, ethnicity. Be hyper-specific: 'striking light green/hazel almond-shaped eyes, defined dark arched eyebrows, warm olive skin with visible pores and natural texture']",
+    "description": "[FACIAL IDENTITY BLUEPRINT — from MODEL FACE photo(s) only, never from reference. This must be precise enough to reconstruct the face exactly. Include ALL of: (1) EYES: exact color with iris pattern, shape (almond/round/hooded/monolid), size, spacing, lid thickness, inner/outer corner angle; (2) NOSE: bridge width (narrow/medium/wide), bridge height (high/low/medium), tip shape (pointed/rounded/bulbous/flat), nostril width, overall nose length; (3) LIPS: cupid's bow shape (defined/soft/flat), upper lip thickness vs lower lip thickness, lip width relative to face, corner shape; (4) JAW & CHIN: jawline angle (sharp/soft/rounded), chin shape (pointed/rounded/square/cleft), overall face shape (oval/round/square/heart/oblong); (5) CHEEKBONES: prominence (high/medium/low), width; (6) SKIN: tone, undertones (warm/cool/neutral), texture, any natural marks; (7) EYEBROWS: arch shape, thickness, color; (8) OVERALL: age estimate, ethnicity, distinctive features. Example: 'Almond-shaped dark brown eyes with warm amber undertones, medium spacing, slightly upturned outer corners, moderately thick lids. Medium-width nose with slightly rounded tip, medium bridge height, nostrils proportional. Well-defined cupid's bow, medium-thick upper lip slightly thinner than full lower lip. Soft oval face shape with gentle jawline, rounded chin. Medium-high cheekbones. Warm medium-tan skin with golden undertones, smooth texture. Arched dark brown eyebrows, natural thickness.']",
     "body_type": "[FROM BODY PHOTO: exact body type and proportions. Be honest and specific — e.g., 'curvy plus-size woman with wide hips, full bust, defined waist, rounded arms, soft belly' OR 'petite slim build, narrow shoulders, small bust, straight silhouette' OR 'athletic medium build, broad shoulders, toned arms, flat stomach'. Include: height impression (petite/average/tall), weight impression (slim/medium/full-figured/plus-size), shoulder-to-hip ratio, visible curves. This MUST be reproduced exactly — never make the model slimmer or curvier than shown.]",
     "hair": "[FROM MODEL PHOTOS (face/body) ONLY — IGNORE reference image hair: color with undertones, texture, length, style. e.g., 'Extra long sleek straight dark chocolate brown hair (deep chestnut, warm tones) with precise middle part']",
     "face_accessories": "[FROM FACE PHOTO: face mask/surgical mask/bandana/glasses/sunglasses/eye patch or 'none'. CRITICAL: If model wears a mask, describe it exactly: color, type, coverage]",
@@ -257,6 +257,8 @@ IMPORTANT:
 - For lighting: the shadow and highlight analysis is CRITICAL for maintaining quality across pose variations.
 
 CRITICAL REMINDERS:
+- FACE IDENTITY: The description field must be a precise facial blueprint of the BASE MODEL only. Cross-reference all model photos (face + extra angles) to capture every feature accurately. The reference image person's face must NOT influence the description in any way.
+- EXTRA ANGLES: If extra angle photos are provided, use them to verify and enrich the facial description — they show the same face from different perspectives, helping capture features like nose profile, jaw angle, cheekbone width that may be harder to see straight-on.
 - FACE ACCESSORIES (masks, glasses, etc.): Extract from BASE MODEL, NOT from reference. If the model wears a black face mask, the output MUST have the black face mask.
 - TATTOOS: NEVER copy tattoos from the REFERENCE image to the output. The BASE MODEL's skin should remain as shown in their photos (typically clean/clear unless they specifically have tattoos).
 - The output person should look like the BASE MODEL dressed in the REFERENCE's clothing and in the REFERENCE's scene - but with the MODEL's face, body, skin, and any face accessories they wear.
@@ -450,10 +452,14 @@ ENVIRONMENT DETAILS:
 
   // Add a section describing how to use each image type
   const refImageInstruction = `
-IMAGE ROLES (follow strictly):
-- FIRST IMAGE: Face close-up — use ONLY for facial identity (eyes, skin, features, face accessories). THIS IS THE ONLY SOURCE FOR THE FACE. The person in the final image must have THIS exact face.${bodyImageSource ? '\n- SECOND IMAGE: Full-body photo — use ONLY for body type, proportions, and curves. NEVER copy clothing from it.' : ''}${refImageSource ? '\n- LAST IMAGE: Scene reference photo — use ONLY for pose, clothing, background, lighting, and photographic quality. COMPLETELY IGNORE the face and identity of the person in this image. Their face must NOT appear in the output under any circumstances. Only extract: scene, pose, clothing, lighting, background, camera quality.' : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMAGE ROLES — READ CAREFULLY BEFORE GENERATING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- IMAGE 1 (MODEL FACE): This is the BASE MODEL. Her face is the ONLY face that must appear in the output. Study every facial feature: eyes, nose, lips, jaw, cheekbones, skin tone. Reproduce them exactly.${bodyImageSource ? '\n- IMAGE 2 (MODEL BODY): Same person, full body. Use ONLY for body type and proportions. Ignore clothing.' : ''}${refImageSource ? `\n- LAST IMAGE (SCENE REFERENCE): A DIFFERENT PERSON in a scene. Extract ONLY: pose, body position, expression TYPE (smile/neutral/serious — not the face), clothing, background, lighting, camera quality. The face of this person is IRRELEVANT — it is a PLACEHOLDER. Do not reproduce their face, their skin tone, their eye color, their nose, or any facial feature. Their face does not exist for the purposes of this generation.` : ''}
+${additionalModelImages && additionalModelImages.length > 0 ? `- MIDDLE IMAGES (MODEL EXTRA ANGLES): More photos of the SAME BASE MODEL from different angles. Use these to verify and strengthen facial identity accuracy. Same person as IMAGE 1.` : ''}
 
-FACE IDENTITY RULE: The face in the output belongs EXCLUSIVELY to the person in the FIRST IMAGE. No other face from any other image should influence the output face in any way.
+⚠️ FACE OUTPUT RULE: The generated person's face = IMAGE 1 face only. No blending. No averaging. No influence from the scene reference face. If the scene reference shows a blonde with blue eyes and the model has dark hair with brown eyes — the output must have dark hair and brown eyes.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
 
   const bodyTypeSection = subj.body_type
@@ -485,19 +491,18 @@ ${techSpecsSection ? `${techSpecsSection}` : ''}
 QUALITY: ${payload.technical_quality ?? ''}${customSection}
 
 CRITICAL REQUIREMENTS:
-1. FACE IDENTITY (HIGHEST PRIORITY): The face in the output must be THE EXACT FACE from the FIRST IMAGE only. Do NOT blend, mix, or borrow any facial features from the scene reference or any other image. The scene reference person's face must be completely replaced by the model's face from the first image. If there is any conflict between faces, always use the FIRST IMAGE face.
-2. This must look like a REAL photograph, NOT CGI. Realistic skin with visible pores, natural imperfections, authentic lighting.
-3. The person's BODY TYPE AND PROPORTIONS must exactly match the body reference image — reproduce curves, weight, and build faithfully. NEVER slim down or alter the body.
-4. The PHOTOGRAPHIC QUALITY (sharpness, grain, color rendering, bokeh, dynamic range) must match the last reference image provided — replicate how a real iPhone captures light, texture, and depth.
-5. Maintain the exact color temperature, saturation, and contrast described above.
-6. Reproduce the lighting direction, shadow quality, and highlight placement precisely.
-7. Hair must show natural variation - flyaways, texture inconsistencies, not "AI perfect" smoothness.
-8. Hands must look natural with correct finger anatomy and relaxed positioning.
+1. ⚠️ FACE IDENTITY — ABSOLUTE PRIORITY: Reproduce the EXACT face from IMAGE 1. Use the facial blueprint above (FACE & IDENTITY field) as a strict specification. The output face must match: eye shape/color/spacing, nose shape/width/tip, lip shape/thickness, jaw/chin shape, cheekbone position, skin tone. Do NOT soften, average, or blend with any other face. If it helps: mentally "paste" the model's face from IMAGE 1 onto the body in the scene reference pose.
+2. PHOTOREALISM: Must look like a real photograph — realistic skin pores, natural imperfections, authentic lighting. NOT CGI, NOT airbrushed, NOT plastic.
+3. BODY TYPE: Reproduce exactly from body reference — curves, proportions, weight. NEVER alter.
+4. PHOTOGRAPHIC QUALITY: Match the last reference image's camera feel — grain, bokeh, color rendering, dynamic range.
+5. LIGHTING: Match direction, shadow quality, contrast ratio, color temperature from specs above.
+6. HAIR: Natural variation — flyaways, texture inconsistencies, real hair movement. NOT AI-perfect.
+7. HANDS: Correct anatomy, natural finger positions, organic placement.
 
-IDENTITY PRESERVATION (CRITICAL):
-9. FACE ACCESSORIES: If the model wears a face mask, glasses, or any face covering, it MUST appear in the output exactly as described above.
-10. NO TATTOOS: The output person must NOT have any tattoos unless the BASE MODEL specifically has tattoos. Do NOT copy tattoos from reference poses.
-11. CLEAN SKIN: The model's skin should match their reference photos - typically clean and clear without tattoos or body modifications from the pose reference.
+IDENTITY PRESERVATION:
+8. FACE ACCESSORIES: Any mask, glasses, or face covering described above MUST appear in output.
+9. NO TATTOOS: Never copy tattoos from scene reference. Model skin stays clean unless model specifically has tattoos.
+10. NO FEATURE BLEED: Do NOT copy skin tone, eye color, hair color, or any physical feature from the scene reference person onto the model. They are completely different people.
   `.trim();
 
   // Fetch all images in parallel — face, extras, body, and scene reference all at once
