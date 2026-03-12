@@ -451,7 +451,9 @@ ENVIRONMENT DETAILS:
   // Add a section describing how to use each image type
   const refImageInstruction = `
 IMAGE ROLES (follow strictly):
-- FIRST IMAGE: Face close-up — use ONLY for facial identity (eyes, skin, features, face accessories).${bodyImageSource ? '\n- SECOND IMAGE: Full-body photo — use ONLY for body type, proportions, and curves. NEVER copy clothing from it.' : ''}${refImageSource ? '\n- LAST IMAGE: Scene reference photo — use for pose, clothing, background, lighting, and photographic quality. Match its exact camera feel (iPhone realism, grain, bokeh, color rendering).' : ''}
+- FIRST IMAGE: Face close-up — use ONLY for facial identity (eyes, skin, features, face accessories). THIS IS THE ONLY SOURCE FOR THE FACE. The person in the final image must have THIS exact face.${bodyImageSource ? '\n- SECOND IMAGE: Full-body photo — use ONLY for body type, proportions, and curves. NEVER copy clothing from it.' : ''}${refImageSource ? '\n- LAST IMAGE: Scene reference photo — use ONLY for pose, clothing, background, lighting, and photographic quality. COMPLETELY IGNORE the face and identity of the person in this image. Their face must NOT appear in the output under any circumstances. Only extract: scene, pose, clothing, lighting, background, camera quality.' : ''}
+
+FACE IDENTITY RULE: The face in the output belongs EXCLUSIVELY to the person in the FIRST IMAGE. No other face from any other image should influence the output face in any way.
 `;
 
   const bodyTypeSection = subj.body_type
@@ -483,8 +485,8 @@ ${techSpecsSection ? `${techSpecsSection}` : ''}
 QUALITY: ${payload.technical_quality ?? ''}${customSection}
 
 CRITICAL REQUIREMENTS:
-1. This must look like a REAL photograph, NOT CGI. Realistic skin with visible pores, natural imperfections, authentic lighting.
-2. The person's FACE AND IDENTITY must exactly match the face reference image provided.
+1. FACE IDENTITY (HIGHEST PRIORITY): The face in the output must be THE EXACT FACE from the FIRST IMAGE only. Do NOT blend, mix, or borrow any facial features from the scene reference or any other image. The scene reference person's face must be completely replaced by the model's face from the first image. If there is any conflict between faces, always use the FIRST IMAGE face.
+2. This must look like a REAL photograph, NOT CGI. Realistic skin with visible pores, natural imperfections, authentic lighting.
 3. The person's BODY TYPE AND PROPORTIONS must exactly match the body reference image — reproduce curves, weight, and build faithfully. NEVER slim down or alter the body.
 4. The PHOTOGRAPHIC QUALITY (sharpness, grain, color rendering, bokeh, dynamic range) must match the last reference image provided — replicate how a real iPhone captures light, texture, and depth.
 5. Maintain the exact color temperature, saturation, and contrast described above.
