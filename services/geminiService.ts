@@ -586,6 +586,11 @@ CRITICAL REQUIREMENTS:
     // Re-throw specific errors
     if (error.message === "CONTENIDO_BLOQUEADO_SEGURIDAD") throw error;
 
+    // Handle transient 500 Internal errors from Google — surface as retryable message
+    if (error.message?.includes('500') || error.message?.includes('Internal error') || error.message?.includes('INTERNAL')) {
+      throw new Error("INTERNAL_SERVER_ERROR_RETRY");
+    }
+
     throw new Error(error.message || "FALLO_GENERACION");
   }
 };

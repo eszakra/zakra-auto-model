@@ -656,8 +656,33 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
     } catch (e: any) {
       console.error(e);
-      // Check if it's a resolution error
       let errorMsg = e.message;
+
+      // Auto-retry once on transient Google 500 errors
+      if (selectedModel && (e.message?.includes('INTERNAL_SERVER_ERROR_RETRY') || e.message?.includes('500') || e.message?.includes('INTERNAL'))) {
+        try {
+          await new Promise(r => setTimeout(r, 4000));
+          const currentKey2 = getCurrentApiKey();
+          const { generateIndustrialImage: genRetry } = await import('./services/geminiService');
+          const sceneRef2 = item.base64 || (item.file ? await readFileAsBase64(item.file) : undefined);
+          if (!sceneRef2 || !item.payload) throw new Error("Image data unavailable");
+          const rawRetry = await genRetry(
+            currentKey2, item.payload, selectedModel.image_url,
+            selectedResolution === 'AUTO' ? undefined : selectedResolution,
+            selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio,
+            user?.plan_type, selectedModel.reference_images || [], undefined,
+            sceneRef2, selectedModel.body_image || undefined, geminiModel
+          );
+          const resultRetry = await stripAndInjectIphoneExif(rawRetry);
+          const fileNameRetry = `batch_${Date.now()}_${item.id}.jpg`;
+          const publicUrlRetry = await uploadBase64Image(resultRetry, 'generations', fileNameRetry);
+          setQueue(prev => prev.map(q => q.id === item.id ? { ...q, status: 'COMPLETED', resultImage: resultRetry, resultUrl: publicUrlRetry } : q));
+          return;
+        } catch (retryErr: any) {
+          errorMsg = retryErr.message || errorMsg;
+        }
+      }
+
       if (e.message?.includes('RESOLUTION_NOT_ALLOWED')) {
         errorMsg = 'Your plan only supports up to 1K. Upgrade to Pro/Premium for higher resolutions.';
       }
@@ -903,16 +928,41 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       saveToHistory(result, finalPayload);
 
     } catch (error: any) {
+      // Auto-retry once on transient Google 500 errors
+      if (error.message?.includes('INTERNAL_SERVER_ERROR_RETRY') || error.message?.includes('500') || error.message?.includes('INTERNAL')) {
+        try {
+          await new Promise(r => setTimeout(r, 4000));
+          const currentKey2 = getCurrentApiKey();
+          const { generateIndustrialImage: genRetry } = await import('./services/geminiService');
+          const rawRetry = await genRetry(
+            currentKey2, finalPayload,
+            selectedModel?.image_url || "",
+            selectedResolution === 'AUTO' ? undefined : selectedResolution,
+            selectedAspectRatio === 'AUTO' ? undefined : selectedAspectRatio,
+            user?.plan_type, selectedModel?.reference_images || [],
+            customInstructions?.trim() || undefined,
+            refImage || undefined,
+            selectedModel?.body_image || undefined,
+            geminiModel
+          );
+          const retryResult = await stripAndInjectIphoneExif(rawRetry);
+          setGeneratedImage(retryResult);
+          setAppState(AppState.COMPLETE);
+          saveToHistory(retryResult, finalPayload);
+          return;
+        } catch (retryError: any) {
+          setAppState(AppState.ERROR);
+          setErrorMsg(retryError.message || error.message);
+          return;
+        }
+      }
+
       setAppState(AppState.ERROR);
-      // Check if it's a resolution error
       if (error.message?.includes('RESOLUTION_NOT_ALLOWED')) {
         setErrorMsg('ANALYSIS FAILED: Your current plan only supports up to 1K resolution. Please upgrade to Pro or Premium to access 2K and 4K resolutions.');
       } else {
         setErrorMsg(error.message);
       }
-      // NOTE: Credit is NOT refunded on generation failure.
-      // This prevents abuse (users could force errors to get free generations).
-      // If needed, admin can manually refund via admin panel.
     }
   };
 
