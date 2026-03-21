@@ -487,8 +487,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       setApiKeyMessage(null);
 
       // Use RPC instead of Edge Function
+      const cleanKey = apiKey.trim();
       const { data, error } = await supabase.rpc('update_api_key', {
-        p_api_key: apiKey
+        p_api_key: cleanKey
       });
 
       if (error) {
@@ -1322,7 +1323,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                           value={apiKey.includes('...') ? '' : apiKey}
                           onChange={(e) => setApiKey(e.target.value)}
                           placeholder="Enter your Gemini API key (starts with AIza...)"
-                          className="w-full px-4 py-3 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red pr-12"
+                          className="w-full px-4 py-3 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red pr-12 bg-[var(--bg-secondary)] text-[var(--text-primary)]"
                         />
                         <button
                           onClick={() => setShowApiKey(!showApiKey)}
