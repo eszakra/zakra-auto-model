@@ -12,8 +12,8 @@ interface ModelModalProps {
 const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const { user } = useAuth();
     const [nombre, setNombre] = useState('');
-    const [faceImage, setFaceImage] = useState('');
-    const [bodyImage, setBodyImage] = useState('');
+    const [faceImages, setFaceImages] = useState<string[]>([]);
+    const [bodyImages, setBodyImages] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
 
     const dataUrlToBlob = (dataUrl: string): Blob => {
@@ -44,22 +44,29 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
 
     const handleSubmit = async () => {
         if (!nombre.trim()) { alert("Enter a model name."); return; }
-        if (!faceImage) { alert("Upload a face photo."); return; }
-        if (!bodyImage) { alert("Upload a body photo."); return; }
+        if (faceImages.length === 0) { alert("Upload at least one face photo."); return; }
+        if (bodyImages.length === 0) { alert("Upload at least one body photo."); return; }
 
         setLoading(true);
         try {
             const prefix = nombre.trim().replace(/\s+/g, '_');
-            const [faceUrl, bodyUrl] = await Promise.all([
-                faceImage.startsWith('data:') ? uploadToStorage(faceImage, `${prefix}_face`) : Promise.resolve(faceImage),
-                bodyImage.startsWith('data:') ? uploadToStorage(bodyImage, `${prefix}_body`) : Promise.resolve(bodyImage),
-            ]);
+            
+            // Upload all face images
+            const faceUrlPromises = faceImages.map((img, i) => 
+                img.startsWith('data:') ? uploadToStorage(img, `${prefix}_face_${i}`) : Promise.resolve(img)
+            );
+            const bodyUrlPromises = bodyImages.map((img, i) => 
+                img.startsWith('data:') ? uploadToStorage(img, `${prefix}_body_${i}`) : Promise.resolve(img)
+            );
+
+            const uploadedFaceUrls = await Promise.all(faceUrlPromises);
+            const uploadedBodyUrls = await Promise.all(bodyUrlPromises);
 
             const { error } = await supabase.from('saved_models').insert([{
                 model_name: nombre.trim(),
-                image_url: faceUrl,
-                body_image: bodyUrl,
-                reference_images: null,
+                image_url: uploadedFaceUrls[0],
+                body_image: uploadedBodyUrls[0],
+                reference_images: [...uploadedFaceUrls.slice(1), ...uploadedBodyUrls.slice(1)],
                 face_description: "PENDING_AUTO_ANALYSIS",
                 hair_description: "PENDING_AUTO_ANALYSIS",
                 user_id: user?.id,
@@ -68,7 +75,7 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
 
             onSuccess();
             onClose();
-            setNombre(''); setFaceImage(''); setBodyImage('');
+            setNombre(''); setFaceImages([]); setBodyImages([]);
         } catch (e: any) {
             alert("Error: " + e.message);
         } finally {
@@ -76,7 +83,7 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
         }
     };
 
-    const canSubmit = nombre.trim() && faceImage && bodyImage && !loading;
+    const canSubmit = nombre.trim() && faceImages.length > 0 && bodyImages.length > 0 && !loading;
 
     if (!isOpen) return null;
 
@@ -114,22 +121,24 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
                             <PhotoSlot
                                 id="slot-face"
                                 icon={<Camera size={22} className="text-gray-400" />}
-                                title="Face"
-                                description="Clear close-up"
-                                value={faceImage}
-                                onSet={setFaceImage}
-                                onClear={() => setFaceImage('')}
+                                title="Face Photos"
+                                description="Up to 4 close-ups"
+                                values={faceImages}
+                                onAdd={(val) => setFaceImages(prev => [...prev, val])}
+                                onRemove={(idx) => setFaceImages(prev => prev.filter((_, i) => i !== idx))}
                                 onRead={readFile}
+                                max={4}
                             />
                             <PhotoSlot
                                 id="slot-body"
                                 icon={<PersonStanding size={22} className="text-gray-400" />}
-                                title="Body"
-                                description="Full body visible"
-                                value={bodyImage}
-                                onSet={setBodyImage}
-                                onClear={() => setBodyImage('')}
+                                title="Body Photos"
+                                description="Up to 4 full body"
+                                values={bodyImages}
+                                onAdd={(val) => setBodyImages(prev => [...prev, val])}
+                                onRemove={(idx) => setBodyImages(prev => prev.filter((_, i) => i !== idx))}
                                 onRead={readFile}
+                                max={4}
                             />
                         </div>
 
@@ -167,72 +176,71 @@ interface PhotoSlotProps {
     icon: React.ReactNode;
     title: string;
     description: string;
-    value: string;
-    onSet: (v: string) => void;
-    onClear: () => void;
+    values: string[];
+    onAdd: (v: string) => void;
+    onRemove: (idx: number) => void;
     onRead: (f: File) => Promise<string>;
+    max: number;
 }
 
-const PhotoSlot: React.FC<PhotoSlotProps> = ({ id, icon, title, description, value, onSet, onClear, onRead }) => (
-    <div className="flex flex-col gap-1.5">
-        {/* Upload area */}
-        <div
-            onClick={() => !value && document.getElementById(id)?.click()}
-            className={`
-                relative aspect-[3/4] w-full rounded-xl overflow-hidden border-2 transition-all
-                ${value
-                    ? 'border-reed-red/50 cursor-default'
-                    : 'border-dashed border-[var(--border-color)] hover:border-reed-red cursor-pointer bg-[var(--bg-secondary)]'
-                }
-            `}
-        >
-            {value ? (
-                <>
-                    <img src={value} alt={title} className="w-full h-full object-cover" />
-                    {/* Overlay label */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent pt-6 pb-2 px-2">
-                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">{title}</span>
-                    </div>
-                    {/* Remove button */}
+const PhotoSlot: React.FC<PhotoSlotProps> = ({ id, icon, title, description, values, onAdd, onRemove, onRead, max }) => (
+    <div className="flex flex-col gap-1.5 border border-[var(--border-color)] bg-[var(--bg-primary)] p-2 rounded-xl">
+        <div className="flex justify-between items-center px-1 mb-1">
+            <span className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-wider">{title}</span>
+            <span className="text-[10px] text-gray-500 font-medium">{values.length}/{max}</span>
+        </div>
+        
+        {/* Grid setup */}
+        <div className="grid grid-cols-2 gap-2">
+            {values.map((val, idx) => (
+                <div key={idx} className="relative aspect-[3/4] w-full rounded-lg overflow-hidden border border-[var(--border-color)]">
+                    <img src={val} alt={`${title} ${idx + 1}`} className="w-full h-full object-cover" />
+                    {idx === 0 && (
+                        <div className="absolute top-1 left-1 bg-reed-red text-white text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm">MAIN</div>
+                    )}
                     <button
-                        onClick={e => { e.stopPropagation(); onClear(); }}
-                        className="absolute top-2 right-2 w-6 h-6 bg-black/60 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition-colors"
+                        onClick={e => { e.stopPropagation(); onRemove(idx); }}
+                        className="absolute top-1 right-1 w-5 h-5 bg-black/70 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition-colors"
                     >
-                        <X size={11} />
+                        <X size={10} />
                     </button>
-                </>
-            ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3">
+                </div>
+            ))}
+
+            {/* Upload button slot (only shown if under max) */}
+            {values.length < max && (
+                <div
+                    onClick={() => document.getElementById(id)?.click()}
+                    className="relative aspect-[3/4] w-full rounded-lg overflow-hidden border-2 border-dashed border-[var(--border-color)] hover:border-reed-red cursor-pointer bg-[var(--bg-secondary)] flex flex-col items-center justify-center gap-1 transition-colors p-2 text-center"
+                >
                     {icon}
-                    <div className="text-center">
-                        <p className="text-[11px] font-semibold text-[var(--text-primary)]">{title}</p>
-                        <p className="text-[10px] text-gray-500 mt-0.5">{description}</p>
-                    </div>
+                    <span className="text-[9px] font-semibold text-[var(--text-primary)]">Add Photo</span>
                 </div>
             )}
         </div>
-
-        {/* Click to change when filled */}
-        {value && (
-            <button
-                onClick={() => document.getElementById(id)?.click()}
-                className="text-[10px] text-gray-500 hover:text-reed-red transition-colors text-center"
-            >
-                Change photo
-            </button>
-        )}
 
         <input
             id={id}
             type="file"
             accept="image/*"
+            multiple // Allow selecting multiple files at once
             className="hidden"
             onChange={async e => {
-                const file = e.target.files?.[0];
-                if (file) onSet(await onRead(file));
+                const files = e.target.files;
+                if (!files) return;
+                
+                // Add sequentially up to max limit
+                let currentCount = values.length;
+                for (let i = 0; i < files.length; i++) {
+                    if (currentCount >= max) break;
+                    const b64 = await onRead(files[i]);
+                    onAdd(b64);
+                    currentCount++;
+                }
                 e.target.value = '';
             }}
         />
+        <p className="text-[9px] text-gray-400 px-1 mt-1 leading-tight">{description}</p>
     </div>
 );
 

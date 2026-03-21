@@ -95,7 +95,7 @@ export const generateUnifiedPayload = async (
     : '';
 
   const extraRule = extraImages.length > 0
-    ? `- IMAGES ${extraStartIndex}–${extraStartIndex + extraImages.length - 1} (EXTRA ANGLES — BASE MODEL): Additional photos of the same person for face/identity accuracy only. Use these to cross-reference facial features not fully visible from the front angle (nose profile, jaw angle, cheekbone width). IGNORE their backgrounds and lighting completely.`
+    ? `- IMAGES ${extraStartIndex}–${extraStartIndex + extraImages.length - 1} (EXTRA ANGLES — BASE MODEL): Additional photos of the same person for face, identity, AND body accuracy. Use these to cross-reference features not fully visible from the front or main body angle (nose profile, jaw angle, body proportions). IGNORE their backgrounds and lighting completely.`
     : '';
 
   const refRule = `- IMAGE ${refIndex} (SCENE REFERENCE — THE ONLY SOURCE FOR EVERYTHING ELSE): This is the ONLY image from which you extract: pose, expression, clothing, background, lighting, environment, accessories, color grading, photographic style, camera quality, depth of field, grain, color temperature. ALL scene and quality information comes exclusively from THIS image. Nothing from the model photos should influence the scene, background, or photographic quality.`;
@@ -453,13 +453,15 @@ ENVIRONMENT DETAILS:
   let imgPos = 1;
   const facePos = imgPos++;
   const bodyPos = bodyImageSource ? imgPos++ : null;
+  const extraStartIndex = additionalModelImages && additionalModelImages.length > 0 ? imgPos : null;
+  if (additionalModelImages) imgPos += additionalModelImages.length;
   const refPos = refImageSource ? imgPos : null; // ref is always last
 
   const refImageInstruction = `
 IMAGE ASSIGNMENTS — these are the exact images attached, in order:
-- IMAGE ${facePos}: MODEL FACE. Extract ONLY the face identity from this image: eyes, nose, lips, jaw, skin tone, hair. This person's face is WHO must appear in the output. Do not use any other image for the face.${bodyPos ? `\n- IMAGE ${bodyPos}: MODEL BODY. Extract ONLY body proportions and build from this image. Same person as IMAGE ${facePos}. Ignore clothing.` : ''}${refPos ? `\n- IMAGE ${refPos}: SCENE REFERENCE. A completely different person. Extract ONLY: pose, expression, clothing, background, lighting, camera quality. Ignore this person's face entirely — their face must NOT appear in the output at all.` : ''}
+- IMAGE ${facePos}: MODEL FACE. Extract ONLY the face identity from this image: eyes, nose, lips, jaw, skin tone, hair. This person's face is WHO must appear in the output. Do not use any other image for the face.${bodyPos ? `\n- IMAGE ${bodyPos}: MODEL BODY. Extract ONLY body proportions and build from this image. Same person as IMAGE ${facePos}. Ignore clothing.` : ''}${extraStartIndex ? `\n- IMAGES ${extraStartIndex}–${extraStartIndex + additionalModelImages!.length - 1}: MODEL EXTRA ANGLES. More photos of the SAME person (face and body) to ensure perfect identity and body type replication.` : ''}${refPos ? `\n- IMAGE ${refPos}: SCENE REFERENCE. A completely different person/scene. Extract ONLY: pose, expression, clothing, background, lighting, camera quality. Ignore this person's face and body identity entirely — their physical identity must NOT appear in the output at all.` : ''}
 
-The output must show IMAGE ${facePos}'s face on IMAGE ${refPos ?? facePos}'s scene.
+The output must show IMAGE ${facePos}'s face and body type in IMAGE ${refPos ?? facePos}'s scene/pose.
 `;
 
   const bodyTypeSection = subj.body_type
@@ -491,9 +493,8 @@ ${techSpecsSection ? `${techSpecsSection}` : ''}
 QUALITY: ${payload.technical_quality ?? ''}${customSection}
 
 CRITICAL REQUIREMENTS:
-1. FACE: The output face must be the person from IMAGE 1 — their exact eyes, nose, lips, jaw, skin tone. Do not blend or average with any other image. The scene reference person's face must be completely replaced by IMAGE 1's face.
-2. BODY: Reproduce body type and proportions exactly as described above. NEVER alter curves or weight.
-3. PHOTOREALISM: Real photograph look — visible skin pores, natural imperfections, authentic light on skin. NOT CGI, NOT plastic, NOT airbrushed, NOT AI-smooth.
+1. FACE & BODY EXACT MATCH: The output person's face and body MUST be the EXACT person from IMAGE 1, IMAGE 2 (if present), and the extra angles — their exact eyes, nose, lips, jaw, skin tone, and body proportions. Do not blend or average with the scene reference person. The scene reference person's physical identity must be COMPLETELY REDRAWN to match the model images.
+2. PHOTOREALISM: Real photograph look — visible skin pores, natural imperfections, authentic light on skin. NOT CGI, NOT plastic, NOT airbrushed, NOT AI-smooth.
 4. PHOTOGRAPHIC QUALITY: Always render as a candid iPhone 15 Pro photo — natural digital sensor noise, genuine spontaneous feel, realistic skin texture with visible pores, soft natural bokeh, vivid but not oversaturated colors, authentic imperfect real-world lighting. Even if the scene reference is studio or DSLR quality, the final render must feel like a real unposed iPhone moment.
 5. LIGHTING: Match the scene reference lighting direction, shadows, and contrast exactly.
 6. HAIR: Natural variation — flyaways, texture, real movement. Not AI-perfect.
@@ -503,11 +504,11 @@ CRITICAL REQUIREMENTS:
   `.trim();
 
   // Fetch all images in parallel
-  // Order kept as: face, body, ref — extras ignored since modal no longer supports them
-  const [baseModelImg, bodyImg, refImg] = await Promise.all([
+  const [baseModelImg, bodyImg, refImg, ...extraModelImages] = await Promise.all([
     ensureBase64(baseModelFaceImageSource),
     bodyImageSource ? ensureBase64(bodyImageSource) : Promise.resolve(null),
     refImageSource ? ensureBase64(refImageSource) : Promise.resolve(null),
+    ...(additionalModelImages ?? []).map(img => ensureBase64(img)),
   ]);
 
   try {
@@ -521,12 +522,16 @@ CRITICAL REQUIREMENTS:
     }
 
     // Build image parts in exact order the prompt describes:
-    // IMAGE 1: face → IMAGE 2: body (if any) → IMAGE 3: scene reference (always last)
     const modelImageParts: any[] = [
       { inlineData: { mimeType: baseModelImg.mimeType, data: baseModelImg.data } }, // face — IMAGE 1
     ];
     if (bodyImg) {
       modelImageParts.push({ inlineData: { mimeType: bodyImg.mimeType, data: bodyImg.data } }); // body — IMAGE 2
+    }
+    for (const extra of extraModelImages) {
+      if (extra) {
+        modelImageParts.push({ inlineData: { mimeType: extra.mimeType, data: extra.data } }); // extra angles
+      }
     }
     if (refImg) {
       modelImageParts.push({ inlineData: { mimeType: refImg.mimeType, data: refImg.data } }); // scene ref — always LAST
