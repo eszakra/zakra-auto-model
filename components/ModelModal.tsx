@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { X, Loader2, Camera, PersonStanding } from 'lucide-react';
 
 interface ModelModalProps {
@@ -11,6 +12,7 @@ interface ModelModalProps {
 
 const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const { user } = useAuth();
+    const { isEnabled } = useFeatureFlags();
     const [nombre, setNombre] = useState('');
     const [faceImages, setFaceImages] = useState<string[]>([]);
     const [bodyImages, setBodyImages] = useState<string[]>([]);
@@ -43,6 +45,11 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
         });
 
     const handleSubmit = async () => {
+        if (isEnabled('admin_only_generation') && !user?.is_admin) {
+            alert("MAINTENANCE MODE: Uploading new models is currently restricted to Admins only.");
+            return;
+        }
+
         if (!nombre.trim()) { alert("Enter a model name."); return; }
         if (faceImages.length === 0) { alert("Upload at least one face photo."); return; }
         if (bodyImages.length === 0) { alert("Upload at least one body photo."); return; }

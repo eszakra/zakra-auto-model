@@ -6,6 +6,7 @@ import { AppState, ModeloBase, QueueItem } from './types';
 import ModelModal from './components/ModelModal';
 import OnboardingGuide from './components/OnboardingGuide';
 import { useAuth } from './contexts/AuthContext';
+import { useFeatureFlags } from './hooks/useFeatureFlags';
 import { RefreshCcw, Plus, AlertCircle, Cpu, Calendar, CheckCircle2, Loader2, Download, Play, Layers, ScanSearch, X, Check, ArrowLeft, CreditCard, Crown, Shield, Sparkles, Monitor, Tv, MonitorPlay, Square, RectangleVertical, RectangleHorizontal, Smartphone, ChevronDown } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -21,6 +22,7 @@ interface AppProps {
 const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   // --- AUTH & CONFIG ---
   const { user, loading: userLoading, hasEnoughCredits, useCredits } = useAuth();
+  const { isEnabled } = useFeatureFlags();
   // API key from Supabase - fetched dynamically
   const [apiKey, setApiKey] = useState<string>('');
   const [hasAccess, setHasAccess] = useState(false);
@@ -203,6 +205,11 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
     if (!hasPoseVariationFeature()) {
       alert("Pose Variation is available for Creator, Pro, and Studio plans. Please upgrade to access this feature.");
+      return;
+    }
+
+    if (isEnabled('admin_only_generation') && !user?.is_admin) {
+      alert("MAINTENANCE MODE: Generating is currently restricted to Admins only.");
       return;
     }
 
@@ -602,6 +609,10 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
 
       if (!currentItem.payload) throw new Error("No payload found");
 
+      if (isEnabled('admin_only_generation') && !user?.is_admin) {
+        throw new Error("MAINTENANCE MODE: Generating is currently restricted to Admins only.");
+      }
+
       // Check credits before generating
       if (!hasEnoughCredits(1)) {
         throw new Error("Insufficient credits. Please upgrade your plan or purchase more credits.");
@@ -838,6 +849,11 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       return;
     }
 
+    if (isEnabled('admin_only_generation') && !user?.is_admin) {
+      alert("MAINTENANCE MODE: Analysis is currently restricted to Admins only.");
+      return;
+    }
+
     // Check credits before analysis (costs 1 credit)
     if (!hasEnoughCredits(1)) {
       alert("INSUFFICIENT CREDITS: You need at least 1 credit to run the analysis. Please upgrade your plan or purchase more credits.");
@@ -875,6 +891,11 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
   const handleExecute = async () => {
     if (!payloadJsonString && !generatedPayload) {
       alert("FIRST YOU MUST PERFORM THE ANALYSIS (STEP 2)");
+      return;
+    }
+
+    if (isEnabled('admin_only_generation') && !user?.is_admin) {
+      alert("MAINTENANCE MODE: Generating is currently restricted to Admins only.");
       return;
     }
 
