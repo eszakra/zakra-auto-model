@@ -124,7 +124,7 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
                                 title="Face Photos"
                                 description="Up to 4 close-ups"
                                 values={faceImages}
-                                onAdd={(val) => setFaceImages(prev => [...prev, val])}
+                                onAdd={(vals) => setFaceImages(prev => [...prev, ...vals])}
                                 onRemove={(idx) => setFaceImages(prev => prev.filter((_, i) => i !== idx))}
                                 onRead={readFile}
                                 max={4}
@@ -135,7 +135,7 @@ const ModelModal: React.FC<ModelModalProps> = ({ isOpen, onClose, onSuccess }) =
                                 title="Body Photos"
                                 description="Up to 4 full body"
                                 values={bodyImages}
-                                onAdd={(val) => setBodyImages(prev => [...prev, val])}
+                                onAdd={(vals) => setBodyImages(prev => [...prev, ...vals])}
                                 onRemove={(idx) => setBodyImages(prev => prev.filter((_, i) => i !== idx))}
                                 onRead={readFile}
                                 max={4}
@@ -177,7 +177,7 @@ interface PhotoSlotProps {
     title: string;
     description: string;
     values: string[];
-    onAdd: (v: string) => void;
+    onAdd: (v: string[]) => void;
     onRemove: (idx: number) => void;
     onRead: (f: File) => Promise<string>;
     max: number;
@@ -210,7 +210,11 @@ const PhotoSlot: React.FC<PhotoSlotProps> = ({ id, icon, title, description, val
             {/* Upload button slot (only shown if under max) */}
             {values.length < max && (
                 <div
-                    onClick={() => document.getElementById(id)?.click()}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        const inputEl = document.getElementById(id);
+                        if (inputEl) inputEl.click();
+                    }}
                     className="relative aspect-[3/4] w-full rounded-lg overflow-hidden border-2 border-dashed border-[var(--border-color)] hover:border-reed-red cursor-pointer bg-[var(--bg-secondary)] flex flex-col items-center justify-center gap-1 transition-colors p-2 text-center"
                 >
                     {icon}
@@ -227,17 +231,26 @@ const PhotoSlot: React.FC<PhotoSlotProps> = ({ id, icon, title, description, val
             className="hidden"
             onChange={async e => {
                 const files = e.target.files;
-                if (!files) return;
+                if (!files || files.length === 0) return;
                 
-                // Add sequentially up to max limit
+                const newB64s: string[] = [];
                 let currentCount = values.length;
                 for (let i = 0; i < files.length; i++) {
                     if (currentCount >= max) break;
-                    const b64 = await onRead(files[i]);
-                    onAdd(b64);
-                    currentCount++;
+                    try {
+                        const b64 = await onRead(files[i]);
+                        newB64s.push(b64);
+                        currentCount++;
+                    } catch (err) {
+                        console.error("Failed to read file", err);
+                    }
                 }
-                e.target.value = '';
+                
+                if (newB64s.length > 0) {
+                    onAdd(newB64s);
+                }
+                
+                e.target.value = ''; // clean input so same file can be selected again if removed
             }}
         />
         <p className="text-[9px] text-gray-400 px-1 mt-1 leading-tight">{description}</p>
