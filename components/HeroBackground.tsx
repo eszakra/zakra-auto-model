@@ -1,20 +1,25 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+gsap.registerPlugin(useGSAP);
 
 interface HeroBackgroundProps {
   className?: string;
 }
 
 export const HeroBackground: React.FC<HeroBackgroundProps> = ({ className = '' }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const particlesRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useGSAP(() => {
     // Glow breathing animation
     if (glowRef.current) {
       gsap.to(glowRef.current, {
-        scale: 1.12,
-        opacity: 0.22,
+        scale: 1.15,
+        opacity: 0.25,
         duration: 5,
         repeat: -1,
         yoyo: true,
@@ -25,7 +30,7 @@ export const HeroBackground: React.FC<HeroBackgroundProps> = ({ className = '' }
     // Grid subtle drift
     if (gridRef.current) {
       gsap.to(gridRef.current, {
-        y: -4,
+        y: -6,
         duration: 4,
         repeat: -1,
         yoyo: true,
@@ -33,15 +38,33 @@ export const HeroBackground: React.FC<HeroBackgroundProps> = ({ className = '' }
       });
     }
 
-    return () => {
-      [glowRef, gridRef].forEach(ref => {
-        if (ref.current) gsap.killTweensOf(ref.current);
+    // Floating particles
+    if (particlesRef.current) {
+      const particles = particlesRef.current.querySelectorAll('.hero-particle');
+      particles.forEach((particle, i) => {
+        gsap.set(particle, {
+          x: gsap.utils.random(0, window.innerWidth),
+          y: gsap.utils.random(0, window.innerHeight),
+          scale: gsap.utils.random(0.3, 1),
+          opacity: 0,
+        });
+
+        gsap.to(particle, {
+          y: `-=${gsap.utils.random(100, 300)}`,
+          x: `+=${gsap.utils.random(-50, 50)}`,
+          opacity: gsap.utils.random(0.1, 0.4),
+          duration: gsap.utils.random(4, 8),
+          repeat: -1,
+          yoyo: true,
+          ease: 'sine.inOut',
+          delay: i * 0.3,
+        });
       });
-    };
-  }, []);
+    }
+  }, { scope: containerRef });
 
   return (
-    <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
+    <div ref={containerRef} className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
       {/* Base background */}
       <div className="absolute inset-0 bg-[var(--bg-primary)]" />
 
@@ -63,15 +86,15 @@ export const HeroBackground: React.FC<HeroBackgroundProps> = ({ className = '' }
                 90deg,
                 transparent,
                 transparent 79px,
-                rgba(220, 38, 38, 0.12) 79px,
-                rgba(220, 38, 38, 0.12) 80px
+                rgba(220, 38, 38, 0.10) 79px,
+                rgba(220, 38, 38, 0.10) 80px
               ),
               repeating-linear-gradient(
                 0deg,
                 transparent,
                 transparent 79px,
-                rgba(220, 38, 38, 0.12) 79px,
-                rgba(220, 38, 38, 0.12) 80px
+                rgba(220, 38, 38, 0.10) 79px,
+                rgba(220, 38, 38, 0.10) 80px
               )
             `,
             maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.3) 15%, black 40%, black 70%, rgba(0,0,0,0.4) 85%, transparent 100%)',
@@ -98,6 +121,16 @@ export const HeroBackground: React.FC<HeroBackgroundProps> = ({ className = '' }
           filter: 'blur(70px)',
         }}
       />
+
+      {/* Floating particles */}
+      <div ref={particlesRef} className="absolute inset-0">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <div
+            key={i}
+            className="hero-particle absolute w-1 h-1 rounded-full bg-reed-red/30"
+          />
+        ))}
+      </div>
 
       {/* Subtle top-edge vignette to blend nav area */}
       <div

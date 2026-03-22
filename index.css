@@ -350,3 +350,57 @@ a, button {
   height: 1px;
 }
 
+/* ── Scroll-reveal system (IntersectionObserver driven) ── */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.scroll-reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered children inside a revealed container */
+.scroll-reveal .scroll-reveal-child {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-reveal.revealed .scroll-reveal-child {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* FAQ accordion smooth open/close */
+.faq-answer-wrap {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.3s ease;
+}
+
+.faq-answer-wrap.faq-open {
+  max-height: 300px;
+  opacity: 1;
+}
+
+/* Prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal,
+  .scroll-reveal .scroll-reveal-child {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .faq-answer-wrap {
+    transition: none;
+  }
+}
+

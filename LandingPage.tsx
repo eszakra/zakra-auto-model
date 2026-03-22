@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Menu, X, ChevronDown, ChevronUp, Check,
   Zap, Crown, Shield, Clock, Users, Star, ArrowRight,
@@ -7,6 +7,8 @@ import {
   LayoutDashboard, Wand2, Fingerprint, GitBranch,
   Eye, EyeOff, Coins, CheckCircle2, ScanLine, Box
 } from 'lucide-react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import App from './App';
 import DashboardLayout from './components/DashboardLayout';
 import { useAuth } from './contexts/AuthContext';
@@ -26,8 +28,31 @@ import { WORKFLOWS, LORAS, PACKAGES, ServiceItem, getServiceById } from './servi
 import { usePortfolioImages } from './hooks/usePortfolioImages';
 import { optimizeImageForCarousel } from './utils/imageOptimizer';
 
+gsap.registerPlugin(useGSAP);
 
-// Navigation Component - Clean: logged in = "Open Dashboard", logged out = "Log In / Start Free"
+// Scroll-reveal hook using IntersectionObserver — simple, zero-bug approach
+const useScrollReveal = (options?: { threshold?: number; rootMargin?: string }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.classList.add('revealed');
+          observer.unobserve(el);
+        }
+      },
+      { threshold: options?.threshold ?? 0.1, rootMargin: options?.rootMargin ?? '0px 0px -40px 0px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+};
+
+
+// Navigation Component
 const Navigation = ({
   onLaunchApp,
   onLoginClick,
@@ -55,7 +80,7 @@ const Navigation = ({
   ];
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
+    <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 animate-fade-in ${
       isScrolled ? 'bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-color)]' : 'bg-transparent'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -204,14 +229,14 @@ const Navigation = ({
   );
 };
 
-// Hero Section - Clean, direct, two clear paths
+// Hero Section - GSAP-powered entrance animations
 const HeroSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void; onViewServices: () => void }) => {
   const { images, isLoading } = usePortfolioImages({ category: 'sfw' });
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [nextImageIndex, setNextImageIndex] = useState(1);
   const [showNext, setShowNext] = useState(false);
-  // activeIndex tracks what the user should "see" as selected (updates immediately)
   const [activeIndex, setActiveIndex] = useState(0);
+  const heroRef = useRef<HTMLElement>(null);
 
   const heroImages = images.slice(0, 6);
 
@@ -220,7 +245,7 @@ const HeroSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void;
     const interval = setInterval(() => {
       const next = (currentImageIndex + 1) % heroImages.length;
       setNextImageIndex(next);
-      setActiveIndex(next); // indicators update immediately
+      setActiveIndex(next);
       setShowNext(true);
       setTimeout(() => {
         setCurrentImageIndex(next);
@@ -241,8 +266,52 @@ const HeroSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void;
     }, 700);
   };
 
+  // GSAP hero entrance timeline
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ delay: 0.2 });
+
+      tl.fromTo('.hero-title-line',
+        { y: 40, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, stagger: 0.12, ease: 'power3.out' }
+      )
+      .fromTo('.hero-subtitle',
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' },
+        '-=0.35'
+      )
+      .fromTo('.hero-cta-btn',
+        { y: 15, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5, stagger: 0.08, ease: 'power3.out' },
+        '-=0.25'
+      )
+      .fromTo('.hero-stat',
+        { y: 12, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.4, stagger: 0.08, ease: 'power3.out' },
+        '-=0.15'
+      )
+      .fromTo('.hero-image-wrapper',
+        { x: 40, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.9, ease: 'power2.out' },
+        0.25
+      )
+      .fromTo('.hero-badge',
+        { scale: 0.5, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(1.7)' },
+        '-=0.25'
+      )
+      .fromTo('.hero-thumbs',
+        { y: 12, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out' },
+        '-=0.15'
+      );
+    }, heroRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden">
+    <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden">
       <HeroBackground />
 
       <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-14 lg:pt-24 lg:pb-16">
@@ -250,36 +319,36 @@ const HeroSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void;
 
           {/* Left - Text */}
           <div>
-            <h1 className="font-display text-4xl sm:text-5xl xl:text-6xl font-bold text-[var(--text-primary)] leading-[1.08] mb-6 animate-slide-up">
-              Generate & Scale<br/>
-              <span className="text-reed-red">Consistent AI Content</span>
+            <h1 className="font-display text-4xl sm:text-5xl xl:text-6xl font-bold text-[var(--text-primary)] leading-[1.08] mb-6">
+              <span className="hero-title-line block">Generate & Scale</span>
+              <span className="hero-title-line block text-reed-red">Consistent AI Content</span>
             </h1>
 
-            <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-lg mb-10 animate-slide-up leading-relaxed" style={{ animationDelay: '0.1s' }}>
+            <p className="hero-subtitle text-base sm:text-lg text-[var(--text-secondary)] max-w-lg mb-10 leading-relaxed">
               On-site AI generator + custom LoRAs & workflows built for your character. Same style, every time — zero ComfyUI experience required.
             </p>
 
             {/* CTA buttons */}
-            <div className="flex flex-wrap items-center gap-4 mb-12 animate-slide-up" style={{ animationDelay: '0.15s' }}>
+            <div className="flex flex-wrap items-center gap-4 mb-12">
               <button
                 onClick={onLaunchApp}
-                className="px-8 py-4 bg-reed-red text-white font-semibold rounded-xl hover:bg-reed-red-dark transition-all shadow-lg shadow-reed-red/25 hover:-translate-y-0.5 text-base"
+                className="hero-cta-btn group px-8 py-4 bg-reed-red text-white font-semibold rounded-xl hover:bg-reed-red-dark transition-all shadow-lg shadow-reed-red/25 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-reed-red/30 text-base"
               >
                 Start Generating
               </button>
               <a
                 href="#services"
                 onClick={(e) => { e.preventDefault(); onViewServices(); }}
-                className="inline-flex items-center gap-2 px-8 py-4 border-2 border-[var(--border-color)] text-[var(--text-primary)] font-semibold rounded-xl hover:border-reed-red hover:text-reed-red transition-all text-base"
+                className="hero-cta-btn inline-flex items-center gap-2 px-8 py-4 border-2 border-[var(--border-color)] text-[var(--text-primary)] font-semibold rounded-xl hover:border-reed-red hover:text-reed-red transition-all text-base"
               >
                 View Services
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </a>
               <a
                 href="https://discord.gg/pqSwuGxrmh"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-4 text-[#5865F2] hover:text-[#4752C4] font-medium transition-colors text-base"
+                className="hero-cta-btn inline-flex items-center gap-2 px-4 py-4 text-[#5865F2] hover:text-[#4752C4] font-medium transition-colors text-base"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/>
@@ -289,16 +358,16 @@ const HeroSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void;
             </div>
 
             {/* Stats */}
-            <div className="flex items-center gap-10 animate-fade-in" style={{ animationDelay: '0.25s' }}>
-              <div>
+            <div className="flex items-center gap-10">
+              <div className="hero-stat">
                 <div className="text-3xl font-bold text-[var(--text-primary)]">100%</div>
                 <div className="text-xs text-[var(--text-muted)] mt-1">Consistent Results</div>
               </div>
-              <div>
+              <div className="hero-stat">
                 <div className="text-3xl font-bold text-[var(--text-primary)]">1-5</div>
                 <div className="text-xs text-[var(--text-muted)] mt-1">Days LoRA Delivery</div>
               </div>
-              <div>
+              <div className="hero-stat">
                 <div className="text-3xl font-bold text-[var(--text-primary)]">Zero</div>
                 <div className="text-xs text-[var(--text-muted)] mt-1">ComfyUI Experience</div>
               </div>
@@ -306,20 +375,18 @@ const HeroSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void;
           </div>
 
           {/* Right - Featured image showcase */}
-          <div className="flex justify-center lg:justify-end animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <div className="hero-image-wrapper flex justify-center lg:justify-end">
             <div className="w-full max-w-sm sm:max-w-md lg:max-w-lg">
             <div className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl shadow-black/30">
               {isLoading || heroImages.length === 0 ? (
                 <div className="w-full h-full bg-[var(--bg-secondary)] animate-pulse" />
               ) : (
                 <>
-                  {/* Current image (always visible as base) */}
                   <img
                     src={optimizeImageForCarousel(heroImages[currentImageIndex])}
                     alt="AI generated content by REED"
                     className="absolute inset-0 w-full h-full object-cover"
                   />
-                  {/* Next image (fades in on top, then becomes current) */}
                   <img
                     src={optimizeImageForCarousel(heroImages[nextImageIndex])}
                     alt=""
@@ -345,14 +412,14 @@ const HeroSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void;
                 </>
               )}
 
-              <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 bg-black/50 backdrop-blur-md rounded-full">
+              <div className="hero-badge absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 bg-black/50 backdrop-blur-md rounded-full">
                 <div className="w-2 h-2 bg-reed-red rounded-full animate-pulse" />
                 <span className="text-xs font-medium text-white/90">AI Generated</span>
               </div>
             </div>
 
             {heroImages.length > 1 && (
-              <div className="hidden sm:flex gap-1.5 mt-3 w-full">
+              <div className="hero-thumbs hidden sm:flex gap-1.5 mt-3 w-full">
                 {heroImages.map((img, i) => (
                   <button
                     key={i}
@@ -407,8 +474,10 @@ const TrustMarquee = () => {
   );
 };
 
-// Three Ways Section - Premium cards with glow effects
+// Three Ways Section - CSS scroll-reveal animated cards
 const ThreeWaysSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void; onViewServices: () => void }) => {
+  const revealRef = useScrollReveal();
+
   const cards = [
     {
       tag: 'Do it yourself',
@@ -447,7 +516,7 @@ const ThreeWaysSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => 
 
   return (
     <section className="py-24 lg:py-32 bg-[var(--bg-primary)] border-t border-[var(--border-color)] overflow-hidden">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div ref={revealRef} className="scroll-reveal max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
           <span className="inline-block text-sm font-bold text-reed-red uppercase tracking-[0.2em] mb-4">3 Ways to Use REED</span>
@@ -465,11 +534,12 @@ const ThreeWaysSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => 
 
         {/* 3 Cards */}
         <div className="grid md:grid-cols-3 gap-5 lg:gap-6">
-          {cards.map((card) => (
+          {cards.map((card, i) => (
             <button
               key={card.title}
               onClick={card.onClick}
-              className="group relative text-left rounded-2xl transition-all duration-500 hover:-translate-y-2 focus:outline-none"
+              className="scroll-reveal-child group relative text-left rounded-2xl transition-all duration-500 hover:-translate-y-2 focus:outline-none"
+              style={{ transitionDelay: `${i * 0.1}s` }}
             >
               {/* Gradient border on hover */}
               <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-b from-white/[0.08] to-transparent opacity-100 group-hover:from-reed-red/30 group-hover:to-reed-red/5 transition-all duration-500" />
@@ -510,10 +580,11 @@ const ThreeWaysSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => 
   );
 };
 
-// Portfolio Section with SFW/NSFW Toggle - now with section heading
+// Portfolio Section with SFW/NSFW Toggle
 const PortfolioSection = () => {
   const [category, setCategory] = useState<'sfw' | 'nsfw'>('sfw');
   const [showAgeWarning, setShowAgeWarning] = useState(false);
+  const revealRef = useScrollReveal();
 
   const handleNsfwClick = () => {
     if (category === 'sfw') {
@@ -531,7 +602,7 @@ const PortfolioSection = () => {
   return (
     <section id="portfolio" className="relative bg-[var(--bg-secondary)] pt-14 lg:pt-20 scroll-mt-20">
       {/* Section heading + toggle */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+      <div ref={revealRef} className="scroll-reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         <div className="text-center mb-6">
           <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-3">Portfolio</span>
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--text-primary)] mb-2">
@@ -615,9 +686,11 @@ const PortfolioSection = () => {
 
 // Anatomy of a Model / Pipeline Section
 const HowItWorksSection = () => {
+  const revealRef = useScrollReveal();
+
   return (
     <section className="py-20 lg:py-28 bg-[var(--bg-secondary)] border-t border-[var(--border-color)] overflow-hidden relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div ref={revealRef} className="scroll-reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16 lg:mb-20">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-reed-red/10 text-reed-red mb-5 border border-reed-red/20 shadow-[0_0_30px_rgba(230,57,70,0.15)] transform rotate-3 hover:rotate-0 transition-all">
              <Fingerprint className="w-6 h-6" />
@@ -631,9 +704,8 @@ const HowItWorksSection = () => {
         </div>
 
         <div className="relative max-w-4xl mx-auto">
-          {/* Interactive or pseudo-interactive visual breakdown */}
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-[var(--bg-primary)] p-8 rounded-3xl border border-[var(--card-border)] shadow-lg relative overflow-hidden group hover:border-reed-red transition-all duration-300 hover:-translate-y-1">
+            <div className="scroll-reveal-child bg-[var(--bg-primary)] p-8 rounded-3xl border border-[var(--card-border)] shadow-lg relative overflow-hidden group hover:border-reed-red transition-all duration-300 hover:-translate-y-1">
               <div className="absolute top-0 right-0 w-32 h-32 bg-reed-red/5 rounded-full blur-3xl group-hover:bg-reed-red/10 transition-colors" />
               <div className="w-12 h-12 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl flex items-center justify-center mb-6 text-[var(--text-primary)] group-hover:bg-reed-red group-hover:text-white transition-colors">
                 <span className="font-display font-bold text-xl">1</span>
@@ -644,7 +716,7 @@ const HowItWorksSection = () => {
               </p>
             </div>
             
-            <div className="bg-[var(--bg-primary)] p-8 rounded-3xl border border-[var(--card-border)] shadow-lg relative overflow-hidden group hover:border-reed-red transition-all duration-300 hover:-translate-y-1">
+            <div className="scroll-reveal-child bg-[var(--bg-primary)] p-8 rounded-3xl border border-[var(--card-border)] shadow-lg relative overflow-hidden group hover:border-reed-red transition-all duration-300 hover:-translate-y-1" style={{ transitionDelay: '0.15s' }}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-reed-red/5 rounded-full blur-3xl group-hover:bg-reed-red/10 transition-colors" />
               <div className="w-12 h-12 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl flex items-center justify-center mb-6 text-[var(--text-primary)] group-hover:bg-reed-red group-hover:text-white transition-colors">
                 <span className="font-display font-bold text-xl">2</span>
@@ -655,7 +727,7 @@ const HowItWorksSection = () => {
               </p>
             </div>
 
-            <div className="bg-[var(--bg-primary)] p-8 rounded-3xl border border-[var(--card-border)] shadow-lg relative overflow-hidden group hover:border-reed-red transition-all duration-300 hover:-translate-y-1">
+            <div className="scroll-reveal-child bg-[var(--bg-primary)] p-8 rounded-3xl border border-[var(--card-border)] shadow-lg relative overflow-hidden group hover:border-reed-red transition-all duration-300 hover:-translate-y-1" style={{ transitionDelay: '0.3s' }}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-reed-red/5 rounded-full blur-3xl group-hover:bg-reed-red/10 transition-colors" />
               <div className="w-12 h-12 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl flex items-center justify-center mb-6 text-[var(--text-primary)] group-hover:bg-reed-red group-hover:text-white transition-colors">
                 <span className="font-display font-bold text-xl">3</span>
@@ -672,13 +744,18 @@ const HowItWorksSection = () => {
   );
 };
 
-// Services Section - LoRAs first, then Workflows, clear ComfyUI labeling
+// Services Section
 const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem) => void }) => {
+  const headerRef = useScrollReveal();
+  const loraRef = useScrollReveal();
+  const workflowRef = useScrollReveal();
+  const packageRef = useScrollReveal();
+
   return (
     <section id="services" className="pt-20 pb-24 lg:pt-28 lg:pb-32 bg-[var(--bg-primary)] scroll-mt-20 border-t border-[var(--border-color)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-16">
+        <div ref={headerRef} className="scroll-reveal text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-reed-red/10 rounded-full mb-5 border border-reed-red/20">
             <GitBranch className="w-4 h-4 text-reed-red" />
             <span className="text-sm font-semibold text-reed-red">For ComfyUI Users</span>
@@ -707,9 +784,9 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
             We manually train a LoRA on your character — no automated software. You choose the base model: SDXL, Flux, or Z Image Turbo. Delivered in 1 to 5 days, ready to load into ComfyUI and start generating immediately.
           </p>
 
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {LORAS.map((lora) => (
-              <div key={lora.id} className={`relative bg-[var(--card-bg)] rounded-2xl border-2 transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col overflow-hidden ${
+          <div ref={loraRef} className="scroll-reveal grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {LORAS.map((lora, i) => (
+              <div key={lora.id} className={`scroll-reveal-child relative bg-[var(--card-bg)] rounded-2xl border-2 transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col overflow-hidden ${
                 lora.popular ? 'border-reed-red shadow-lg shadow-reed-red/10' : 'border-[var(--card-border)] hover:border-reed-red/50'
               }`}>
                 {lora.popular && (
@@ -770,9 +847,9 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
             Hand-crafted by our team. Every workflow comes fully ready to use — just import it into ComfyUI, load your LoRA, and generate. No node knowledge required. These are advanced tools built so anyone can use them, regardless of experience.
           </p>
 
-          <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
-            {WORKFLOWS.map((wf) => (
-              <div key={wf.id} className={`relative bg-[var(--card-bg)] rounded-2xl border-2 transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col overflow-hidden ${
+          <div ref={workflowRef} className="scroll-reveal grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
+            {WORKFLOWS.map((wf, i) => (
+              <div key={wf.id} className={`scroll-reveal-child relative bg-[var(--card-bg)] rounded-2xl border-2 transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col overflow-hidden ${
                 wf.popular ? 'border-reed-red shadow-lg shadow-reed-red/10 scale-[1.02] z-10' : 'border-[var(--card-border)] hover:border-reed-red/50'
               }`}>
                 {wf.popular && (
@@ -827,9 +904,9 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
           <p className="text-[var(--text-secondary)] text-sm mb-8 max-w-2xl">
             LoRA + Workflows bundled together. Everything you need in one purchase.
           </p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {PACKAGES.map((pkg) => (
-              <div key={pkg.id} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all flex flex-col ${
+          <div ref={packageRef} className="scroll-reveal grid md:grid-cols-3 gap-6">
+            {PACKAGES.map((pkg, i) => (
+              <div key={pkg.id} className={`scroll-reveal-child relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all flex flex-col ${
                 pkg.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
               }`}>
                 {pkg.popular && (
@@ -883,6 +960,8 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
   const { user } = useAuth();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
+  const headerRevealRef = useScrollReveal();
+  const cardsRevealRef = useScrollReveal();
 
   const handleSelectPlan = (plan: PricingPlan) => {
     if (!user) {
@@ -996,7 +1075,7 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
     <section id="pricing" className="pt-24 pb-28 lg:pt-32 lg:pb-36 bg-[var(--bg-primary)] scroll-mt-20 border-t border-[var(--border-color)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-16">
+        <div ref={headerRevealRef} className="scroll-reveal text-center mb-16">
           <span className="inline-block text-sm font-bold text-reed-red uppercase tracking-[0.2em] mb-4">Web Generator Plans</span>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4 leading-tight">
             Choose Your <span className="text-gradient">Plan</span>
@@ -1017,8 +1096,8 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
         </div>
 
         {/* All 5 plans in unified grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-3 items-start">
-          {plans.map((plan) => {
+        <div ref={cardsRevealRef} className="scroll-reveal grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-3 items-start">
+          {plans.map((plan, idx) => {
             const isPopular = plan.popular;
             const isCurrent = user?.plan_type === plan.id;
             const costPerCredit = plan.creditsValue > 0 && plan.priceValue > 0
@@ -1026,7 +1105,7 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
               : null;
 
             return (
-              <div key={plan.id} className="relative group">
+              <div key={plan.id} className="scroll-reveal-child relative group" style={{ transitionDelay: `${idx * 0.06}s` }}>
                 {/* Gradient glow behind popular card */}
                 {isPopular && (
                   <div className="absolute -inset-[2px] rounded-[22px] bg-gradient-to-b from-reed-red via-reed-red/50 to-reed-red/20 opacity-100 blur-[1px]" />
@@ -1132,9 +1211,10 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
   );
 };
 
-// FAQ Section
+// FAQ Section - CSS reveal + simple toggle
 const FAQSection = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const revealRef = useScrollReveal();
 
   const faqs = [
     {
@@ -1169,7 +1249,7 @@ const FAQSection = () => {
 
   return (
     <section id="faq" className="pt-16 pb-24 lg:pt-20 lg:pb-32 bg-[var(--bg-primary)] scroll-mt-20">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div ref={revealRef} className="scroll-reveal max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
           <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">Got Questions?</span>
@@ -1187,24 +1267,23 @@ const FAQSection = () => {
           {faqs.map((faq, index) => (
             <div
               key={index}
-              className="bg-[var(--card-bg)] rounded-xl border border-[var(--card-border)] overflow-hidden"
+              className="scroll-reveal-child bg-[var(--card-bg)] rounded-xl border border-[var(--card-border)] overflow-hidden"
+              style={{ transitionDelay: `${index * 0.05}s` }}
             >
               <button
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
                 className="w-full flex items-center justify-between p-6 text-left hover:bg-[var(--hover-bg)] transition-colors"
               >
                 <span className="font-semibold text-[var(--text-primary)] pr-4">{faq.question}</span>
-                {openIndex === index ? (
-                  <ChevronUp className="w-5 h-5 text-reed-red flex-shrink-0" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-[var(--text-muted)] flex-shrink-0" />
-                )}
+                <div className={`transition-transform duration-300 ${openIndex === index ? 'rotate-180' : ''}`}>
+                  <ChevronDown className={`w-5 h-5 flex-shrink-0 ${openIndex === index ? 'text-reed-red' : 'text-[var(--text-muted)]'}`} />
+                </div>
               </button>
-              {openIndex === index && (
+              <div className={`faq-answer-wrap ${openIndex === index ? 'faq-open' : ''}`}>
                 <div className="px-6 pb-6">
                   <p className="text-[var(--text-secondary)] leading-relaxed">{faq.answer}</p>
                 </div>
-              )}
+              </div>
             </div>
           ))}
         </div>
@@ -1215,9 +1294,15 @@ const FAQSection = () => {
 
 // CTA Section
 const CTASection = () => {
+  const revealRef = useScrollReveal();
+
   return (
     <section className="py-24 bg-reed-red relative overflow-hidden">
-      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      {/* Background glow orbs */}
+      <div className="absolute -top-20 -left-20 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+      <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-black/10 rounded-full blur-3xl" />
+
+      <div ref={revealRef} className="scroll-reveal relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
           Ready to Start?
         </h2>
@@ -1229,14 +1314,15 @@ const CTASection = () => {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
             href="#pricing"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white text-reed-red font-semibold rounded-xl hover:bg-gray-100 transition-colors shadow-lg"
+            className="scroll-reveal-child inline-flex items-center gap-2 px-8 py-4 bg-white text-reed-red font-semibold rounded-xl hover:bg-gray-100 hover:shadow-xl transition-all hover:-translate-y-0.5 shadow-lg"
           >
             Get Started
             <ArrowRight className="w-5 h-5" />
           </a>
           <a
             href="#services"
-            className="inline-flex items-center gap-2 px-8 py-4 border-2 border-white/30 text-white font-semibold rounded-xl hover:border-white hover:bg-white/10 transition-colors"
+            className="scroll-reveal-child inline-flex items-center gap-2 px-8 py-4 border-2 border-white/30 text-white font-semibold rounded-xl hover:border-white hover:bg-white/10 transition-all hover:-translate-y-0.5"
+            style={{ transitionDelay: '0.1s' }}
           >
             View Services
           </a>
@@ -1248,9 +1334,11 @@ const CTASection = () => {
 
 // Footer
 const Footer = () => {
+  const revealRef = useScrollReveal();
+
   return (
     <footer className="bg-[var(--bg-tertiary)] text-[var(--text-primary)] py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div ref={revealRef} className="scroll-reveal max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           {/* Brand */}
           <div className="md:col-span-2">
