@@ -17,9 +17,10 @@ const AdminPanel = lazy(() => import('./components/AdminPanelExtended').then(m =
 
 interface AppProps {
   onBackToLanding?: () => void;
+  hideBackButton?: boolean;
 }
 
-const App: React.FC<AppProps> = ({ onBackToLanding }) => {
+const App: React.FC<AppProps> = ({ onBackToLanding, hideBackButton }) => {
   // --- AUTH & CONFIG ---
   const { user, loading: userLoading, hasEnoughCredits, useCredits } = useAuth();
   const { isEnabled } = useFeatureFlags();
@@ -1056,14 +1057,18 @@ const App: React.FC<AppProps> = ({ onBackToLanding }) => {
       {/* Header */}
       <header className="h-16 border-b border-[var(--border-color)] flex justify-between items-center px-4 lg:px-6 bg-[var(--bg-primary)] z-50 shrink-0">
         <div className="flex items-center gap-3">
-          <button 
-            onClick={handleBackToLanding}
-            className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-reed-red transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium hidden sm:inline">Back</span>
-          </button>
-          <div className="w-px h-6 bg-[var(--border-color)] mx-2" />
+          {!hideBackButton && (
+            <>
+              <button
+                onClick={handleBackToLanding}
+                className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-reed-red transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="text-sm font-medium hidden sm:inline">Back</span>
+              </button>
+              <div className="w-px h-6 bg-[var(--border-color)] mx-2" />
+            </>
+          )}
           <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" alt="REED" className="h-6 w-auto" />
           <span className="text-sm font-bold tracking-wide text-[var(--text-primary)] hidden sm:inline">REED GENERATOR</span>
           <div className={`w-2 h-2 rounded-full ml-2 ${appState === AppState.GENERATING || appState === AppState.ANALYZING ? 'bg-amber-500 animate-pulse' : 'bg-green-500'}`}></div>

@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Menu, X, ChevronDown, ChevronUp, Check, Sparkles,
+  Menu, X, ChevronDown, ChevronUp, Check,
   Zap, Crown, Shield, Clock, Users, Star, ArrowRight,
-  Play, Download, Layers, Cpu, Lock, Mail, Flame,
-  User, LogOut, CreditCard, Crown as CrownIcon, Package
+  Play, Download, Lock, Mail,
+  User, LogOut, CreditCard, Crown as CrownIcon, Package,
+  LayoutDashboard, Wand2, Fingerprint, GitBranch,
+  Eye, EyeOff, Coins, CheckCircle2, ScanLine, Box
 } from 'lucide-react';
 import App from './App';
+import DashboardLayout from './components/DashboardLayout';
 import { useAuth } from './contexts/AuthContext';
 import { LoginPage, RegisterPage } from './components/AuthPages';
 import { ThemeToggle } from './components/ThemeToggle';
@@ -24,17 +27,15 @@ import { usePortfolioImages } from './hooks/usePortfolioImages';
 import { optimizeImageForCarousel } from './utils/imageOptimizer';
 
 
-// Navigation Component
+// Navigation Component - Clean: logged in = "Open Dashboard", logged out = "Log In / Start Free"
 const Navigation = ({
   onLaunchApp,
   onLoginClick,
   onRegisterClick,
-  onMyPurchases
 }: {
   onLaunchApp: () => void;
   onLoginClick: () => void;
   onRegisterClick: () => void;
-  onMyPurchases: () => void;
 }) => {
   const { user, signOut } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -61,9 +62,9 @@ const Navigation = ({
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <a href="#" className="flex items-center gap-3">
-            <img 
-              src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png" 
-              alt="REED" 
+            <img
+              src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1769905568/REED_LOGO_RED_PNG_rj24o1.png"
+              alt="REED"
               className="h-8 w-auto"
             />
             <span className="font-display font-bold text-xl tracking-tight text-[var(--text-primary)]">REED</span>
@@ -77,8 +78,8 @@ const Navigation = ({
                 href={link.href}
                 {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 className={`text-sm font-medium transition-colors ${
-                  link.name === 'Discord' 
-                    ? 'text-[#5865F2] hover:text-[#4752C4] flex items-center gap-1.5' 
+                  link.name === 'Discord'
+                    ? 'text-[#5865F2] hover:text-[#4752C4] flex items-center gap-1.5'
                     : 'text-[var(--text-secondary)] hover:text-reed-red'
                 }`}
               >
@@ -92,39 +93,24 @@ const Navigation = ({
             ))}
           </div>
 
-          {/* CTA Buttons */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* CTA Buttons - Clean */}
+          <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-secondary)] rounded-full">
-                    <CreditCard className="w-4 h-4 text-reed-red" />
-                    <span className="text-sm font-medium text-[var(--text-primary)]">
-                      {user.credits} credits
-                    </span>
-                  </div>
-                  <button
-                    onClick={onMyPurchases}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:text-reed-red transition-colors"
-                  >
-                    <Package className="w-4 h-4" />
-                    My Purchases
-                  </button>
-                  <button
-                    onClick={onLaunchApp}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors shadow-lg shadow-reed-red/25"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    AI Generator
-                  </button>
-                  <button
-                    onClick={signOut}
-                    className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                    title="Sign out"
-                  >
-                    <LogOut className="w-5 h-5" />
-                  </button>
-                </div>
+                <button
+                  onClick={onLaunchApp}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors shadow-lg shadow-reed-red/25"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Open Dashboard
+                </button>
+                <button
+                  onClick={signOut}
+                  className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
               </>
             ) : (
               <>
@@ -136,7 +122,7 @@ const Navigation = ({
                 </button>
                 <button
                   onClick={onRegisterClick}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors shadow-lg shadow-reed-red/25"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors "
                 >
                   Start Free
                   <ArrowRight className="w-4 h-4" />
@@ -166,8 +152,8 @@ const Navigation = ({
                 {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`block text-base font-medium ${
-                  link.name === 'Discord' 
-                    ? 'text-[#5865F2] hover:text-[#4752C4] flex items-center gap-2' 
+                  link.name === 'Discord'
+                    ? 'text-[#5865F2] hover:text-[#4752C4] flex items-center gap-2'
                     : 'text-[var(--text-secondary)] hover:text-reed-red'
                 }`}
               >
@@ -179,39 +165,18 @@ const Navigation = ({
                 {link.name}
               </a>
             ))}
-            
+
             {user ? (
               <>
-                <div className="flex items-center gap-2 px-3 py-2 bg-[var(--bg-secondary)] rounded-lg">
-                  <CreditCard className="w-4 h-4 text-reed-red" />
-                  <span className="text-sm font-medium text-[var(--text-primary)]">
-                    {user.credits} credits
-                  </span>
-                </div>
                 <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    onMyPurchases();
-                  }}
-                  className="block w-full text-left text-base font-medium text-[var(--text-secondary)] hover:text-reed-red py-2"
+                  onClick={() => { setIsMobileMenuOpen(false); onLaunchApp(); }}
+                  className="block w-full text-center px-5 py-3 bg-reed-red text-white text-sm font-semibold rounded-lg"
                 >
-                  My Purchases
+                  Open Dashboard
                 </button>
                 <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    onLaunchApp();
-                  }}
-                  className="block w-full text-left text-base font-medium text-reed-red hover:text-reed-red-dark py-2 font-semibold"
-                >
-                  AI Generator
-                </button>
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    signOut();
-                  }}
-                  className="block w-full text-left text-base font-medium text-[#a11008] py-2"
+                  onClick={() => { setIsMobileMenuOpen(false); signOut(); }}
+                  className="block w-full text-left text-base font-medium text-[var(--text-muted)] hover:text-reed-red py-2"
                 >
                   Sign Out
                 </button>
@@ -219,19 +184,13 @@ const Navigation = ({
             ) : (
               <>
                 <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    onLoginClick();
-                  }}
+                  onClick={() => { setIsMobileMenuOpen(false); onLoginClick(); }}
                   className="block w-full text-left text-base font-medium text-[var(--text-secondary)] hover:text-reed-red py-2"
                 >
                   Log In
                 </button>
                 <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    onRegisterClick();
-                  }}
+                  onClick={() => { setIsMobileMenuOpen(false); onRegisterClick(); }}
                   className="block w-full text-center px-5 py-3 bg-reed-red text-white text-sm font-medium rounded-lg"
                 >
                   Start Free
@@ -245,62 +204,72 @@ const Navigation = ({
   );
 };
 
-// Hero Section - Featured Image Showcase: text left, big rotating portfolio image right
-const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
+// Hero Section - Clean, direct, two clear paths
+const HeroSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void; onViewServices: () => void }) => {
   const { images, isLoading } = usePortfolioImages({ category: 'sfw' });
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [nextImageIndex, setNextImageIndex] = useState(1);
+  const [showNext, setShowNext] = useState(false);
+  // activeIndex tracks what the user should "see" as selected (updates immediately)
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  // Take first 6 best images for the hero rotation
   const heroImages = images.slice(0, 6);
 
-  // Auto-rotate images every 4 seconds with crossfade
   useEffect(() => {
     if (heroImages.length <= 1) return;
     const interval = setInterval(() => {
-      setIsTransitioning(true);
+      const next = (currentImageIndex + 1) % heroImages.length;
+      setNextImageIndex(next);
+      setActiveIndex(next); // indicators update immediately
+      setShowNext(true);
       setTimeout(() => {
-        setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
-        setIsTransitioning(false);
-      }, 600); // fade duration
+        setCurrentImageIndex(next);
+        setShowNext(false);
+      }, 700);
     }, 4000);
     return () => clearInterval(interval);
-  }, [heroImages.length]);
+  }, [heroImages.length, currentImageIndex]);
+
+  const goToImage = (i: number) => {
+    if (i === activeIndex) return;
+    setNextImageIndex(i);
+    setActiveIndex(i);
+    setShowNext(true);
+    setTimeout(() => {
+      setCurrentImageIndex(i);
+      setShowNext(false);
+    }, 700);
+  };
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Animated grid background */}
       <HeroBackground />
 
       <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-14 lg:pt-24 lg:pb-16">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
-          {/* Left - Text content */}
-          <div className="text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-reed-red/10 rounded-full mb-6 animate-fade-in border border-reed-red/20 backdrop-blur-sm">
-              <Flame className="w-4 h-4 text-reed-red animate-pulse" />
-              <span className="text-sm font-medium text-reed-red">NSFW AI Agency — Same Face, Every Shot</span>
-            </div>
-
-            <h1 className="font-display text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-bold text-[var(--text-primary)] leading-[1.08] mb-6 animate-slide-up">
-              Generate & Scale{' '}
-              <span className="text-gradient">Consistent AI Content</span>
+          {/* Left - Text */}
+          <div>
+            <h1 className="font-display text-4xl sm:text-5xl xl:text-6xl font-bold text-[var(--text-primary)] leading-[1.08] mb-6 animate-slide-up">
+              Generate & Scale<br/>
+              <span className="text-reed-red">Consistent AI Content</span>
             </h1>
 
-            <p className="text-lg sm:text-xl text-[var(--text-secondary)] max-w-xl mx-auto lg:mx-0 mb-8 animate-slide-up leading-relaxed" style={{ animationDelay: '0.1s' }}>
-              On-site AI generator + custom SDXL LoRAs & workflows built for your character.
-              Same face, same style, every single time.
+            <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-lg mb-10 animate-slide-up leading-relaxed" style={{ animationDelay: '0.1s' }}>
+              On-site AI generator + custom LoRAs & workflows built for your character. Same style, every time — zero ComfyUI experience required.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3 mb-10 animate-slide-up" style={{ animationDelay: '0.15s' }}>
+            {/* CTA buttons */}
+            <div className="flex flex-wrap items-center gap-4 mb-12 animate-slide-up" style={{ animationDelay: '0.15s' }}>
               <button
                 onClick={onLaunchApp}
-                className="px-8 py-4 bg-reed-red text-white font-semibold rounded-xl hover:bg-reed-red-dark transition-all shadow-lg shadow-reed-red/25 hover:shadow-xl hover:shadow-reed-red/30 hover:-translate-y-0.5 text-base"
+                className="px-8 py-4 bg-reed-red text-white font-semibold rounded-xl hover:bg-reed-red-dark transition-all shadow-lg shadow-reed-red/25 hover:-translate-y-0.5 text-base"
               >
                 Start Generating
               </button>
               <a
                 href="#services"
+                onClick={(e) => { e.preventDefault(); onViewServices(); }}
                 className="inline-flex items-center gap-2 px-8 py-4 border-2 border-[var(--border-color)] text-[var(--text-primary)] font-semibold rounded-xl hover:border-reed-red hover:text-reed-red transition-all text-base"
               >
                 View Services
@@ -310,65 +279,63 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
                 href="https://discord.gg/pqSwuGxrmh"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-4 bg-[#5865F2] text-white font-semibold rounded-xl hover:bg-[#4752C4] transition-all text-base whitespace-nowrap shadow-lg shadow-[#5865F2]/20"
+                className="inline-flex items-center gap-2 px-4 py-4 text-[#5865F2] hover:text-[#4752C4] font-medium transition-colors text-base"
               >
-                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/>
                 </svg>
                 Discord
               </a>
             </div>
 
-            {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4 max-w-md mx-auto lg:mx-0 animate-fade-in" style={{ animationDelay: '0.25s' }}>
-              <div className="text-center lg:text-left">
-                <div className="text-3xl sm:text-4xl font-bold text-reed-red">4K+</div>
-                <div className="text-xs text-[var(--text-muted)] font-medium mt-1">Max Resolution</div>
+            {/* Stats */}
+            <div className="flex items-center gap-10 animate-fade-in" style={{ animationDelay: '0.25s' }}>
+              <div>
+                <div className="text-3xl font-bold text-[var(--text-primary)]">100%</div>
+                <div className="text-xs text-[var(--text-muted)] mt-1">Consistent Results</div>
               </div>
-              <div className="text-center lg:text-left">
-                <div className="text-3xl sm:text-4xl font-bold text-reed-red">100%</div>
-                <div className="text-xs text-[var(--text-muted)] font-medium mt-1">Face Consistency</div>
+              <div>
+                <div className="text-3xl font-bold text-[var(--text-primary)]">1-5</div>
+                <div className="text-xs text-[var(--text-muted)] mt-1">Days LoRA Delivery</div>
               </div>
-              <div className="text-center lg:text-left">
-                <div className="text-3xl sm:text-4xl font-bold text-reed-red">24h</div>
-                <div className="text-xs text-[var(--text-muted)] font-medium mt-1">LoRA Delivery</div>
+              <div>
+                <div className="text-3xl font-bold text-[var(--text-primary)]">Zero</div>
+                <div className="text-xs text-[var(--text-muted)] mt-1">ComfyUI Experience</div>
               </div>
             </div>
           </div>
 
-          {/* Right - Featured image showcase (constrained size) */}
+          {/* Right - Featured image showcase */}
           <div className="flex justify-center lg:justify-end animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <div className="w-full max-w-sm sm:max-w-md lg:max-w-lg">
-            {/* Main featured image */}
             <div className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl shadow-black/30">
               {isLoading || heroImages.length === 0 ? (
                 <div className="w-full h-full bg-[var(--bg-secondary)] animate-pulse" />
               ) : (
                 <>
+                  {/* Current image (always visible as base) */}
                   <img
                     src={optimizeImageForCarousel(heroImages[currentImageIndex])}
                     alt="AI generated content by REED"
-                    className={`w-full h-full object-cover transition-opacity duration-500 ease-in-out ${
-                      isTransitioning ? 'opacity-0' : 'opacity-100'
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  {/* Next image (fades in on top, then becomes current) */}
+                  <img
+                    src={optimizeImageForCarousel(heroImages[nextImageIndex])}
+                    alt=""
+                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${
+                      showNext ? 'opacity-100' : 'opacity-0'
                     }`}
                   />
-                  {/* Subtle gradient overlay at bottom */}
                   <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/40 to-transparent" />
-                  
-                  {/* Image indicator dots */}
+
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
                     {heroImages.slice(0, 6).map((_, i) => (
                       <button
                         key={i}
-                        onClick={() => {
-                          setIsTransitioning(true);
-                          setTimeout(() => {
-                            setCurrentImageIndex(i);
-                            setIsTransitioning(false);
-                          }, 300);
-                        }}
+                        onClick={() => goToImage(i)}
                         className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                          i === currentImageIndex
+                          i === activeIndex
                             ? 'bg-white w-6'
                             : 'bg-white/40 hover:bg-white/70'
                         }`}
@@ -378,28 +345,20 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
                 </>
               )}
 
-              {/* Corner badge */}
               <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 bg-black/50 backdrop-blur-md rounded-full">
                 <div className="w-2 h-2 bg-reed-red rounded-full animate-pulse" />
                 <span className="text-xs font-medium text-white/90">AI Generated</span>
               </div>
             </div>
 
-            {/* Thumbnail strip below main image */}
             {heroImages.length > 1 && (
               <div className="hidden sm:flex gap-1.5 mt-3 w-full">
                 {heroImages.map((img, i) => (
                   <button
                     key={i}
-                    onClick={() => {
-                      setIsTransitioning(true);
-                      setTimeout(() => {
-                        setCurrentImageIndex(i);
-                        setIsTransitioning(false);
-                      }, 300);
-                    }}
+                    onClick={() => goToImage(i)}
                     className={`relative flex-1 min-w-0 aspect-square rounded-lg overflow-hidden transition-all duration-300 ${
-                      i === currentImageIndex
+                      i === activeIndex
                         ? 'ring-2 ring-reed-red ring-offset-1 ring-offset-[var(--bg-primary)] scale-105'
                         : 'opacity-50 hover:opacity-80'
                     }`}
@@ -426,12 +385,12 @@ const HeroSection = ({ onLaunchApp }: { onLaunchApp: () => void }) => {
 // Trust Marquee Bar - Scrolling infinite bar (like Lummia's top bar)
 const TrustMarquee = () => {
   const items = [
-    { icon: <Shield className="w-3.5 h-3.5" />, text: 'SAME FACE EVERY SHOT' },
-    { icon: <Sparkles className="w-3.5 h-3.5" />, text: 'ON-SITE AI GENERATOR' },
-    { icon: <Clock className="w-3.5 h-3.5" />, text: '24-48H LORA DELIVERY' },
-    { icon: <Users className="w-3.5 h-3.5" />, text: 'TRUSTED BY CREATORS' },
-    { icon: <Zap className="w-3.5 h-3.5" />, text: '100% CONSISTENT RESULTS' },
-    { icon: <Lock className="w-3.5 h-3.5" />, text: 'PRIVATE & SECURE' },
+    { icon: <ScanLine className="w-3.5 h-3.5" />, text: 'SAME CHARACTER EVERY SHOT' },
+    { icon: <CheckCircle2 className="w-3.5 h-3.5" />, text: 'ZERO EXPERIENCE NEEDED' },
+    { icon: <Clock className="w-3.5 h-3.5" />, text: '1-5 DAY LORA DELIVERY' },
+    { icon: <Box className="w-3.5 h-3.5" />, text: 'EVERYTHING READY TO USE' },
+    { icon: <Fingerprint className="w-3.5 h-3.5" />, text: 'SDXL / FLUX / Z IMAGE TURBO' },
+    { icon: <Eye className="w-3.5 h-3.5" />, text: 'SFW NOW — NSFW SOON' },
   ];
 
   return (
@@ -448,66 +407,101 @@ const TrustMarquee = () => {
   );
 };
 
-// Category Cards Section - 3 big cards explaining what REED does
-const CategorySection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void; onViewServices: () => void }) => {
-  const categories = [
+// Three Ways Section - Premium cards with glow effects
+const ThreeWaysSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void; onViewServices: () => void }) => {
+  const cards = [
     {
+      tag: 'Do it yourself',
       title: 'AI Generator',
-      subtitle: 'Do it yourself',
-      description: 'Generate images directly on our website. Upload a face, pick a pose, click generate. That simple.',
-      icon: <Sparkles className="w-6 h-6" />,
-      action: onLaunchApp,
+      description: 'Generate images directly on our website. Create your model, describe what you want, click generate. Zero software, zero experience needed.',
+      icon: <Wand2 className="w-6 h-6" />,
       cta: 'Try Generator',
+      ctaHref: '#pricing',
+      onClick: onLaunchApp,
+      iconBg: 'bg-[var(--bg-tertiary)]',
+      iconColor: 'text-reed-red',
     },
     {
+      tag: 'We train your AI model',
       title: 'Custom LoRAs',
-      subtitle: 'We train your AI model',
-      description: 'Send us photos of a face. We train a custom AI model that generates that exact person in any pose or scene.',
-      icon: <Cpu className="w-6 h-6" />,
-      action: onViewServices,
+      description: 'Send us your reference photos. We manually train a custom LoRA (SDXL, Flux, or Z Image Turbo) that generates your exact character. Ready to use in 1-5 days.',
+      icon: <Fingerprint className="w-6 h-6" />,
       cta: 'See LoRA Plans',
+      ctaHref: '#services',
+      onClick: onViewServices,
+      iconBg: 'bg-[var(--bg-tertiary)]',
+      iconColor: 'text-reed-red',
     },
     {
-      title: 'SDXL Workflows',
-      subtitle: 'Ready-made templates',
-      description: 'Pre-built generation workflows for ComfyUI. Download, load your model, and start producing images immediately.',
-      icon: <Layers className="w-6 h-6" />,
-      action: onViewServices,
+      tag: 'Ready-made templates',
+      title: 'ComfyUI Workflows',
+      description: 'Pre-built generation workflows for ComfyUI. Download, load your LoRA, and start producing images immediately. Zero node experience required.',
+      icon: <GitBranch className="w-6 h-6" />,
       cta: 'View Workflows',
+      ctaHref: '#services',
+      onClick: onViewServices,
+      iconBg: 'bg-[var(--bg-tertiary)]',
+      iconColor: 'text-reed-red',
     },
   ];
 
   return (
-    <section className="py-16 lg:py-24 bg-[var(--bg-primary)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-3">3 Ways to Use REED</span>
-          <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--text-primary)] mb-3">
-            Pick How You Want to
-            <span className="text-gradient"> Create</span>
+    <section className="py-24 lg:py-32 bg-[var(--bg-primary)] border-t border-[var(--border-color)] overflow-hidden">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <span className="inline-block text-sm font-bold text-reed-red uppercase tracking-[0.2em] mb-4">3 Ways to Use REED</span>
+          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4 leading-tight">
+            Pick How You Want to <span className="text-gradient">Create</span>
           </h2>
-          <p className="text-[var(--text-secondary)] text-base max-w-xl mx-auto">
-            Generate images yourself, get a custom AI model trained on your face, or buy ready-made workflows.
+          <p className="text-[var(--text-secondary)] text-lg max-w-2xl mx-auto">
+            Generate images yourself, get a custom AI model trained on your character, or buy ready-made workflows. Everything is plug & play — zero experience required.
+          </p>
+          <p className="text-amber-500/70 text-sm mt-4 flex items-center justify-center gap-2">
+            <Clock className="w-3.5 h-3.5" />
+            Currently SFW only — NSFW coming soon
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-5">
-          {categories.map((cat) => (
+        {/* 3 Cards */}
+        <div className="grid md:grid-cols-3 gap-5 lg:gap-6">
+          {cards.map((card) => (
             <button
-              key={cat.title}
-              onClick={cat.action}
-              className="group relative bg-[var(--card-bg)] rounded-2xl p-7 border border-[var(--card-border)] text-left transition-all hover:border-reed-red/50 hover:shadow-xl hover:-translate-y-1"
+              key={card.title}
+              onClick={card.onClick}
+              className="group relative text-left rounded-2xl transition-all duration-500 hover:-translate-y-2 focus:outline-none"
             >
-              <div className="w-11 h-11 bg-reed-red/10 rounded-xl flex items-center justify-center mb-4 text-reed-red group-hover:bg-reed-red group-hover:text-white transition-all">
-                {cat.icon}
+              {/* Gradient border on hover */}
+              <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-b from-white/[0.08] to-transparent opacity-100 group-hover:from-reed-red/30 group-hover:to-reed-red/5 transition-all duration-500" />
+
+              {/* Card inner */}
+              <div className="relative bg-[var(--bg-secondary)] rounded-2xl p-8 lg:p-9 h-full flex flex-col">
+                {/* Icon */}
+                <div className={`relative z-10 w-14 h-14 rounded-2xl ${card.iconBg} ${card.iconColor} flex items-center justify-center mb-7 border border-[var(--border-color)] group-hover:scale-105 transition-transform duration-300`}>
+                  {card.icon}
+                </div>
+
+                {/* Tag */}
+                <div className="relative z-10 text-xs font-bold text-reed-red uppercase tracking-[0.15em] mb-2">
+                  {card.tag}
+                </div>
+
+                {/* Title */}
+                <h3 className="relative z-10 font-display text-2xl font-bold text-[var(--text-primary)] mb-4">
+                  {card.title}
+                </h3>
+
+                {/* Description */}
+                <p className="relative z-10 text-[var(--text-secondary)] text-sm leading-relaxed mb-8 flex-grow">
+                  {card.description}
+                </p>
+
+                {/* CTA link */}
+                <div className="relative z-10 flex items-center gap-2 text-reed-red text-sm font-semibold group-hover:gap-3 transition-all">
+                  {card.cta}
+                  <ArrowRight className="w-4 h-4" />
+                </div>
               </div>
-              <p className="text-[10px] font-bold text-reed-red uppercase tracking-widest mb-1.5">{cat.subtitle}</p>
-              <h3 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{cat.title}</h3>
-              <p className="text-sm text-[var(--text-secondary)] mb-5 leading-relaxed">{cat.description}</p>
-              <span className="inline-flex items-center gap-2 text-sm font-semibold text-reed-red group-hover:gap-3 transition-all">
-                {cat.cta}
-                <ArrowRight className="w-4 h-4" />
-              </span>
             </button>
           ))}
         </div>
@@ -545,7 +539,7 @@ const PortfolioSection = () => {
             <span className="text-gradient"> Generate</span>
           </h2>
           <p className="text-[var(--text-secondary)] text-base max-w-lg mx-auto">
-            Every image below is AI-generated. Same face, different poses, different scenes — 100% consistent.
+            Every image below is AI-generated. Same character, different poses, different scenes — 100% consistent.
           </p>
         </div>
 
@@ -559,7 +553,7 @@ const PortfolioSection = () => {
                 : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
             }`}
           >
-            <Sparkles className="w-4 h-4" />
+            <Eye className="w-4 h-4" />
             SFW
           </button>
           <button
@@ -570,7 +564,7 @@ const PortfolioSection = () => {
                 : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-reed-red border border-[var(--border-color)] hover:border-reed-red'
             }`}
           >
-            <Flame className="w-4 h-4" />
+            <EyeOff className="w-4 h-4" />
             NSFW
           </button>
         </div>
@@ -590,7 +584,7 @@ const PortfolioSection = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="bg-[var(--bg-primary)] rounded-2xl p-8 max-w-md mx-4 border border-[var(--border-color)] shadow-2xl">
             <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 bg-reed-red/10 rounded-full">
-              <Flame className="w-8 h-8 text-reed-red" />
+              <EyeOff className="w-8 h-8 text-reed-red" />
             </div>
             <h3 className="text-2xl font-bold text-[var(--text-primary)] text-center mb-3">
               Age Verification
@@ -619,174 +613,244 @@ const PortfolioSection = () => {
   );
 };
 
-// Services Section
-const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem) => void }) => {
+// Anatomy of a Model / Pipeline Section
+const HowItWorksSection = () => {
   return (
-    <section id="services" className="pt-16 pb-24 lg:pt-20 lg:pb-32 bg-[var(--bg-primary)] scroll-mt-20">
+    <section className="py-20 lg:py-28 bg-[var(--bg-secondary)] border-t border-[var(--border-color)] overflow-hidden relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">We Build It For You</span>
-          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4">
-            Done-For-You
-            <span className="text-gradient"> Services</span>
+        <div className="text-center mb-16 lg:mb-20">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-reed-red/10 text-reed-red mb-5 border border-reed-red/20 shadow-[0_0_30px_rgba(230,57,70,0.15)] transform rotate-3 hover:rotate-0 transition-all">
+             <Fingerprint className="w-6 h-6" />
+          </div>
+          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-5 leading-tight">
+            How The Magic <span className="text-gradient">Actually Works</span>
           </h2>
-          <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
-            Don't want to set anything up? We build your custom AI model, production workflows, and full content packs — ready to use.
+          <p className="text-[var(--text-secondary)] text-lg max-w-2xl mx-auto leading-relaxed">
+            No generic software, no AI wrappers. Real manual architecture built by experts so you don't have to lift a finger.
           </p>
         </div>
 
-        {/* Workflows */}
+        <div className="relative max-w-4xl mx-auto">
+          {/* Interactive or pseudo-interactive visual breakdown */}
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-[var(--bg-primary)] p-8 rounded-3xl border border-[var(--card-border)] shadow-lg relative overflow-hidden group hover:border-reed-red transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-reed-red/5 rounded-full blur-3xl group-hover:bg-reed-red/10 transition-colors" />
+              <div className="w-12 h-12 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl flex items-center justify-center mb-6 text-[var(--text-primary)] group-hover:bg-reed-red group-hover:text-white transition-colors">
+                <span className="font-display font-bold text-xl">1</span>
+              </div>
+              <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3">You Send Photos</h3>
+              <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
+                Provide us with 40 to 150 photos. We manually analyze weight, proportions, skin texture, and features to avoid generic "AI faces".
+              </p>
+            </div>
+            
+            <div className="bg-[var(--bg-primary)] p-8 rounded-3xl border border-[var(--card-border)] shadow-lg relative overflow-hidden group hover:border-reed-red transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-reed-red/5 rounded-full blur-3xl group-hover:bg-reed-red/10 transition-colors" />
+              <div className="w-12 h-12 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl flex items-center justify-center mb-6 text-[var(--text-primary)] group-hover:bg-reed-red group-hover:text-white transition-colors">
+                <span className="font-display font-bold text-xl">2</span>
+              </div>
+              <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3">We Train (1-5 Days)</h3>
+              <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
+                Our team manually processes the dataset and trains an SDXL, Z Image Turbo, or Flux LoRA optimized for photorealism. Zero automated software involved.
+              </p>
+            </div>
+
+            <div className="bg-[var(--bg-primary)] p-8 rounded-3xl border border-[var(--card-border)] shadow-lg relative overflow-hidden group hover:border-reed-red transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-reed-red/5 rounded-full blur-3xl group-hover:bg-reed-red/10 transition-colors" />
+              <div className="w-12 h-12 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl flex items-center justify-center mb-6 text-[var(--text-primary)] group-hover:bg-reed-red group-hover:text-white transition-colors">
+                <span className="font-display font-bold text-xl">3</span>
+              </div>
+              <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3">Ready-To-Use Engine</h3>
+              <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
+                Receive your custom model alongside our exclusive ComfyUI Workflows. Plug it in and generate advanced results instantly — zero node experience required.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Services Section - LoRAs first, then Workflows, clear ComfyUI labeling
+const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem) => void }) => {
+  return (
+    <section id="services" className="pt-20 pb-24 lg:pt-28 lg:pb-32 bg-[var(--bg-primary)] scroll-mt-20 border-t border-[var(--border-color)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Header */}
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-reed-red/10 rounded-full mb-5 border border-reed-red/20">
+            <GitBranch className="w-4 h-4 text-reed-red" />
+            <span className="text-sm font-semibold text-reed-red">For ComfyUI Users</span>
+          </div>
+          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4 leading-tight">
+            LoRAs & <span className="text-gradient">Workflows</span>
+          </h2>
+          <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
+            One-time purchases. We build everything by hand — you just plug it into ComfyUI and start generating. Every product comes fully ready to use, even if you've never opened ComfyUI before.
+          </p>
+        </div>
+
+        {/* ── Custom LoRAs ────────────────────────────────────────────── */}
         <div className="mb-20">
-          <div className="flex flex-wrap items-center gap-4 mb-8">
+          <div className="flex flex-wrap items-center gap-3 mb-3">
             <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
-              <Layers className="w-6 h-6 text-reed-red" />
-              SDXL Workflows (One-Time)
+              <Fingerprint className="w-5 h-5 text-reed-red" />
+              Custom LoRA Training
             </h3>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-full text-xs font-semibold text-[var(--text-secondary)]">
-              <Cpu className="w-3.5 h-3.5" />
-              ComfyUI Ready
-            </span>
-            {/* Launch Sale Badge */}
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-reed-red/10 border border-reed-red/30 rounded-full text-xs font-semibold text-reed-red">
-              <span className="w-1.5 h-1.5 bg-reed-red rounded-full animate-pulse"></span>
+              <span className="w-1.5 h-1.5 bg-reed-red rounded-full animate-pulse" />
               Launch Sale
             </span>
           </div>
-          <div className="grid md:grid-cols-3 gap-6 pt-4">
-            {WORKFLOWS.map((workflow) => (
-              <div key={workflow.id} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
-                workflow.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
+          <p className="text-[var(--text-secondary)] text-sm mb-8 max-w-2xl">
+            We manually train a LoRA on your character — no automated software. You choose the base model: SDXL, Flux, or Z Image Turbo. Delivered in 1 to 5 days, ready to load into ComfyUI and start generating immediately.
+          </p>
+
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {LORAS.map((lora) => (
+              <div key={lora.id} className={`relative bg-[var(--card-bg)] rounded-2xl border-2 transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col overflow-hidden ${
+                lora.popular ? 'border-reed-red shadow-lg shadow-reed-red/10' : 'border-[var(--card-border)] hover:border-reed-red/50'
               }`}>
-                {workflow.popular && (
-                  <div className="absolute -top-3 left-6 px-3 py-1 bg-reed-red text-white text-xs font-semibold rounded-full">
+                {lora.popular && (
+                  <div className="bg-reed-red text-white text-center py-2 text-xs font-bold uppercase tracking-wider">
                     Most Popular
                   </div>
                 )}
-                <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{workflow.name}</h4>
-                <p className="text-[var(--text-secondary)] text-sm mb-4 flex-grow">{workflow.description}</p>
-                
-                {/* Pricing with discount */}
-                <div className="mb-6">
-                  {workflow.originalPrice ? (
-                    <>
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="text-base text-[var(--text-secondary)] line-through opacity-60">{workflow.originalPrice}</span>
-                        <span className="px-2 py-0.5 bg-reed-red text-white text-xs font-bold rounded">
-                          SAVE {workflow.discountPercent?.replace(' OFF', '')}
-                        </span>
-                      </div>
-                      <div className="text-3xl font-bold text-[var(--text-primary)]">{workflow.price}</div>
-                    </>
-                  ) : (
-                    <div className="text-3xl font-bold text-[var(--text-primary)]">{workflow.price}</div>
-                  )}
-                </div>
+                <div className="p-7 flex flex-col flex-grow">
+                  <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{lora.name}</h4>
+                  <p className="text-[var(--text-secondary)] text-sm mb-5 flex-grow leading-relaxed">{lora.description}</p>
 
-                <ul className="space-y-3 mb-6">
-                  {workflow.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                      <Check className="w-4 h-4 text-reed-red flex-shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => onBuyService(workflow)}
-                  className={`w-full py-3 font-semibold rounded-xl transition-colors mt-auto ${workflow.popular ? 'bg-reed-red text-white hover:bg-reed-red-dark' : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'}`}
-                >
-                  {workflow.popular ? 'Get Started' : 'Buy Now'}
-                </button>
+                  {lora.originalPrice && (
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="text-sm text-[var(--text-muted)] line-through">{lora.originalPrice}</span>
+                      <span className="px-2 py-0.5 bg-reed-red text-white text-xs font-bold rounded">
+                        SAVE {lora.discountPercent?.replace(' OFF', '')}
+                      </span>
+                    </div>
+                  )}
+                  <div className="text-4xl font-bold text-[var(--text-primary)] mb-5">{lora.price}</div>
+
+                  <ul className="space-y-2.5 mb-7">
+                    {lora.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2.5 text-sm text-[var(--text-secondary)]">
+                        <Check className="w-4 h-4 text-reed-red flex-shrink-0 mt-0.5" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => onBuyService(lora)}
+                    className="w-full py-3.5 font-semibold rounded-xl bg-reed-red text-white hover:bg-reed-red-dark transition-all shadow-lg shadow-reed-red/20 mt-auto"
+                  >
+                    Buy Now
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* LoRAs */}
+        {/* ── ComfyUI Workflows ───────────────────────────────────────── */}
         <div className="mb-20">
-          <div className="flex flex-wrap items-center gap-4 mb-8">
+          <div className="flex flex-wrap items-center gap-3 mb-3">
             <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
-              <Cpu className="w-6 h-6 text-reed-red" />
-              Custom SDXL LoRAs
+              <GitBranch className="w-5 h-5 text-reed-red" />
+              ComfyUI Workflows
             </h3>
-            {/* Launch Sale Badge */}
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-full text-xs font-semibold text-[var(--text-secondary)]">
+              One-Time Purchase
+            </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-reed-red/10 border border-reed-red/30 rounded-full text-xs font-semibold text-reed-red">
-              <span className="w-1.5 h-1.5 bg-reed-red rounded-full animate-pulse"></span>
+              <span className="w-1.5 h-1.5 bg-reed-red rounded-full animate-pulse" />
               Launch Sale
             </span>
           </div>
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
-            {LORAS.map((lora) => (
-              <div key={lora.id} className="bg-[var(--card-bg)] rounded-2xl p-6 border-2 border-[var(--card-border)] hover:border-reed-red transition-all hover:shadow-xl flex flex-col">
-                <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{lora.name}</h4>
-                <p className="text-[var(--text-secondary)] text-sm mb-4 flex-grow">{lora.description}</p>
-                
-                {/* Pricing with discount */}
-                <div className="mb-6">
-                  {lora.originalPrice ? (
-                    <>
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="text-base text-[var(--text-secondary)] line-through opacity-60">{lora.originalPrice}</span>
-                        <span className="px-2 py-0.5 bg-reed-red text-white text-xs font-bold rounded">
-                          SAVE {lora.discountPercent?.replace(' OFF', '')}
-                        </span>
-                      </div>
-                      <div className="text-3xl font-bold text-[var(--text-primary)]">{lora.price}</div>
-                    </>
-                  ) : (
-                    <div className="text-3xl font-bold text-[var(--text-primary)]">{lora.price}</div>
-                  )}
-                </div>
+          <p className="text-[var(--text-secondary)] text-sm mb-8 max-w-2xl">
+            Hand-crafted by our team. Every workflow comes fully ready to use — just import it into ComfyUI, load your LoRA, and generate. No node knowledge required. These are advanced tools built so anyone can use them, regardless of experience.
+          </p>
 
-                <ul className="space-y-3 mb-6">
-                  {lora.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                      <Check className="w-4 h-4 text-reed-red flex-shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => onBuyService(lora)}
-                  className="w-full py-3 font-semibold rounded-xl bg-reed-red text-white hover:bg-reed-red-dark transition-colors mt-auto"
-                >
-                  Buy Now
-                </button>
+          <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
+            {WORKFLOWS.map((wf) => (
+              <div key={wf.id} className={`relative bg-[var(--card-bg)] rounded-2xl border-2 transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col overflow-hidden ${
+                wf.popular ? 'border-reed-red shadow-lg shadow-reed-red/10 scale-[1.02] z-10' : 'border-[var(--card-border)] hover:border-reed-red/50'
+              }`}>
+                {wf.popular && (
+                  <div className="bg-reed-red text-white text-center py-2 text-xs font-bold uppercase tracking-wider">
+                    Most Popular
+                  </div>
+                )}
+                <div className="p-7 flex flex-col flex-grow">
+                  <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{wf.name}</h4>
+                  <p className="text-[var(--text-secondary)] text-sm mb-5 flex-grow leading-relaxed">{wf.description}</p>
+
+                  {wf.originalPrice && (
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="text-sm text-[var(--text-muted)] line-through">{wf.originalPrice}</span>
+                      <span className="px-2 py-0.5 bg-reed-red text-white text-xs font-bold rounded">
+                        SAVE {wf.discountPercent?.replace(' OFF', '')}
+                      </span>
+                    </div>
+                  )}
+                  <div className="text-4xl font-bold text-[var(--text-primary)] mb-5">{wf.price}</div>
+
+                  <ul className="space-y-2.5 mb-7">
+                    {wf.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2.5 text-sm text-[var(--text-secondary)]">
+                        <Check className="w-4 h-4 text-reed-red flex-shrink-0 mt-0.5" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => onBuyService(wf)}
+                    className={`w-full py-3.5 font-semibold rounded-xl transition-all mt-auto ${
+                      wf.popular
+                        ? 'bg-reed-red text-white hover:bg-reed-red-dark shadow-lg shadow-reed-red/20'
+                        : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'
+                    }`}
+                  >
+                    {wf.popular ? 'Get Started' : 'Buy Now'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Packages */}
+        {/* ── Complete Packages ────────────────────────────────────────── */}
         <div>
-          <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] mb-8 flex items-center gap-3">
-            <Sparkles className="w-6 h-6 text-reed-red" />
-            Complete Custom Packages
+          <h3 className="font-display text-2xl font-bold text-[var(--text-primary)] mb-3 flex items-center gap-3">
+            <Box className="w-5 h-5 text-reed-red" />
+            Complete Packages
           </h3>
-          <div className="grid md:grid-cols-3 gap-6 pt-4">
+          <p className="text-[var(--text-secondary)] text-sm mb-8 max-w-2xl">
+            LoRA + Workflows bundled together. Everything you need in one purchase.
+          </p>
+          <div className="grid md:grid-cols-3 gap-6">
             {PACKAGES.map((pkg) => (
-              <div key={pkg.id} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl flex flex-col ${
+              <div key={pkg.id} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all flex flex-col ${
                 pkg.popular ? 'border-reed-red' : 'border-[var(--card-border)]'
               }`}>
                 {pkg.popular && (
-                  <div className="absolute -top-3 left-6 px-3 py-1 bg-reed-red text-white text-xs font-semibold rounded-full">
+                  <div className="absolute -top-3 left-6 px-3 py-1 bg-reed-red text-white text-xs font-bold rounded-full">
                     Recommended
                   </div>
                 )}
                 <h4 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{pkg.name}</h4>
-                <p className="text-[var(--text-secondary)] text-sm mb-4 flex-grow">{pkg.description}</p>
-                <div className="text-3xl font-bold text-[var(--text-primary)] mb-6">{pkg.price}</div>
-                <ul className="space-y-3 mb-6">
-                  {pkg.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                <p className="text-[var(--text-secondary)] text-sm mb-5 flex-grow">{pkg.description}</p>
+                <div className="text-3xl font-bold text-[var(--text-primary)] mb-5">{pkg.price}</div>
+                <ul className="space-y-2.5 mb-6">
+                  {pkg.features.map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                       <Check className="w-4 h-4 text-reed-red flex-shrink-0" />
-                      {feature}
+                      {f}
                     </li>
                   ))}
                 </ul>
                 <button
                   disabled
-                  className="w-full py-3 font-semibold rounded-xl transition-colors mt-auto border-2 border-[var(--border-color)] text-[var(--text-muted)] cursor-not-allowed opacity-60"
+                  className="w-full py-3 font-semibold rounded-xl border-2 border-[var(--border-color)] text-[var(--text-muted)] cursor-not-allowed opacity-50 mt-auto"
                 >
                   Coming Soon
                 </button>
@@ -929,87 +993,121 @@ const PricingSection = ({ onLoginClick }: { onLoginClick: () => void }) => {
   ];
 
   return (
-    <section id="pricing" className="pt-16 pb-32 lg:pt-20 lg:pb-48 bg-[var(--bg-primary)] scroll-mt-20">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 w-full">
+    <section id="pricing" className="pt-24 pb-28 lg:pt-32 lg:pb-36 bg-[var(--bg-primary)] scroll-mt-20 border-t border-[var(--border-color)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-12 lg:mb-16">
-          <span className="inline-block text-sm font-semibold text-reed-red uppercase tracking-wider mb-4">Monthly Plans</span>
-          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4">
-            Generate Images
-            <span className="text-gradient"> On Our Platform</span>
+        <div className="text-center mb-16">
+          <span className="inline-block text-sm font-bold text-reed-red uppercase tracking-[0.2em] mb-4">Web Generator Plans</span>
+          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4 leading-tight">
+            Choose Your <span className="text-gradient">Plan</span>
           </h2>
-          <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
-            Pick a plan, get credits, and start generating AI images directly on REED. No setup required.
+          <p className="text-[var(--text-secondary)] text-lg max-w-xl mx-auto">
+            Get credits and generate directly on our website. No software needed.
           </p>
-
-          {user && (
-            <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)] rounded-full">
-              <CrownIcon className="w-5 h-5 text-reed-red" />
-              <span className="text-sm font-medium text-[var(--text-primary)]">
-                Your current plan: <span className="font-bold capitalize">{user.plan_type}</span>
-                {user.plan_type !== 'studio' && ` (${user.credits} credits remaining)`}
-              </span>
+          <div className="flex items-center justify-center gap-3 mt-5">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-500/10 text-green-400 rounded-full text-xs font-medium">
+              <Shield className="w-3.5 h-3.5" />
+              14-day guarantee
             </div>
-          )}
-        </div>
-
-        {/* Pricing Grid - All 5 in one row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 items-start pt-4">
-          {plans.map((plan) => (
-            <div key={plan.name} className={`relative bg-[var(--card-bg)] rounded-2xl p-6 border-2 transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col ${
-              plan.popular ? 'border-reed-red xl:scale-[1.02] xl:z-10 shadow-lg shadow-reed-red/10' : 'border-[var(--card-border)]'
-            }`}>
-              {plan.popular && (
-                <div className="absolute -top-3 left-6 px-3 py-1 bg-reed-red text-white text-xs font-semibold rounded-full">
-                  Best Value
-                </div>
-              )}
-
-              <h3 className="font-display text-xl font-bold text-[var(--text-primary)] mb-2">{plan.name}</h3>
-
-              <div className="flex items-baseline gap-1 mb-4">
-                <span className="text-3xl font-bold text-[var(--text-primary)]">{plan.price}</span>
-                <span className="text-[var(--text-muted)]">{plan.period}</span>
-              </div>
-
-              <div className="space-y-2 mb-6 pb-6 border-b border-[var(--border-color)]">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--text-secondary)]">Credits/month:</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{plan.credits}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--text-secondary)]">NSFW:</span>
-                  <span className={`font-semibold ${plan.nsfw === true || plan.nsfw === 'Full' ? 'text-green-500' : plan.nsfw === 'Soon' ? 'text-amber-500' : 'text-gray-400'}`}>
-                    {plan.nsfw === true ? 'Yes' : plan.nsfw === false ? 'No' : plan.nsfw}
-                  </span>
-                </div>
-              </div>
-
-              <ul className="space-y-3 mb-6 flex-grow">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                    <Check className="w-4 h-4 text-reed-red flex-shrink-0" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => handleSelectPlan(plan)}
-                className={`w-full py-3 font-semibold rounded-xl transition-colors mt-auto ${plan.popular ? 'bg-reed-red text-white hover:bg-reed-red-dark' : 'border-2 border-[var(--border-color)] text-[var(--text-primary)] hover:border-reed-red hover:text-reed-red'}`}
-              >
-                {plan.cta}
-              </button>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-400 rounded-full text-xs font-medium">
+              <Clock className="w-3.5 h-3.5" />
+              SFW only — NSFW soon
             </div>
-          ))}
-        </div>
-
-        {/* Guarantee */}
-        <div className="mt-12 lg:mt-16 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-500 rounded-full text-sm">
-            <Shield className="w-4 h-4" />
-            14-day guarantee on all plans
           </div>
+        </div>
+
+        {/* All 5 plans in unified grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-3 items-start">
+          {plans.map((plan) => {
+            const isPopular = plan.popular;
+            const isCurrent = user?.plan_type === plan.id;
+            const costPerCredit = plan.creditsValue > 0 && plan.priceValue > 0
+              ? (plan.priceValue / plan.creditsValue).toFixed(2)
+              : null;
+
+            return (
+              <div key={plan.id} className="relative group">
+                {/* Gradient glow behind popular card */}
+                {isPopular && (
+                  <div className="absolute -inset-[2px] rounded-[22px] bg-gradient-to-b from-reed-red via-reed-red/50 to-reed-red/20 opacity-100 blur-[1px]" />
+                )}
+
+                <div className={`relative flex flex-col h-full rounded-[20px] transition-all duration-300 ${
+                  isPopular
+                    ? 'bg-[var(--card-bg)] shadow-2xl shadow-reed-red/10 lg:-translate-y-4'
+                    : 'bg-[var(--bg-secondary)] border border-[var(--border-color)] hover:border-white/10'
+                }`}>
+                  {/* Popular badge */}
+                  {isPopular && (
+                    <div className="bg-reed-red text-white text-center py-2.5 rounded-t-[20px] text-[11px] font-bold uppercase tracking-[0.15em]">
+                      Most Popular
+                    </div>
+                  )}
+
+                  <div className={`flex flex-col flex-grow ${isPopular ? 'p-6 lg:p-7' : 'p-6'}`}>
+                    {/* Plan name */}
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className={`font-display font-bold text-[var(--text-primary)] ${isPopular ? 'text-xl' : 'text-lg'}`}>
+                        {plan.name}
+                      </h3>
+                      {isCurrent && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-reed-red/10 text-reed-red">
+                          Current
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Price */}
+                    <div className="mb-1">
+                      <span className={`font-bold text-[var(--text-primary)] ${isPopular ? 'text-5xl' : 'text-4xl'}`}>{plan.price}</span>
+                      <span className="text-[var(--text-muted)] text-sm ml-1">/mo</span>
+                    </div>
+
+                    {/* Cost per credit */}
+                    {costPerCredit && (
+                      <div className="text-xs text-[var(--text-muted)] mb-5">${costPerCredit}/credit</div>
+                    )}
+                    {!costPerCredit && <div className="text-xs text-[var(--text-muted)] mb-5">Free forever</div>}
+
+                    {/* Credits highlight */}
+                    <div className={`flex items-center gap-2.5 p-3 rounded-xl mb-5 ${
+                      isPopular ? 'bg-reed-red/10 border border-reed-red/20' : 'bg-[var(--bg-primary)] border border-[var(--border-color)]'
+                    }`}>
+                      <Zap className={`w-4 h-4 flex-shrink-0 ${isPopular ? 'text-reed-red' : 'text-[var(--text-muted)]'}`} />
+                      <span className={`text-sm font-semibold ${isPopular ? 'text-reed-red' : 'text-[var(--text-primary)]'}`}>
+                        {plan.credits} credits/month
+                      </span>
+                    </div>
+
+                    {/* Features */}
+                    <ul className="space-y-2.5 mb-6 flex-grow">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+                          <Check className="w-3.5 h-3.5 text-reed-red flex-shrink-0 mt-0.5" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* CTA */}
+                    <button
+                      onClick={() => handleSelectPlan(plan)}
+                      disabled={isCurrent}
+                      className={`w-full py-3 text-sm font-semibold rounded-xl transition-all mt-auto ${
+                        isCurrent
+                          ? 'bg-[var(--bg-primary)] text-[var(--text-muted)] border border-[var(--border-color)] cursor-default'
+                          : isPopular
+                            ? 'bg-reed-red text-white hover:bg-reed-red-dark shadow-lg shadow-reed-red/25'
+                            : 'bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-color)] hover:border-reed-red hover:text-reed-red'
+                      }`}
+                    >
+                      {isCurrent ? 'Current Plan' : plan.cta}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -1040,36 +1138,32 @@ const FAQSection = () => {
 
   const faqs = [
     {
-      question: "What is REED?",
-      answer: "REED is an AI image generation platform for creators. You can generate images directly on our site, or hire us to build custom SDXL LoRAs and workflows tailored to your character. The result: every image looks like it belongs to the same person — no more random faces."
+      question: "Do I need ComfyUI to use REED?",
+      answer: "No. We have two options: (1) Use our Web Generator — subscribe, get credits, and generate directly on our website with zero software. (2) Buy LoRAs and Workflows to run on your own ComfyUI setup."
     },
     {
-      question: "What makes REED different from other AI tools?",
-      answer: "Consistency. Most AI generators give you a different face every time. Our custom SDXL LoRAs and prompt engineering ensure your character looks identical across hundreds of images — same face, same style, any pose or scene."
+      question: "What base models can I choose for my LoRA?",
+      answer: "You choose: SDXL, Flux, or Z Image Turbo. We manually train the LoRA on the base model you prefer. Delivery in 1 to 5 days."
     },
     {
-      question: "How does the service work?",
-      answer: "Choose what you need (SDXL workflow, LoRA, or full package), send us the reference material, and we handle the rest. LoRAs are delivered in 24-48h, workflows are ready to use in ComfyUI immediately."
+      question: "What are ComfyUI Workflows?",
+      answer: "Ready-to-use templates for ComfyUI. Import the file, load your LoRA, and generate. You don't need to know anything about nodes or ComfyUI — everything comes pre-built."
     },
     {
-      question: "Do I need my own AI setup?",
-      answer: "For on-site generation, no — just pick a subscription plan and generate directly on our platform. For workflows and LoRAs, you'll use them in ComfyUI on your own machine or cloud setup."
+      question: "Are LoRAs auto-generated?",
+      answer: "No. Every LoRA is manually trained and tested by our team. No automated scripts or generic wrappers."
     },
     {
-      question: "How much does REED cost?",
-      answer: "LoRAs start at $47, workflows at $397, and full packages from $297. On-site generation subscriptions go from free (3 credits) to $199/month (600 credits)."
+      question: "What's the difference between the Web Generator and buying a LoRA?",
+      answer: "The Web Generator runs on our website — you create a model with your reference photos, then generate images using credits. No software needed. A custom LoRA is a file we train for you to use in ComfyUI on your own machine, giving you full control. Both are ready to use with zero experience."
     },
     {
-      question: "What about my data and privacy?",
-      answer: "Your images and data are never shared with anyone. All processing happens on secure servers. You can request complete deletion of your data at any time."
+      question: "Is NSFW content available?",
+      answer: "Not yet. Currently all generation is SFW only. NSFW generation is coming soon — join our Discord to stay updated on the release."
     },
     {
-      question: "Is there a guarantee?",
-      answer: "Yes. 14-day guarantee on all services. If the results don't meet expectations, we refund you. LoRAs include revisions based on your plan."
-    },
-    {
-      question: "What model do you use?",
-      answer: "All our LoRAs, workflows, and prompts are built for SDXL (Stable Diffusion XL). We don't build models from scratch — we fine-tune and optimize SDXL to deliver consistent, high-quality results for your specific needs."
+      question: "Do I need technical skills to use your workflows?",
+      answer: "No. Every workflow and LoRA we sell comes fully ready to use. You just import the file into ComfyUI, load the LoRA, and hit generate. We built everything so that even someone who has never opened ComfyUI can get professional results."
     }
   ];
 
@@ -1127,10 +1221,11 @@ const CTASection = () => {
         <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
           Ready to Start?
         </h2>
-        <p className="text-lg text-white/80 mb-10 max-w-2xl mx-auto">
-          Generate images on our platform or let us build everything for you.
-          Same face, same character, every single image. Start free — no credit card needed.
+        <p className="text-lg text-white/80 mb-4 max-w-2xl mx-auto">
+          Generate on our website or buy LoRAs & Workflows for ComfyUI.
+          Everything is ready to use with zero experience required.
         </p>
+        <p className="text-sm text-white/50 mb-10">SFW generation available now — NSFW coming soon</p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
             href="#pricing"
@@ -1375,7 +1470,6 @@ const LandingPage = () => {
           onLaunchApp={handleShowApp}
           onLoginClick={() => setShowLogin(true)}
           onRegisterClick={() => setShowRegister(true)}
-          onMyPurchases={handleShowMyPurchases}
         />
         <div className="h-screen flex items-center justify-center">
           <div className="text-center">
@@ -1388,7 +1482,7 @@ const LandingPage = () => {
   }
 
   if (showApp) {
-    return <App onBackToLanding={handleShowLanding} />;
+    return <DashboardLayout onBackToLanding={handleShowLanding} />;
   }
 
   // Service content view
@@ -1438,7 +1532,6 @@ const LandingPage = () => {
         onLaunchApp={handleShowApp}
         onLoginClick={() => setShowLogin(true)}
         onRegisterClick={() => setShowRegister(true)}
-        onMyPurchases={handleShowMyPurchases}
       />
 
       {showLogin && (
@@ -1460,31 +1553,36 @@ const LandingPage = () => {
         />
       )}
 
-      {/* 1. Hero - Featured image showcase: text left, big rotating image right */}
-      <HeroSection onLaunchApp={handleShowApp} />
-
-      {/* 2. Trust marquee bar */}
-      <TrustMarquee />
-
-      {/* 3. Real Creator Results - social proof early */}
-      <RevenueShowcase />
-
-      {/* 4. Full portfolio with SFW/NSFW toggle */}
-      <PortfolioSection />
-
-      {/* 6. What we do - 3 category cards */}
-      <CategorySection
+      {/* 1. Hero */}
+      <HeroSection
         onLaunchApp={handleShowApp}
         onViewServices={() => {
           document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' });
         }}
       />
 
-      {/* 7. Services (done-for-you) */}
-      <ServicesSection onBuyService={handleBuyService} />
+      {/* 2. Trust marquee bar */}
+      <TrustMarquee />
 
-      {/* 8. Pricing (subscriptions) */}
+      {/* 3. Real Creator Results */}
+      <RevenueShowcase />
+
+      {/* 4. Portfolio */}
+      <PortfolioSection />
+
+      {/* 5. Three Ways to Create */}
+      <ThreeWaysSection
+        onLaunchApp={handleShowApp}
+        onViewServices={() => {
+          document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' });
+        }}
+      />
+
+      {/* 6. Web Generator Pricing (subscriptions) */}
       <PricingSection onLoginClick={() => setShowLogin(true)} />
+
+      {/* 7. LoRAs & Workflows Store */}
+      <ServicesSection onBuyService={handleBuyService} />
 
       {/* 9. FAQ */}
       <FAQSection />
@@ -1519,14 +1617,14 @@ const LandingPage = () => {
           }}
           onGoToUpload={() => {
             setShowThankYou(false);
-            // For LoRA/package uploads, we need a purchase ID
-            // Since the webhook hasn't fired yet, we'll go to My Purchases where they can upload later
-            setShowMyPurchases(true);
+            setShowApp(true);
+            localStorage.setItem('reed_show_app', 'true');
           }}
           onGoToPurchases={() => {
             setShowThankYou(false);
             setSelectedServiceForPayment(null);
-            setShowMyPurchases(true);
+            setShowApp(true);
+            localStorage.setItem('reed_show_app', 'true');
           }}
         />
       )}
