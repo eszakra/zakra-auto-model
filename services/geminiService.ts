@@ -18,9 +18,28 @@ export const constructPayload = (
 export type GeminiModelVersion = 'pro' | 'flash';
 
 const MODEL_IDS = {
-  pro:   { text: 'gemini-3.1-pro-preview',              image: 'gemini-3-pro-image-preview' },
-  flash: { text: 'gemini-3.1-pro-preview',               image: 'gemini-3.1-flash-image-preview' },
+  pro:   { text: 'gemini-3-pro',   image: 'gemini-3-pro-image-preview' },
+  flash: { text: 'gemini-3-pro',   image: 'gemini-3.1-flash-image-preview' },
 } as const;
+
+// Helper to auto-fallback to flash models when Pro hits 429 quota errors (common in Gemini 3)
+async function callGeminiWithFallback(ai: GoogleGenAI, generateParams: any, fallbackModel: string, flashConfig: any) {
+  try {
+    return await ai.models.generateContent(generateParams);
+  } catch (apiError: any) {
+    if (apiError.message?.includes('429') || apiError.status === 429 || apiError.message?.includes('Quota') || apiError.message?.includes('Resource has been exhausted')) {
+      if (generateParams.model !== fallbackModel) {
+        console.warn(`[Gemini] Quota exhausted on ${generateParams.model}. Falling back to ${fallbackModel}...`);
+        const newParams = { ...generateParams, model: fallbackModel };
+        if (flashConfig && typeof newParams.config === 'object') {
+          newParams.config = { ...newParams.config, ...flashConfig };
+        }
+        return await ai.models.generateContent(newParams);
+      }
+    }
+    throw apiError;
+  }
+}
 
 // BLOCK_NONE safety settings — applied only on the flash model
 const SAFETY_BLOCK_NONE = [
@@ -276,7 +295,7 @@ CRITICAL REMINDERS:
     }
     imageParts.push({ inlineData: { mimeType: cleanRef.mimeType, data: cleanRef.data } });
 
-    const response = await ai.models.generateContent({
+    const generateParams = {
       model: modelId,
       contents: [
         {
@@ -294,6 +313,12 @@ CRITICAL REMINDERS:
           safetySettings: SAFETY_BLOCK_NONE,
         }),
       }
+    };
+    
+    // Auto cross-grade to Flash Lite text if Pro is out of quota
+    const response = await callGeminiWithFallback(ai, generateParams, MODEL_IDS['flash'].text, {
+      temperature: 0.95,
+      safetySettings: SAFETY_BLOCK_NONE,
     });
 
     const candidate = response.candidates?.[0];
@@ -537,7 +562,7 @@ CRITICAL REQUIREMENTS:
       modelImageParts.push({ inlineData: { mimeType: refImg.mimeType, data: refImg.data } }); // scene ref — always LAST
     }
 
-    const response = await ai.models.generateContent({
+    const generateParams = {
       model: modelId,
       contents: [
         {
@@ -558,6 +583,12 @@ CRITICAL REQUIREMENTS:
           safetySettings: SAFETY_BLOCK_NONE,
         }),
       }
+    };
+
+    // Auto cross-grade to Flash Image if Pro is out of quota
+    const response = await callGeminiWithFallback(ai, generateParams, MODEL_IDS['flash'].image, {
+      temperature: 0.95,
+      safetySettings: SAFETY_BLOCK_NONE,
     });
 
     // Check for image in response
@@ -779,7 +810,7 @@ IDENTITY PRESERVATION (CRITICAL):
     // Last: the generated image we want to vary (for scene/background consistency)
     imageParts.push({ inlineData: { mimeType: generatedImg.mimeType, data: generatedImg.data } });
 
-    const response = await ai.models.generateContent({
+    const generateParams = {
       model: modelId,
       contents: [
         {
@@ -799,6 +830,12 @@ IDENTITY PRESERVATION (CRITICAL):
           safetySettings: SAFETY_BLOCK_NONE,
         }),
       }
+    };
+
+    // Auto cross-grade to Flash Image if Pro is out of quota
+    const response = await callGeminiWithFallback(ai, generateParams, MODEL_IDS['flash'].image, {
+      temperature: 0.95,
+      safetySettings: SAFETY_BLOCK_NONE,
     });
 
     const candidate = response.candidates?.[0];
