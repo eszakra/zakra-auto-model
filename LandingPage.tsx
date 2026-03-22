@@ -27,6 +27,7 @@ import { LoraUploadFlow } from './components/LoraUploadFlow';
 import { WORKFLOWS, LORAS, PACKAGES, ServiceItem, getServiceById } from './services/servicesData';
 import { usePortfolioImages } from './hooks/usePortfolioImages';
 import { optimizeImageForCarousel } from './utils/imageOptimizer';
+import { CustomCursor, MagneticButton, TiltCard, FloatingAccents, AnimatedCounter, ShimmerText } from './components/VisualEffects';
 
 gsap.registerPlugin(useGSAP);
 
@@ -268,51 +269,45 @@ const HeroSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void;
 
   // GSAP hero entrance timeline
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({ delay: 0.2 });
+    if (!heroRef.current) return;
 
-      tl.fromTo('.hero-title-line',
-        { y: 40, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, stagger: 0.12, ease: 'power3.out' }
-      )
-      .fromTo('.hero-subtitle',
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' },
-        '-=0.35'
-      )
-      .fromTo('.hero-cta-btn',
-        { y: 15, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.5, stagger: 0.08, ease: 'power3.out' },
-        '-=0.25'
-      )
-      .fromTo('.hero-stat',
-        { y: 12, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.4, stagger: 0.08, ease: 'power3.out' },
-        '-=0.15'
-      )
-      .fromTo('.hero-image-wrapper',
-        { x: 40, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.9, ease: 'power2.out' },
-        0.25
-      )
-      .fromTo('.hero-badge',
-        { scale: 0.5, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(1.7)' },
-        '-=0.25'
-      )
-      .fromTo('.hero-thumbs',
-        { y: 12, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out' },
-        '-=0.15'
-      );
-    }, heroRef);
+    // Small delay to ensure DOM is painted
+    const timer = setTimeout(() => {
+      const el = heroRef.current;
+      if (!el) return;
 
-    return () => ctx.revert();
+      const titles = el.querySelectorAll('.hero-title-line');
+      const subtitle = el.querySelector('.hero-subtitle');
+      const ctaBtns = el.querySelectorAll('.hero-cta-btn');
+      const stats = el.querySelectorAll('.hero-stat');
+      const imgWrap = el.querySelector('.hero-image-wrapper');
+
+      const tl = gsap.timeline();
+
+      if (titles.length) {
+        tl.fromTo(titles, { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, stagger: 0.12, ease: 'power3.out' });
+      }
+      if (subtitle) {
+        tl.fromTo(subtitle, { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' }, '-=0.35');
+      }
+      if (ctaBtns.length) {
+        tl.fromTo(ctaBtns, { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.08, ease: 'power3.out' }, '-=0.25');
+      }
+      if (stats.length) {
+        tl.fromTo(stats, { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, stagger: 0.08, ease: 'power3.out' }, '-=0.15');
+      }
+      if (imgWrap) {
+        tl.fromTo(imgWrap, { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.9, ease: 'power2.out' }, 0.25);
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
   }, []);
 
   return (
     <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden">
       <HeroBackground />
+      <FloatingAccents className="z-10" />
 
       <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-14 lg:pt-24 lg:pb-16">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
@@ -330,20 +325,24 @@ const HeroSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void;
 
             {/* CTA buttons */}
             <div className="flex flex-wrap items-center gap-4 mb-12">
-              <button
-                onClick={onLaunchApp}
-                className="hero-cta-btn group px-8 py-4 bg-reed-red text-white font-semibold rounded-xl hover:bg-reed-red-dark transition-all shadow-lg shadow-reed-red/25 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-reed-red/30 text-base"
-              >
-                Start Generating
-              </button>
-              <a
-                href="#services"
-                onClick={(e) => { e.preventDefault(); onViewServices(); }}
-                className="hero-cta-btn inline-flex items-center gap-2 px-8 py-4 border-2 border-[var(--border-color)] text-[var(--text-primary)] font-semibold rounded-xl hover:border-reed-red hover:text-reed-red transition-all text-base"
-              >
-                View Services
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </a>
+              <MagneticButton strength={0.25}>
+                <button
+                  onClick={onLaunchApp}
+                  className="hero-cta-btn group px-8 py-4 bg-reed-red text-white font-semibold rounded-xl hover:bg-reed-red-dark transition-all shadow-lg shadow-reed-red/25 hover:shadow-xl hover:shadow-reed-red/30 text-base"
+                >
+                  Start Generating
+                </button>
+              </MagneticButton>
+              <MagneticButton strength={0.2}>
+                <a
+                  href="#services"
+                  onClick={(e) => { e.preventDefault(); onViewServices(); }}
+                  className="hero-cta-btn inline-flex items-center gap-2 px-8 py-4 border-2 border-[var(--border-color)] text-[var(--text-primary)] font-semibold rounded-xl hover:border-reed-red hover:text-reed-red transition-all text-base"
+                >
+                  View Services
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </a>
+              </MagneticButton>
               <a
                 href="https://discord.gg/pqSwuGxrmh"
                 target="_blank"
@@ -357,10 +356,12 @@ const HeroSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => void;
               </a>
             </div>
 
-            {/* Stats */}
+            {/* Stats - with animated counters */}
             <div className="flex items-center gap-10">
               <div className="hero-stat">
-                <div className="text-3xl font-bold text-[var(--text-primary)]">100%</div>
+                <div className="text-3xl font-bold text-[var(--text-primary)]">
+                  <AnimatedCounter value="100%" />
+                </div>
                 <div className="text-xs text-[var(--text-muted)] mt-1">Consistent Results</div>
               </div>
               <div className="hero-stat">
@@ -515,13 +516,14 @@ const ThreeWaysSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => 
   ];
 
   return (
-    <section className="py-24 lg:py-32 bg-[var(--bg-primary)] border-t border-[var(--border-color)] overflow-hidden">
-      <div ref={revealRef} className="scroll-reveal max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="relative py-24 lg:py-32 bg-[var(--bg-primary)] border-t border-[var(--border-color)] overflow-hidden">
+      <FloatingAccents />
+      <div ref={revealRef} className="scroll-reveal relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
           <span className="inline-block text-sm font-bold text-reed-red uppercase tracking-[0.2em] mb-4">3 Ways to Use REED</span>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4 leading-tight">
-            Pick How You Want to <span className="text-gradient">Create</span>
+            Pick How You Want to <ShimmerText className="text-gradient">Create</ShimmerText>
           </h2>
           <p className="text-[var(--text-secondary)] text-lg max-w-2xl mx-auto">
             Generate images yourself, get a custom AI model trained on your character, or buy ready-made workflows. Everything is plug & play — zero experience required.
@@ -535,12 +537,16 @@ const ThreeWaysSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => 
         {/* 3 Cards */}
         <div className="grid md:grid-cols-3 gap-5 lg:gap-6">
           {cards.map((card, i) => (
-            <button
+            <TiltCard
               key={card.title}
-              onClick={card.onClick}
-              className="scroll-reveal-child group relative text-left rounded-2xl transition-all duration-500 hover:-translate-y-2 focus:outline-none"
+              className="scroll-reveal-child"
               style={{ transitionDelay: `${i * 0.1}s` }}
+              intensity={6}
             >
+              <button
+                onClick={card.onClick}
+                className="group relative text-left rounded-2xl transition-all duration-500 hover:-translate-y-1 focus:outline-none w-full h-full"
+              >
               {/* Gradient border on hover */}
               <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-b from-white/[0.08] to-transparent opacity-100 group-hover:from-reed-red/30 group-hover:to-reed-red/5 transition-all duration-500" />
 
@@ -573,6 +579,7 @@ const ThreeWaysSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => 
                 </div>
               </div>
             </button>
+            </TiltCard>
           ))}
         </div>
       </div>
@@ -1615,6 +1622,7 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] transition-colors duration-300 scroll-smooth">
+      <CustomCursor />
       <ThemeToggle />
       <Navigation
         onLaunchApp={handleShowApp}
@@ -1666,8 +1674,14 @@ const LandingPage = () => {
         }}
       />
 
+      {/* Glow divider */}
+      <div className="glow-divider" />
+
       {/* 6. Web Generator Pricing (subscriptions) */}
       <PricingSection onLoginClick={() => setShowLogin(true)} />
+
+      {/* Glow divider */}
+      <div className="glow-divider" />
 
       {/* 7. LoRAs & Workflows Store */}
       <ServicesSection onBuyService={handleBuyService} />

@@ -164,6 +164,28 @@ body {
   background-clip: text;
 }
 
+/* Shimmer sweep effect on text */
+@keyframes shimmer-sweep {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    110deg,
+    var(--accent-red) 0%,
+    var(--accent-red-light) 30%,
+    #ff6b6b 50%,
+    var(--accent-red-light) 70%,
+    var(--accent-red) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer-sweep 4s ease-in-out infinite;
+}
+
 /* Button hover effects */
 button, a {
   transition: all 0.2s ease;
@@ -348,6 +370,23 @@ a, button {
 .section-divider {
   background: linear-gradient(90deg, transparent, var(--border-color), transparent);
   height: 1px;
+}
+
+/* Glowing section divider */
+.glow-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--accent-red) 20%, var(--accent-red-light) 50%, var(--accent-red) 80%, transparent 100%);
+  opacity: 0.2;
+  position: relative;
+}
+
+.glow-divider::after {
+  content: '';
+  position: absolute;
+  inset: -4px 20%;
+  background: linear-gradient(90deg, transparent, var(--accent-red), transparent);
+  filter: blur(8px);
+  opacity: 0.3;
 }
 
 /* ── Scroll-reveal system (IntersectionObserver driven) ── */
