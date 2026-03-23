@@ -18,8 +18,8 @@ export const constructPayload = (
 export type GeminiModelVersion = 'pro' | 'flash';
 
 const MODEL_IDS = {
-  pro:   { text: 'gemini-3-pro',   image: 'gemini-3-pro-image-preview' },
-  flash: { text: 'gemini-3-pro',   image: 'gemini-3.1-flash-image-preview' },
+  pro:   { text: 'gemini-3.1-pro-preview',   image: 'gemini-3-pro-image-preview' },
+  flash: { text: 'gemini-3.1-pro-preview',   image: 'gemini-3.1-flash-image-preview' },
 } as const;
 
 // Helper to auto-fallback to flash models when Pro hits 429 quota errors (common in Gemini 3)
