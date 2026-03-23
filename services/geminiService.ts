@@ -176,7 +176,8 @@ OUTPUT FORMAT (JSON ONLY, NO MARKDOWN, NO BACKTICKS):
     "body_accessories": "[FROM REFERENCE: jewelry, watches, bags, hats (non-face), or 'none']",
     "skin_notes": "[FROM MODEL PHOTOS ONLY: note if skin is clean/clear, any visible tattoos on the MODEL, birthmarks. NEVER include tattoos or marks from the REFERENCE image]",
     "hair_detailed": {
-      "length": "[Exact length using body reference: pixie/short/chin-length/shoulder-length/mid-back/long/very long]",
+      "⚠️_SOURCE": "ALL hair fields below MUST be extracted from the MODEL photos ONLY. COMPLETELY IGNORE the reference person's hair. If the model has long brown wavy hair and the reference has short black straight hair, describe LONG BROWN WAVY.",
+      "length": "[FROM MODEL PHOTOS — Exact length using body reference: pixie/short/chin-length/shoulder-length/mid-back/long/very long]",
       "cut": "[Specific style name: blunt bob/layered/shaggy/undercut/fade/tapered/disconnected]",
       "texture": "[Natural pattern: straight/wavy (loose waves/s-waves)/curly (tight curls)/coily]",
       "texture_quality": "[Strand quality: smooth/coarse/fine/thick/thin]",
@@ -494,10 +495,13 @@ ENVIRONMENT DETAILS:
 
   const refImageInstruction = `
 IMAGE ASSIGNMENTS — these are the exact images attached, in order:
-${refPos ? `- IMAGE ${refPos}: SCENE REFERENCE (POSE SOURCE). This image shows a DIFFERENT PERSON in a specific pose/scene. Extract ONLY: pose, body position, expression style, clothing, background, lighting, camera quality, environment. ⚠️ COMPLETELY IGNORE this person's FACE — their facial features (eyes, nose, lips, jaw, skin) must NOT appear in the output AT ALL. This person's face must be ENTIRELY REPLACED.` : ''}${bodyPos ? `\n- IMAGE ${bodyPos}: MODEL BODY. Full-body photo of the TARGET person (same identity as the last image). Use for body type, proportions, curves, height impression. This is the person who must appear in the output.` : ''}${extraStartIndex ? `\n- IMAGES ${extraStartIndex}–${extraStartIndex + additionalModelImages!.length - 1}: MODEL EXTRA ANGLES. Additional photos of the TARGET person from different angles for accurate identity and body replication.` : ''}
-- IMAGE ${facePos}: ⭐ MODEL FACE (PRIMARY IDENTITY — MOST IMPORTANT IMAGE). This is THE person who MUST appear in the output. Their face is the DEFINITIVE identity reference. Copy their EXACT: eye color/shape, nose shape, lip shape/fullness, jawline, cheekbones, skin tone, facial structure, hair color/texture/length. The output face must be THIS person and ONLY this person — not the scene reference person, not a blend, not an average. If in doubt, match THIS image.
+${refPos ? `- IMAGE ${refPos}: SCENE REFERENCE (POSE & CLOTHING SOURCE ONLY). This image shows a COMPLETELY DIFFERENT PERSON. From this image extract ONLY: pose, body position, clothing/outfit, background, lighting, camera quality, environment. ⚠️ COMPLETELY IGNORE this person's FACE, HAIR, BODY SHAPE, and SKIN TONE — NONE of their physical features should appear in the output. Their face, hair color, hair length, hair texture, body proportions must ALL be REPLACED by the model's.` : ''}${bodyPos ? `\n- IMAGE ${bodyPos}: MODEL BODY (BODY SHAPE SOURCE). Full-body photo of the TARGET person. Use this for the output's EXACT body type: proportions, curves, bust size, waist, hips, height impression, shoulder width. The output body must match THIS person's build, NOT the scene reference person's build.` : ''}${extraStartIndex ? `\n- IMAGES ${extraStartIndex}–${extraStartIndex + additionalModelImages!.length - 1}: MODEL EXTRA ANGLES. Additional photos of the TARGET person from different angles — use to cross-reference face, hair, and body accuracy.` : ''}
+- IMAGE ${facePos}: ⭐ MODEL FACE & HAIR (PRIMARY IDENTITY — MOST IMPORTANT IMAGE). This is THE person who MUST appear in the output. Copy their EXACT: face (eyes, nose, lips, jaw, cheekbones, skin tone), AND hair (color, texture, length, style, part). The output must be THIS person — not the scene reference, not a blend.
 
-🔴 FACE SWAP RULE: The output must show IMAGE ${facePos}'s face on IMAGE ${refPos ?? facePos}'s pose/scene. The scene reference person's face must be COMPLETELY REPLACED by the model's face. Zero blending. Zero averaging. The final face must be recognizable as IMAGE ${facePos} by someone who knows them.
+🔴 IDENTITY SWAP RULE — what comes from WHERE:
+  FROM MODEL (IMAGE ${facePos}${bodyPos ? `, ${bodyPos}` : ''}): Face, hair (color/length/texture/style), body shape/proportions, skin tone
+  FROM REFERENCE (IMAGE ${refPos ?? facePos}): Pose, clothing/outfit, background, lighting, camera angle, expression style
+  The reference person's face, hair, and body shape must COMPLETELY DISAPPEAR and be replaced by the model's.
 `;
 
   const bodyTypeSection = subj.body_type
@@ -528,16 +532,33 @@ ${techSpecsSection ? `${techSpecsSection}` : ''}
 
 QUALITY: ${payload.technical_quality ?? ''}${customSection}
 
+⚠️ SOURCE RULES — WHAT COMES FROM WHERE:
+┌─────────────────────────────────────────────────────────────┐
+│ FROM MODEL IMAGES:          │ FROM REFERENCE IMAGE:         │
+│ ✅ Face (all features)      │ ✅ Pose & body position       │
+│ ✅ Hair color               │ ✅ Clothing & outfit           │
+│ ✅ Hair length              │ ✅ Background & environment    │
+│ ✅ Hair texture & style     │ ✅ Lighting & shadows          │
+│ ✅ Body shape & proportions │ ✅ Camera angle & framing      │
+│ ✅ Skin tone                │ ✅ Expression style (smile etc)│
+│ ✅ Skin texture             │ ✅ Accessories (jewelry, bags) │
+│ ❌ NOT clothing             │ ❌ NOT face                    │
+│ ❌ NOT background           │ ❌ NOT hair color/length/style │
+│                             │ ❌ NOT body shape/proportions  │
+│                             │ ❌ NOT skin tone               │
+└─────────────────────────────────────────────────────────────┘
+
 CRITICAL REQUIREMENTS:
-1. 🔴 FACE IDENTITY (HIGHEST PRIORITY): The output face MUST be 100% the MODEL (last image). Every facial feature — eyes, nose, lips, jaw, cheekbones, skin tone — must match the MODEL image exactly. The scene reference person's face must COMPLETELY DISAPPEAR. If someone who knows the model looked at the output, they must immediately recognize them. ZERO blending with the reference person's features.
-2. BODY TYPE: The model's body proportions from the MODEL/BODY images must be preserved. Do not copy the reference person's body shape.
-3. HAIR: Use the MODEL's exact hair color, texture, length, and style. NOT the reference person's hair. Natural variation — flyaways, texture, real movement.
-4. POSE & SCENE: Copy the EXACT pose, body position, camera angle, clothing, background, and lighting from the scene reference image. The model should be in that exact pose and scene.
-5. PHOTOREALISM: Real photograph look — visible skin pores, natural imperfections, authentic light on skin. NOT CGI, NOT plastic, NOT airbrushed, NOT AI-smooth.
-6. PHOTOGRAPHIC QUALITY: Render as a candid iPhone 15 Pro photo — natural digital sensor noise, genuine spontaneous feel, realistic skin texture with visible pores.
-7. HANDS: Correct finger anatomy, natural relaxed positions matching the reference pose.
-8. NO TATTOOS: Never copy tattoos or body marks from the scene reference onto the model.
-9. FACE ACCESSORIES: Any mask, glasses, or face covering from the MODEL must appear.
+1. 🔴 FACE (HIGHEST PRIORITY): The output face MUST be 100% from the MODEL (last image). Every feature — eyes, nose, lips, jaw, cheekbones, skin tone — must match exactly. The reference person's face must VANISH completely.
+2. 🔴 HAIR (HIGH PRIORITY): The output hair MUST match the MODEL's hair — exact color, length, texture, style, and part. If the model has dark brown wavy long hair, the output MUST have dark brown wavy long hair — even if the reference person has black straight short hair. The reference person's hair must be COMPLETELY REPLACED.
+3. 🔴 BODY SHAPE (HIGH PRIORITY): The output body proportions MUST match the MODEL's body (from body image if provided). If the model is curvy, output is curvy. If slim, output is slim. Do NOT copy the reference person's body shape.
+4. SKIN TONE: Use the MODEL's skin tone, not the reference person's.
+5. POSE & CLOTHING: Copy the EXACT pose, body position, and clothing/outfit from the scene reference. The model wears the reference's clothes in the reference's pose.
+6. SCENE: Copy background, lighting, shadows, camera angle, and environment from the reference.
+7. PHOTOREALISM: Visible skin pores, natural imperfections. NOT CGI, NOT plastic, NOT airbrushed.
+8. PHOTOGRAPHIC QUALITY: Candid iPhone 15 Pro — natural sensor noise, realistic skin texture, genuine feel.
+9. HANDS: Correct anatomy, natural positions matching the reference pose.
+10. NO TATTOOS from reference. FACE ACCESSORIES from model must appear.
   `.trim();
 
   // Fetch all images in parallel
