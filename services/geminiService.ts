@@ -334,6 +334,8 @@ CRITICAL REMINDERS:
     return JSON.parse(text) as ZakraPayload;
 
   } catch (error: any) {
+    console.error('[Gemini Analysis] Raw error:', error.message || error, error.status, error);
+
     // Handle Quota/Token Errors (429)
     if (error.message?.includes('429') || error.status === 429 || error.message?.includes('Quota exceeded')) {
       throw new Error("QUOTA_API_AGOTADA");
@@ -342,7 +344,7 @@ CRITICAL REMINDERS:
     // Re-throw specific errors
     if (error.message === "CONTENIDO_BLOQUEADO_SEGURIDAD") throw error;
 
-    throw new Error("FALLO_ANALISIS_MULTIMODAL");
+    throw new Error("FALLO_ANALISIS_MULTIMODAL: " + (error.message || String(error)));
   }
 };
 
@@ -475,18 +477,27 @@ ENVIRONMENT DETAILS:
 
   // Add a section describing how to use each image type
   // Build numbered image role instructions matching the EXACT order images are sent
+  // ── Image ordering strategy ──────────────────────────────────────────────
+  // CRITICAL: Reference image goes FIRST, model face images go LAST.
+  // Gemini's image generation has a strong "recency bias" — the last images
+  // have the strongest influence on the output's visual identity. By placing
+  // the model's face as the LAST image(s), we anchor Gemini to generate
+  // that person's face, not the reference person's face.
+  // Order: [SCENE REFERENCE] → [BODY?] → [EXTRA ANGLES...] → [MODEL FACE]
+  //        (pose/scene source)                                 (identity anchor — LAST)
   let imgPos = 1;
-  const facePos = imgPos++;
+  const refPos = refImageSource ? imgPos++ : null;
   const bodyPos = bodyImageSource ? imgPos++ : null;
   const extraStartIndex = additionalModelImages && additionalModelImages.length > 0 ? imgPos : null;
   if (additionalModelImages) imgPos += additionalModelImages.length;
-  const refPos = refImageSource ? imgPos : null; // ref is always last
+  const facePos = imgPos; // ALWAYS last — strongest identity anchor
 
   const refImageInstruction = `
 IMAGE ASSIGNMENTS — these are the exact images attached, in order:
-- IMAGE ${facePos}: MODEL FACE. Extract ONLY the face identity from this image: eyes, nose, lips, jaw, skin tone, hair. This person's face is WHO must appear in the output. Do not use any other image for the face.${bodyPos ? `\n- IMAGE ${bodyPos}: MODEL BODY. Extract ONLY body proportions and build from this image. Same person as IMAGE ${facePos}. Ignore clothing.` : ''}${extraStartIndex ? `\n- IMAGES ${extraStartIndex}–${extraStartIndex + additionalModelImages!.length - 1}: MODEL EXTRA ANGLES. More photos of the SAME person (face and body) to ensure perfect identity and body type replication.` : ''}${refPos ? `\n- IMAGE ${refPos}: SCENE REFERENCE. A completely different person/scene. Extract ONLY: pose, expression, clothing, background, lighting, camera quality. Ignore this person's face and body identity entirely — their physical identity must NOT appear in the output at all.` : ''}
+${refPos ? `- IMAGE ${refPos}: SCENE REFERENCE (POSE SOURCE). This image shows a DIFFERENT PERSON in a specific pose/scene. Extract ONLY: pose, body position, expression style, clothing, background, lighting, camera quality, environment. ⚠️ COMPLETELY IGNORE this person's FACE — their facial features (eyes, nose, lips, jaw, skin) must NOT appear in the output AT ALL. This person's face must be ENTIRELY REPLACED.` : ''}${bodyPos ? `\n- IMAGE ${bodyPos}: MODEL BODY. Full-body photo of the TARGET person (same identity as the last image). Use for body type, proportions, curves, height impression. This is the person who must appear in the output.` : ''}${extraStartIndex ? `\n- IMAGES ${extraStartIndex}–${extraStartIndex + additionalModelImages!.length - 1}: MODEL EXTRA ANGLES. Additional photos of the TARGET person from different angles for accurate identity and body replication.` : ''}
+- IMAGE ${facePos}: ⭐ MODEL FACE (PRIMARY IDENTITY — MOST IMPORTANT IMAGE). This is THE person who MUST appear in the output. Their face is the DEFINITIVE identity reference. Copy their EXACT: eye color/shape, nose shape, lip shape/fullness, jawline, cheekbones, skin tone, facial structure, hair color/texture/length. The output face must be THIS person and ONLY this person — not the scene reference person, not a blend, not an average. If in doubt, match THIS image.
 
-The output must show IMAGE ${facePos}'s face and body type in IMAGE ${refPos ?? facePos}'s scene/pose.
+🔴 FACE SWAP RULE: The output must show IMAGE ${facePos}'s face on IMAGE ${refPos ?? facePos}'s pose/scene. The scene reference person's face must be COMPLETELY REPLACED by the model's face. Zero blending. Zero averaging. The final face must be recognizable as IMAGE ${facePos} by someone who knows them.
 `;
 
   const bodyTypeSection = subj.body_type
@@ -518,14 +529,15 @@ ${techSpecsSection ? `${techSpecsSection}` : ''}
 QUALITY: ${payload.technical_quality ?? ''}${customSection}
 
 CRITICAL REQUIREMENTS:
-1. FACE & BODY EXACT MATCH: The output person's face and body MUST be the EXACT person from IMAGE 1, IMAGE 2 (if present), and the extra angles — their exact eyes, nose, lips, jaw, skin tone, and body proportions. Do not blend or average with the scene reference person. The scene reference person's physical identity must be COMPLETELY REDRAWN to match the model images.
-2. PHOTOREALISM: Real photograph look — visible skin pores, natural imperfections, authentic light on skin. NOT CGI, NOT plastic, NOT airbrushed, NOT AI-smooth.
-4. PHOTOGRAPHIC QUALITY: Always render as a candid iPhone 15 Pro photo — natural digital sensor noise, genuine spontaneous feel, realistic skin texture with visible pores, soft natural bokeh, vivid but not oversaturated colors, authentic imperfect real-world lighting. Even if the scene reference is studio or DSLR quality, the final render must feel like a real unposed iPhone moment.
-5. LIGHTING: Match the scene reference lighting direction, shadows, and contrast exactly.
-6. HAIR: Natural variation — flyaways, texture, real movement. Not AI-perfect.
-7. HANDS: Correct finger anatomy, natural relaxed positions.
+1. 🔴 FACE IDENTITY (HIGHEST PRIORITY): The output face MUST be 100% the MODEL (last image). Every facial feature — eyes, nose, lips, jaw, cheekbones, skin tone — must match the MODEL image exactly. The scene reference person's face must COMPLETELY DISAPPEAR. If someone who knows the model looked at the output, they must immediately recognize them. ZERO blending with the reference person's features.
+2. BODY TYPE: The model's body proportions from the MODEL/BODY images must be preserved. Do not copy the reference person's body shape.
+3. HAIR: Use the MODEL's exact hair color, texture, length, and style. NOT the reference person's hair. Natural variation — flyaways, texture, real movement.
+4. POSE & SCENE: Copy the EXACT pose, body position, camera angle, clothing, background, and lighting from the scene reference image. The model should be in that exact pose and scene.
+5. PHOTOREALISM: Real photograph look — visible skin pores, natural imperfections, authentic light on skin. NOT CGI, NOT plastic, NOT airbrushed, NOT AI-smooth.
+6. PHOTOGRAPHIC QUALITY: Render as a candid iPhone 15 Pro photo — natural digital sensor noise, genuine spontaneous feel, realistic skin texture with visible pores.
+7. HANDS: Correct finger anatomy, natural relaxed positions matching the reference pose.
 8. NO TATTOOS: Never copy tattoos or body marks from the scene reference onto the model.
-9. FACE ACCESSORIES: Any mask, glasses, or face covering from the model description MUST appear.
+9. FACE ACCESSORIES: Any mask, glasses, or face covering from the MODEL must appear.
   `.trim();
 
   // Fetch all images in parallel
@@ -546,21 +558,26 @@ CRITICAL REQUIREMENTS:
       imageConfig.aspectRatio = aspectRatio; // '1:1', '4:3', '16:9', etc.
     }
 
-    // Build image parts in exact order the prompt describes:
-    const modelImageParts: any[] = [
-      { inlineData: { mimeType: baseModelImg.mimeType, data: baseModelImg.data } }, // face — IMAGE 1
-    ];
-    if (bodyImg) {
-      modelImageParts.push({ inlineData: { mimeType: bodyImg.mimeType, data: bodyImg.data } }); // body — IMAGE 2
+    // Build image parts in strategic order:
+    // [SCENE REFERENCE] → [BODY?] → [EXTRA ANGLES...] → [MODEL FACE]
+    // The model face goes LAST to maximize identity anchoring (recency bias).
+    const modelImageParts: any[] = [];
+    // 1. Scene reference FIRST (pose/scene source — face to be ignored)
+    if (refImg) {
+      modelImageParts.push({ inlineData: { mimeType: refImg.mimeType, data: refImg.data } });
     }
+    // 2. Body reference (same person as face)
+    if (bodyImg) {
+      modelImageParts.push({ inlineData: { mimeType: bodyImg.mimeType, data: bodyImg.data } });
+    }
+    // 3. Extra angles (same person as face)
     for (const extra of extraModelImages) {
       if (extra) {
-        modelImageParts.push({ inlineData: { mimeType: extra.mimeType, data: extra.data } }); // extra angles
+        modelImageParts.push({ inlineData: { mimeType: extra.mimeType, data: extra.data } });
       }
     }
-    if (refImg) {
-      modelImageParts.push({ inlineData: { mimeType: refImg.mimeType, data: refImg.data } }); // scene ref — always LAST
-    }
+    // 4. Model face LAST — strongest identity anchor (recency bias)
+    modelImageParts.push({ inlineData: { mimeType: baseModelImg.mimeType, data: baseModelImg.data } });
 
     const generateParams = {
       model: modelId,
