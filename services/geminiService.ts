@@ -476,51 +476,42 @@ ENVIRONMENT DETAILS:
     ? `SKIN: ${subj.skin_notes}`
     : 'SKIN: Clean, clear skin without tattoos (unless specifically noted above)';
 
-  // Add a section describing how to use each image type
-  // Build numbered image role instructions matching the EXACT order images are sent
-  // ── Image ordering strategy ──────────────────────────────────────────────
-  // CRITICAL: Reference image goes FIRST, model face images go LAST.
-  // Gemini's image generation has a strong "recency bias" — the last images
-  // have the strongest influence on the output's visual identity. By placing
-  // the model's face as the LAST image(s), we anchor Gemini to generate
-  // that person's face, not the reference person's face.
-  // Order: [SCENE REFERENCE] → [BODY?] → [EXTRA ANGLES...] → [MODEL FACE]
-  //        (pose/scene source)                                 (identity anchor — LAST)
+  // ── Image ordering — per Google's official Nano Banana face swap guide ───
+  // Order: [MODEL FACE] → [MODEL BODY?] → [EXTRA ANGLES...] → [SCENE REFERENCE]
+  // Face image goes FIRST (Image 1), scene/body reference goes LAST (Image N).
+  // Prompt references "the person from image 1" for face and "image N" for pose.
   let imgPos = 1;
-  const refPos = refImageSource ? imgPos++ : null;
+  const facePos = imgPos++;
   const bodyPos = bodyImageSource ? imgPos++ : null;
   const extraStartIndex = additionalModelImages && additionalModelImages.length > 0 ? imgPos : null;
   if (additionalModelImages) imgPos += additionalModelImages.length;
-  const facePos = imgPos; // ALWAYS last — strongest identity anchor
+  const refPos = refImageSource ? imgPos : null;
 
-  const refImageInstruction = `
-IMAGE ASSIGNMENTS — these are the exact images attached, in order:
-${refPos ? `- IMAGE ${refPos}: SCENE REFERENCE (POSE & CLOTHING SOURCE ONLY). This image shows a COMPLETELY DIFFERENT PERSON. From this image extract ONLY: pose, body position, clothing/outfit, background, lighting, camera quality, environment. ⚠️ COMPLETELY IGNORE this person's FACE, HAIR, BODY SHAPE, and SKIN TONE — NONE of their physical features should appear in the output. Their face, hair color, hair length, hair texture, body proportions must ALL be REPLACED by the model's.` : ''}${bodyPos ? `\n- IMAGE ${bodyPos}: MODEL BODY (BODY SHAPE SOURCE). Full-body photo of the TARGET person. Use this for the output's EXACT body type: proportions, curves, bust size, waist, hips, height impression, shoulder width. The output body must match THIS person's build, NOT the scene reference person's build.` : ''}${extraStartIndex ? `\n- IMAGES ${extraStartIndex}–${extraStartIndex + additionalModelImages!.length - 1}: MODEL EXTRA ANGLES. Additional photos of the TARGET person from different angles — use to cross-reference face, hair, and body accuracy.` : ''}
-- IMAGE ${facePos}: ⭐ MODEL FACE & HAIR (PRIMARY IDENTITY — MOST IMPORTANT IMAGE). This is THE person who MUST appear in the output. Copy their EXACT: face (eyes, nose, lips, jaw, cheekbones, skin tone), AND hair (color, texture, length, style, part). The output must be THIS person — not the scene reference, not a blend.
+  // Build descriptive labels for the model person to help Gemini distinguish them
+  const modelDescription = subj.description ?? '';
+  const modelHairDesc = subj.hair ?? (subj.hair_detailed ? `${subj.hair_detailed.length ?? ''} ${subj.hair_detailed.texture ?? ''} hair` : '');
+  const modelBodyDesc = subj.body_type ?? '';
 
-🔴 IDENTITY SWAP RULE — what comes from WHERE:
-  FROM MODEL (IMAGE ${facePos}${bodyPos ? `, ${bodyPos}` : ''}): Face, hair (color/length/texture/style), body shape/proportions, skin tone
-  FROM REFERENCE (IMAGE ${refPos ?? facePos}): Pose, clothing/outfit, background, lighting, camera angle, expression style
-  The reference person's face, hair, and body shape must COMPLETELY DISAPPEAR and be replaced by the model's.
-`;
+  const imagePrompt = `Insert the face, hair, and body type of the person from image ${facePos} into the pose and scene of the person from image ${refPos ?? facePos}.${bodyPos ? ` Use image ${bodyPos} for the body shape and proportions of the person from image ${facePos}.` : ''}
 
-  const bodyTypeSection = subj.body_type
-    ? `BODY TYPE (MUST REPRODUCE EXACTLY): ${subj.body_type}`
-    : '';
+The person from image ${facePos} is: ${modelDescription}. They have ${modelHairDesc}.${modelBodyDesc ? ` Their body type is: ${modelBodyDesc}.` : ''}
 
-  const imagePrompt = `
-Generate a photorealistic image with these EXACT specifications. This must look like a real photograph taken with an iPhone or high-end camera.
-${refImageInstruction}
-FACE & IDENTITY: ${subj.description ?? ''}
-${bodyTypeSection ? `${bodyTypeSection}` : ''}
+WHAT TO TAKE FROM THE MODEL (image ${facePos}${bodyPos ? ` and image ${bodyPos}` : ''}):
+- Their exact face: eyes, nose, lips, jaw, cheekbones, skin tone
+- Their exact hair: color, length, texture, style${bodyPos ? '\n- Their exact body shape and proportions' : ''}
+
+WHAT TO TAKE FROM THE REFERENCE (image ${refPos ?? facePos}):
+- The pose and body position
+- The clothing and outfit
+- The background, environment, and lighting
+- The camera angle and framing
+
+The person in the reference image is a COMPLETELY DIFFERENT person. Their face, hair, and body must NOT appear in the output at all. Only their pose, clothing, and scene should be used.
+
 ${hairSection}
-${faceAccessoriesSection ? `${faceAccessoriesSection}` : ''}
-${skinNotesSection}
-CLOTHING: ${subj.clothing ?? ''}
-POSE & EXPRESSION: ${subj.pose_and_expression ?? ''}
+${subj.clothing ? `CLOTHING (from reference): ${subj.clothing}` : ''}
+${subj.pose_and_expression ? `POSE (from reference): ${subj.pose_and_expression}` : ''}
 ${expressionSection ? `${expressionSection}` : ''}
-${bodyAccessoriesSection ? `${bodyAccessoriesSection}` : ''}
-${subj.accessories ? `ACCESSORIES: ${subj.accessories}` : ''}
 ${handsSection ? `${handsSection}` : ''}
 ${bodySection ? `${bodySection}` : ''}
 
@@ -530,35 +521,10 @@ ${lightingSection}
 ${colorSection ? `${colorSection}` : ''}
 ${techSpecsSection ? `${techSpecsSection}` : ''}
 
-QUALITY: ${payload.technical_quality ?? ''}${customSection}
+${faceAccessoriesSection ? `${faceAccessoriesSection}` : ''}
+${skinNotesSection}
 
-⚠️ SOURCE RULES — WHAT COMES FROM WHERE:
-┌─────────────────────────────────────────────────────────────┐
-│ FROM MODEL IMAGES:          │ FROM REFERENCE IMAGE:         │
-│ ✅ Face (all features)      │ ✅ Pose & body position       │
-│ ✅ Hair color               │ ✅ Clothing & outfit           │
-│ ✅ Hair length              │ ✅ Background & environment    │
-│ ✅ Hair texture & style     │ ✅ Lighting & shadows          │
-│ ✅ Body shape & proportions │ ✅ Camera angle & framing      │
-│ ✅ Skin tone                │ ✅ Expression style (smile etc)│
-│ ✅ Skin texture             │ ✅ Accessories (jewelry, bags) │
-│ ❌ NOT clothing             │ ❌ NOT face                    │
-│ ❌ NOT background           │ ❌ NOT hair color/length/style │
-│                             │ ❌ NOT body shape/proportions  │
-│                             │ ❌ NOT skin tone               │
-└─────────────────────────────────────────────────────────────┘
-
-CRITICAL REQUIREMENTS:
-1. 🔴 FACE (HIGHEST PRIORITY): The output face MUST be 100% from the MODEL (last image). Every feature — eyes, nose, lips, jaw, cheekbones, skin tone — must match exactly. The reference person's face must VANISH completely.
-2. 🔴 HAIR (HIGH PRIORITY): The output hair MUST match the MODEL's hair — exact color, length, texture, style, and part. If the model has dark brown wavy long hair, the output MUST have dark brown wavy long hair — even if the reference person has black straight short hair. The reference person's hair must be COMPLETELY REPLACED.
-3. 🔴 BODY SHAPE (HIGH PRIORITY): The output body proportions MUST match the MODEL's body (from body image if provided). If the model is curvy, output is curvy. If slim, output is slim. Do NOT copy the reference person's body shape.
-4. SKIN TONE: Use the MODEL's skin tone, not the reference person's.
-5. POSE & CLOTHING: Copy the EXACT pose, body position, and clothing/outfit from the scene reference. The model wears the reference's clothes in the reference's pose.
-6. SCENE: Copy background, lighting, shadows, camera angle, and environment from the reference.
-7. PHOTOREALISM: Visible skin pores, natural imperfections. NOT CGI, NOT plastic, NOT airbrushed.
-8. PHOTOGRAPHIC QUALITY: Candid iPhone 15 Pro — natural sensor noise, realistic skin texture, genuine feel.
-9. HANDS: Correct anatomy, natural positions matching the reference pose.
-10. NO TATTOOS from reference. FACE ACCESSORIES from model must appear.
+Render as a candid iPhone 15 Pro photograph — realistic skin with visible pores, natural imperfections, authentic lighting, zero CGI smoothing.${customSection}
   `.trim();
 
   // Fetch all images in parallel
@@ -579,26 +545,26 @@ CRITICAL REQUIREMENTS:
       imageConfig.aspectRatio = aspectRatio; // '1:1', '4:3', '16:9', etc.
     }
 
-    // Build image parts in strategic order:
-    // [SCENE REFERENCE] → [BODY?] → [EXTRA ANGLES...] → [MODEL FACE]
-    // The model face goes LAST to maximize identity anchoring (recency bias).
+    // Build image parts per Google's official face swap guide:
+    // [MODEL FACE] → [MODEL BODY?] → [EXTRA ANGLES...] → [SCENE REFERENCE]
+    // Face goes FIRST (image 1) so the prompt "person from image 1" maps correctly.
     const modelImageParts: any[] = [];
-    // 1. Scene reference FIRST (pose/scene source — face to be ignored)
-    if (refImg) {
-      modelImageParts.push({ inlineData: { mimeType: refImg.mimeType, data: refImg.data } });
-    }
-    // 2. Body reference (same person as face)
+    // 1. Model face FIRST — identity source
+    modelImageParts.push({ inlineData: { mimeType: baseModelImg.mimeType, data: baseModelImg.data } });
+    // 2. Model body (same person — body shape reference)
     if (bodyImg) {
       modelImageParts.push({ inlineData: { mimeType: bodyImg.mimeType, data: bodyImg.data } });
     }
-    // 3. Extra angles (same person as face)
+    // 3. Extra angles (same person — cross-reference)
     for (const extra of extraModelImages) {
       if (extra) {
         modelImageParts.push({ inlineData: { mimeType: extra.mimeType, data: extra.data } });
       }
     }
-    // 4. Model face LAST — strongest identity anchor (recency bias)
-    modelImageParts.push({ inlineData: { mimeType: baseModelImg.mimeType, data: baseModelImg.data } });
+    // 4. Scene reference LAST — pose/clothing/scene source
+    if (refImg) {
+      modelImageParts.push({ inlineData: { mimeType: refImg.mimeType, data: refImg.data } });
+    }
 
     const generateParams = {
       model: modelId,
