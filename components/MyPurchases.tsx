@@ -4,6 +4,22 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { getServiceById } from '../services/servicesData';
 
+const getLoraLabel = (serviceId: string) => serviceId === 'workflow-controlnet' ? 'LoRAs' : 'LoRA';
+
+const forceDownload = async (url: string, filename: string) => {
+  const response = await fetch(url);
+  if (!response.ok) return;
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+};
+
 interface ServicePurchase {
   id: string;
   order_number: string | null;
@@ -182,10 +198,10 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-[var(--text-primary)]">Free Custom LoRA</p>
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">Free Custom {getLoraLabel(purchase.service_id)}</p>
                         <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-xs font-semibold rounded-full">Pending Photos</span>
                       </div>
-                      <p className="text-xs text-[var(--text-muted)] mt-0.5">Upload your reference photos to start your free LoRA</p>
+                      <p className="text-xs text-[var(--text-muted)] mt-0.5">Upload your reference photos to start your free {getLoraLabel(purchase.service_id)}</p>
                     </div>
                   </div>
                   <button
@@ -209,7 +225,7 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-[var(--text-primary)]">Free Custom LoRA</p>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">Free Custom {getLoraLabel(purchase.service_id)}</p>
                       <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 text-xs font-semibold rounded-full">Queued</span>
                     </div>
                     <p className="text-xs text-[var(--text-muted)] mt-0.5">Photos received! Our team will start training soon.</p>
@@ -228,7 +244,7 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-[var(--text-primary)]">Free Custom LoRA</p>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">Free Custom {getLoraLabel(purchase.service_id)}</p>
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-500 text-xs font-semibold rounded-full">
                         <Clock className="w-3 h-3" />
                         Training
@@ -251,23 +267,20 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-[var(--text-primary)]">Free Custom LoRA</p>
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">Free Custom {getLoraLabel(purchase.service_id)}</p>
                         <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-xs font-semibold rounded-full">Ready</span>
                       </div>
-                      <p className="text-xs text-[var(--text-muted)] mt-0.5">Your custom LoRA is ready to download!</p>
+                      <p className="text-xs text-[var(--text-muted)] mt-0.5">Your custom {getLoraLabel(purchase.service_id)} ready to download!</p>
                     </div>
                   </div>
                   {purchase.lora_url && (
-                    <a
-                      href={purchase.lora_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); forceDownload(purchase.lora_url!, purchase.lora_url!.split('/').pop() || 'lora.safetensors'); }}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors flex-shrink-0"
                     >
                       <Download className="w-4 h-4" />
-                      Download LoRA
-                    </a>
+                      Download {getLoraLabel(purchase.service_id)}
+                    </button>
                   )}
                 </div>
               </div>
@@ -343,10 +356,8 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
               View Content
             </button>
             {purchase.download_url && (
-              <a
-                href={purchase.download_url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => forceDownload(purchase.download_url!, purchase.download_url!.split('/').pop() || 'lora.safetensors')}
                 className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                   purchase.status === 'ready'
                     ? 'bg-green-500 text-white hover:bg-green-600'
@@ -355,7 +366,7 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
               >
                 <Download className="w-4 h-4" />
                 Download LoRA
-              </a>
+              </button>
             )}
           </div>
         </div>

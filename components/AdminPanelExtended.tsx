@@ -783,39 +783,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
   if (!user?.is_admin) {
     return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80">
-        <div className="bg-[var(--bg-primary)] p-8 rounded-2xl shadow-2xl text-center border border-[var(--border-color)]">
+      <div className="flex items-center justify-center h-full">
+        <div className="p-8 text-center">
           <Shield className="w-16 h-16 text-[#a11008] mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Access Denied</h2>
           <p className="text-[var(--text-secondary)]">You don't have permission to access the admin panel.</p>
-          <button
-            onClick={onClose}
-            className="mt-4 px-6 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--hover-bg)] border border-[var(--border-color)]"
-          >
-            Close
-          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm overflow-y-auto">
-      <div className="min-h-screen px-4 py-8">
-        <div className="max-w-7xl mx-auto bg-[var(--bg-primary)] rounded-2xl shadow-2xl overflow-hidden border border-[var(--border-color)]">
+    <div className="min-h-full">
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-6 border-b border-[var(--border-color)]">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Shield className="w-6 h-6 text-reed-red" />
-                <div>
-                  <h2 className="text-2xl font-bold">Admin Panel</h2>
-                  <p className="text-[var(--text-muted)] text-sm">Manage users, credits, and system</p>
-                </div>
+          <div className="mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-reed-red/10 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-reed-red" />
               </div>
-              <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-                <X className="w-6 h-6" />
-              </button>
+              <div>
+                <h2 className="text-2xl font-bold text-[var(--text-primary)]">Admin Panel</h2>
+                <p className="text-[var(--text-muted)] text-sm">Manage users, orders, credits, and system</p>
+              </div>
             </div>
 
             {/* Stats */}

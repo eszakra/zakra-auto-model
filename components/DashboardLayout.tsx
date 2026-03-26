@@ -1,10 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, lazy, Suspense } from 'react';
 import {
   ShoppingCart, CreditCard,
   Wand2, Fingerprint, GitBranch, Box,
   MessageCircle, ArrowLeft, ChevronLeft, ChevronRight,
   Check, Crown, Zap, Package, LogOut, User, Flame,
-  X, Menu
+  X, Menu, Shield, Loader2
 } from 'lucide-react';
 import App from '../App';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,7 +16,9 @@ import { ServiceThankYouModal } from './ServiceThankYouModal';
 import { PaymentModal } from './PaymentModal';
 import { WORKFLOWS, LORAS, PACKAGES, ServiceItem, getServiceById } from '../services/servicesData';
 
-type DashboardTab = 'generator' | 'loras' | 'workflows' | 'credits' | 'purchases';
+const AdminPanel = lazy(() => import('./AdminPanelExtended').then(m => ({ default: m.AdminPanel })));
+
+type DashboardTab = 'generator' | 'loras' | 'workflows' | 'credits' | 'purchases' | 'admin';
 
 interface DashboardLayoutProps {
   onBackToLanding: () => void;
@@ -480,6 +482,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ onBackToLanding }) =>
           />
         );
 
+      case 'admin':
+        return (
+          <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 text-reed-red animate-spin" /></div>}>
+            <AdminPanel isOpen={true} onClose={() => handleTabChange('generator')} />
+          </Suspense>
+        );
+
       default:
         return null;
     }
@@ -559,6 +568,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ onBackToLanding }) =>
             onClick={() => handleTabChange('credits')}
             collapsed={sidebarCollapsed}
           />
+
+          {user?.is_admin && (
+            <>
+              <div className="h-px bg-white/[0.04] my-3 mx-2" />
+              <div className="text-[10px] font-semibold text-white/20 uppercase tracking-[0.12em] px-3 mb-1.5">Admin</div>
+              <SidebarItem
+                icon={<Shield className="w-[16px] h-[16px]" />}
+                label="Admin Panel"
+                active={activeTab === 'admin'}
+                onClick={() => handleTabChange('admin')}
+                collapsed={sidebarCollapsed}
+              />
+            </>
+          )}
 
           <a
             href="https://discord.gg/pqSwuGxrmh"
