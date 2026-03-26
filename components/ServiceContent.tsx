@@ -253,6 +253,93 @@ const QuickStartContent: React.FC<QuickStartProps> = ({ serviceId, purchaseId })
   );
 };
 
+// ── Shared Support Module (added to all products) ─────────────────────────────
+
+const SUPPORT_MODULE_CN: Module = {
+  id: 'support',
+  title: 'Need Help?',
+  icon: <HelpCircle className="w-4 h-4" />,
+  lessons: [
+    { id: 'cn-support', title: 'Get Support', duration: '1 min' },
+  ]
+};
+
+const SUPPORT_MODULE_IP: Module = {
+  id: 'support',
+  title: 'Need Help?',
+  icon: <HelpCircle className="w-4 h-4" />,
+  lessons: [
+    { id: 'ip-support', title: 'Get Support', duration: '1 min' },
+  ]
+};
+
+const SUPPORT_MODULE_EL: Module = {
+  id: 'support',
+  title: 'Need Help?',
+  icon: <HelpCircle className="w-4 h-4" />,
+  lessons: [
+    { id: 'el-support', title: 'Get Support', duration: '1 min' },
+  ]
+};
+
+const SUPPORT_MODULE_LR: Module = {
+  id: 'support',
+  title: 'Need Help?',
+  icon: <HelpCircle className="w-4 h-4" />,
+  lessons: [
+    { id: 'lr-support', title: 'Get Support', duration: '1 min' },
+  ]
+};
+
+const renderSupportContent = (): React.ReactNode => (
+  <>
+    <p className="text-[var(--text-secondary)] leading-relaxed mb-6">
+      If you run into any issues, have questions about your purchase, or need help with the setup — we're here for you. Our support team is available on Discord and typically responds within <strong className="text-[var(--text-primary)]">1 to 8 hours</strong>.
+    </p>
+
+    <div className="bg-[var(--bg-secondary)] rounded-xl p-6 mb-6 border border-[var(--border-color)]">
+      <h4 className="font-semibold text-[var(--text-primary)] mb-4">How to Get Support</h4>
+
+      <StepItem number={1}>
+        <strong className="text-[var(--text-primary)]">Join our Discord server</strong> if you haven't already.
+      </StepItem>
+
+      <p className="mb-5">
+        <ExternalUrl href="https://discord.gg/pqSwuGxrmh">Join REED Discord Server</ExternalUrl>
+      </p>
+
+      <StepItem number={2}>
+        <strong className="text-[var(--text-primary)]">Go to the support section</strong> and find the <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded text-sm font-medium text-[var(--text-primary)]">📮 create-ticket</span> channel.
+      </StepItem>
+
+      <StepItem number={3}>
+        <strong className="text-[var(--text-primary)]">Open a ticket</strong> by clicking the button in that channel. Describe your issue and our team will get back to you as soon as possible.
+      </StepItem>
+    </div>
+
+    <div className="bg-[var(--bg-secondary)] rounded-xl p-6 mb-6 border border-[var(--border-color)]">
+      <h4 className="font-semibold text-[var(--text-primary)] mb-3">Response Time</h4>
+      <p className="text-sm text-[var(--text-secondary)]">
+        We typically respond to tickets within <strong className="text-[var(--text-primary)]">1 to 8 hours</strong>. For urgent issues, mention it in your ticket and we'll prioritize it.
+      </p>
+    </div>
+
+    <div className="bg-[var(--bg-secondary)] rounded-xl p-6 border border-[var(--border-color)]">
+      <h4 className="font-semibold text-[var(--text-primary)] mb-3">Other Channels</h4>
+      <ul className="space-y-2">
+        <li className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+          <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+          <span><span className="font-medium text-[var(--text-primary)]">❓ faq</span> — Check if your question has already been answered</span>
+        </li>
+        <li className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+          <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+          <span><span className="font-medium text-[var(--text-primary)]">⭐ reviews</span> — See what other customers are saying</span>
+        </li>
+      </ul>
+    </div>
+  </>
+);
+
 // ── Generic Modules (fallback for other services) ─────────────────────────────
 
 const GENERIC_MODULES: Module[] = [
@@ -340,7 +427,8 @@ const CONTROLNET_MODULES: Module[] = [
       { id: 'cn-3-3', title: 'Pose Mode', duration: '3 min' },
       { id: 'cn-3-4', title: 'Enabling & Disabling ControlNet', duration: '2 min' },
     ]
-  }
+  },
+  SUPPORT_MODULE_CN
 ];
 
 // ── LoRA Service Modules ─────────────────────────────────────────────────────
@@ -374,7 +462,8 @@ const LORA_MODULES: Module[] = [
       { id: 'lr-3-1', title: 'Using Your LoRA', duration: '5 min' },
       { id: 'lr-3-2', title: 'Getting Better Results', duration: '5 min' },
     ]
-  }
+  },
+  SUPPORT_MODULE_LR
 ];
 
 // ── Inpainting Workflow Modules ──────────────────────────────────────────────
@@ -398,7 +487,8 @@ const INPAINTING_MODULES: Module[] = [
       { id: 'ip-2-3', title: 'Writing Inpainting Prompts', duration: '4 min' },
       { id: 'ip-2-4', title: 'Tips & Troubleshooting', duration: '3 min' },
     ]
-  }
+  },
+  SUPPORT_MODULE_IP
 ];
 
 // ── Elite Bundle Modules ────────────────────────────────────────────────────
@@ -443,7 +533,8 @@ const ELITE_MODULES: Module[] = [
       { id: 'el-4-3', title: 'Writing Inpainting Prompts', duration: '4 min' },
       { id: 'el-4-4', title: 'Tips & Troubleshooting', duration: '3 min' },
     ]
-  }
+  },
+  SUPPORT_MODULE_EL
 ];
 
 // ── Module selector by service ────────────────────────────────────────────────
@@ -1386,6 +1477,9 @@ const renderControlNetContent = (lessonId: string, _serviceId: string, _purchase
     case 'cn-3-4':
       return renderEnableDisableContent();
 
+    case 'cn-support':
+      return renderSupportContent();
+
     default:
       return null;
   }
@@ -1412,6 +1506,9 @@ const renderInpaintingContent = (lessonId: string, _serviceId: string, _purchase
 
     case 'ip-2-4':
       return renderInpaintingTipsContent();
+
+    case 'ip-support':
+      return renderSupportContent();
 
     default:
       return null;
@@ -1462,6 +1559,9 @@ const renderEliteContent = (lessonId: string, _serviceId: string, _purchaseId: s
 
     case 'el-4-4':
       return renderInpaintingTipsContent();
+
+    case 'el-support':
+      return renderSupportContent();
 
     default:
       return null;
@@ -1774,6 +1874,9 @@ const renderLoraContent = (lessonId: string, serviceId: string): React.ReactNode
           </TipBox>
         </>
       );
+
+    case 'lr-support':
+      return renderSupportContent();
 
     default:
       return null;
