@@ -321,25 +321,25 @@ const CONTROLNET_MODULES: Module[] = [
     ]
   },
   {
-    id: 'controlnet-modes',
-    title: 'Using ControlNet',
-    icon: <BookOpen className="w-4 h-4" />,
-    lessons: [
-      { id: 'cn-2-1', title: 'ControlNet Overview', duration: '3 min' },
-      { id: 'cn-2-2', title: 'Canny Mode', duration: '3 min' },
-      { id: 'cn-2-3', title: 'Pose Mode', duration: '3 min' },
-      { id: 'cn-2-4', title: 'Enabling & Disabling ControlNet', duration: '2 min' },
-    ]
-  },
-  {
     id: 'prompting',
     title: 'Prompts & Generation',
     icon: <Lightbulb className="w-4 h-4" />,
     lessons: [
-      { id: 'cn-3-1', title: 'SDXL Prompt Structure', duration: '6 min' },
-      { id: 'cn-3-2', title: 'AI-Assisted Prompt Creation', duration: '4 min' },
-      { id: 'cn-3-3', title: 'LoRA Tags & Trigger Words', duration: '4 min' },
-      { id: 'cn-3-4', title: 'Tips & Troubleshooting', duration: '3 min' },
+      { id: 'cn-2-1', title: 'Creating Prompts with Grok', duration: '5 min' },
+      { id: 'cn-2-2', title: 'Prompt Structure', duration: '6 min' },
+      { id: 'cn-2-3', title: 'LoRA Tags & Trigger Words', duration: '4 min' },
+      { id: 'cn-2-4', title: 'Tips & Troubleshooting', duration: '3 min' },
+    ]
+  },
+  {
+    id: 'controlnet-modes',
+    title: 'Using ControlNet',
+    icon: <BookOpen className="w-4 h-4" />,
+    lessons: [
+      { id: 'cn-3-1', title: 'ControlNet Overview', duration: '3 min' },
+      { id: 'cn-3-2', title: 'Canny Mode', duration: '3 min' },
+      { id: 'cn-3-3', title: 'Pose Mode', duration: '3 min' },
+      { id: 'cn-3-4', title: 'Enabling & Disabling ControlNet', duration: '2 min' },
     ]
   }
 ];
@@ -414,35 +414,35 @@ const ELITE_MODULES: Module[] = [
     ]
   },
   {
+    id: 'prompting',
+    title: 'Prompts & Generation',
+    icon: <Lightbulb className="w-4 h-4" />,
+    lessons: [
+      { id: 'el-2-1', title: 'Creating Prompts with Grok', duration: '5 min' },
+      { id: 'el-2-2', title: 'Prompt Structure', duration: '6 min' },
+      { id: 'el-2-3', title: 'LoRA Tags & Trigger Words', duration: '4 min' },
+      { id: 'el-2-4', title: 'Tips & Troubleshooting', duration: '3 min' },
+    ]
+  },
+  {
     id: 'controlnet-workflow',
     title: 'Using ControlNet',
     icon: <BookOpen className="w-4 h-4" />,
     lessons: [
-      { id: 'el-2-1', title: 'ControlNet Overview', duration: '3 min' },
-      { id: 'el-2-2', title: 'Canny Mode', duration: '3 min' },
-      { id: 'el-2-3', title: 'Pose Mode', duration: '3 min' },
-      { id: 'el-2-4', title: 'Enabling & Disabling ControlNet', duration: '2 min' },
+      { id: 'el-3-1', title: 'ControlNet Overview', duration: '3 min' },
+      { id: 'el-3-2', title: 'Canny Mode', duration: '3 min' },
+      { id: 'el-3-3', title: 'Pose Mode', duration: '3 min' },
+      { id: 'el-3-4', title: 'Enabling & Disabling ControlNet', duration: '2 min' },
     ]
   },
   {
     id: 'inpainting-workflow',
     title: 'Using Inpainting',
-    icon: <Lightbulb className="w-4 h-4" />,
-    lessons: [
-      { id: 'el-3-1', title: 'How Inpainting Works', duration: '3 min' },
-      { id: 'el-3-2', title: 'Uploading & Creating Masks', duration: '5 min' },
-      { id: 'el-3-3', title: 'Writing Inpainting Prompts', duration: '4 min' },
-      { id: 'el-3-4', title: 'Tips & Troubleshooting', duration: '3 min' },
-    ]
-  },
-  {
-    id: 'prompting',
-    title: 'Prompts & Generation',
     icon: <HelpCircle className="w-4 h-4" />,
     lessons: [
-      { id: 'el-4-1', title: 'SDXL Prompt Structure', duration: '6 min' },
-      { id: 'el-4-2', title: 'AI-Assisted Prompt Creation', duration: '4 min' },
-      { id: 'el-4-3', title: 'LoRA Tags & Trigger Words', duration: '4 min' },
+      { id: 'el-4-1', title: 'How Inpainting Works', duration: '3 min' },
+      { id: 'el-4-2', title: 'Uploading & Creating Masks', duration: '5 min' },
+      { id: 'el-4-3', title: 'Writing Inpainting Prompts', duration: '4 min' },
       { id: 'el-4-4', title: 'Tips & Troubleshooting', duration: '3 min' },
     ]
   }
@@ -949,39 +949,84 @@ const renderPromptStructureContent = (): React.ReactNode => (
 const renderAIPromptContent = (): React.ReactNode => (
   <>
     <p className="text-[var(--text-secondary)] leading-relaxed mb-4">
-      Writing detailed prompts manually can be challenging. We recommend using <strong className="text-[var(--text-primary)]">AI assistants</strong> to help you generate accurate, well-structured prompts based on your model's reference photos.
+      Writing prompts from scratch is unnecessary. We use <strong className="text-[var(--text-primary)]">Grok</strong> (by xAI) to generate perfectly structured prompts in seconds. Grok is free, handles explicit content, and produces highly detailed descriptions that work perfectly with SDXL workflows.
     </p>
 
-    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-3 mt-6">Recommended: Grok</h3>
-
-    <p className="text-[var(--text-secondary)] leading-relaxed mb-4">
-      <strong className="text-[var(--text-primary)]">Grok</strong> is our top recommendation for prompt generation. It's free and handles NSFW content well. Here's how to use it:
+    <p className="text-[var(--text-secondary)] leading-relaxed mb-6">
+      The process is simple: you give Grok a base prompt template + a photo of your model, and it rewrites the prompt to match your model's exact features. From there, you can ask Grok for any variation you want — different poses, outfits, scenarios, or anything else. Since Grok is fully explicit, there are no content restrictions.
     </p>
+
+    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">How It Works</h3>
 
     <StepItem number={1}>
-      Open a new Grok chat session.
-    </StepItem>
-    <StepItem number={2}>
-      Upload a photo of your model.
-    </StepItem>
-    <StepItem number={3}>
-      Paste one of the example prompts from the previous lesson along with this instruction:
+      <strong className="text-[var(--text-primary)]">Open Grok.</strong> Go to <ExternalUrl href="https://grok.com">grok.com</ExternalUrl> and start a new conversation.
     </StepItem>
 
-    <CodeBlock>{`"Based on this photo of this model, update this prompt verbatim so that it accurately describes the girl in the photo. It must maintain the structure of the example prompt, including how it begins and ends, as well as the details at the end."`}</CodeBlock>
+    <StepItem number={2}>
+      <strong className="text-[var(--text-primary)]">Upload a photo of your model.</strong> Attach a clear reference photo so Grok can see her features.
+    </StepItem>
+
+    <StepItem number={3}>
+      <strong className="text-[var(--text-primary)]">Paste this instruction along with the base prompt below.</strong> Grok will rewrite the prompt to match your model's actual appearance — her face, body, hair, skin tone, and all physical details.
+    </StepItem>
+
+    <div className="bg-[var(--bg-secondary)] rounded-xl p-5 mb-6 border border-[var(--border-color)]">
+      <h4 className="font-semibold text-[var(--text-primary)] mb-3 text-sm">Copy and paste this into Grok:</h4>
+      <CodeBlock>{`Give me prompts keeping this same structure and contexts, but for the woman in the image, and all the prompts must start with "YOUR_TRIGGER_WORD" without the quotes obviously, another thing in all of them you have to put that she has large-medium tits and a big ass, do it, it must be exactly this woman from the photo detailing her face in detail and what measure her features have, with her same perfect features: all must start with what I told you followed by the prompt
+
+just woke up selfie taken on her phone of a 20-year-old extra hot woman with long dark brown straight hair messy from sleep, sultry half-lidded dark brown eyes, high cheekbones, plump lips, fair white skin with natural matte texture, tiny waist, medium perky breasts, and large glutes, lying completely naked on her back on the white bed with her head resting on the pillow, one arm raised as if holding the phone (phone not visible). Her facial expression is soft, satisfied and relaxed with a subtle morning glow. The background reveals a modern all-white bedroom with plain white walls and crisp white sheets on the bed without headboard. The overall ambiance is calm and intimate, with soft artificial warm light illuminating the entire room, casting a gentle warm glow on her skin and the white interior. Skin glowing with subtle post-orgasm arousal sheen and completely natural matte texture. Warm color grading with amateur iPhone quality, visible grainy texture, slight distortion, and deeply crushed shadows, authentic amateur snapshot without visible phone or mirror. (NSFW)`}</CodeBlock>
+    </div>
+
+    <WarningBox>
+      Replace <strong>YOUR_TRIGGER_WORD</strong> in the instruction with the actual trigger word we provided for your LoRA. This is usually the model's name or your Discord username — we tell you exactly what it is when we deliver your LoRA.
+    </WarningBox>
 
     <StepItem number={4}>
-      Grok will return an updated prompt that matches your model's actual physical features while maintaining the correct prompt structure.
+      <strong className="text-[var(--text-primary)]">Grok will return multiple prompts</strong> already adapted to your model's features — her exact hair color, eye shape, skin tone, body type, and facial structure. Each prompt will start with your trigger word and maintain the same detailed structure.
     </StepItem>
 
-    <TipBox>
-      If Grok doesn't comply with the request, simply start a new chat session and try again. It usually works within a few attempts.
-    </TipBox>
+    <StepItem number={5}>
+      <strong className="text-[var(--text-primary)]">Ask for more.</strong> Once Grok has your model's description locked in, you can ask for literally anything:
+    </StepItem>
 
-    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-3 mt-6">Alternative: Venice AI</h3>
+    <div className="bg-[var(--bg-secondary)] rounded-xl p-5 mb-6 border border-[var(--border-color)]">
+      <h4 className="font-semibold text-[var(--text-primary)] mb-3 text-sm">Examples of what you can ask Grok:</h4>
+      <ul className="space-y-2">
+        <li className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+          <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+          <span>"Now give me the same but she's in a shower"</span>
+        </li>
+        <li className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+          <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+          <span>"Make one where she's wearing a red bikini at the beach"</span>
+        </li>
+        <li className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+          <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+          <span>"Give me 5 prompts of her in different lingerie sets"</span>
+        </li>
+        <li className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+          <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+          <span>"Now make one where she's on all fours on the bed looking back"</span>
+        </li>
+        <li className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+          <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+          <span>"Give me a prompt of her in a gym outfit, sports bra and leggings"</span>
+        </li>
+      </ul>
+    </div>
 
     <p className="text-[var(--text-secondary)] leading-relaxed mb-4">
-      If Grok consistently refuses your requests, <strong className="text-[var(--text-primary)]">Venice AI</strong> is a solid alternative. It always processes NSFW content, though it's generally less capable than Grok for detailed prompt writing. Use it as a backup option.
+      Grok has no content restrictions, so you can request any scenario, pose, or level of explicitness. It will always maintain the detailed prompt structure that works best with SDXL.
+    </p>
+
+    <TipBox>
+      <strong>Keep the same Grok conversation open.</strong> Once Grok understands your model's features from the first prompt, every follow-up request in the same conversation will automatically use her correct description. You don't need to re-upload the photo or re-explain her features.
+    </TipBox>
+
+    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-3 mt-6">If Grok Refuses</h3>
+
+    <p className="text-[var(--text-secondary)] leading-relaxed mb-4">
+      Occasionally Grok may decline a specific request. If this happens, simply start a <strong className="text-[var(--text-primary)]">new conversation</strong> and try again — it usually works on the next attempt. As a backup, <strong className="text-[var(--text-primary)]">Venice AI</strong> (<ExternalUrl href="https://venice.ai">venice.ai</ExternalUrl>) is another option that always processes explicit content, though Grok generally produces better prompt quality.
     </p>
   </>
 );
@@ -1329,31 +1374,31 @@ const renderControlNetContent = (lessonId: string, _serviceId: string, _purchase
     case 'cn-1-1':
       return <QuickStartContent serviceId={_serviceId} purchaseId={_purchaseId} />;
 
-    // ─── MODULE 2: USING CONTROLNET ─────────────────────────────────
+    // ─── MODULE 2: PROMPTS & GENERATION ─────────────────────────────
     case 'cn-2-1':
-      return renderControlNetOverview();
-
-    case 'cn-2-2':
-      return renderCannyContent();
-
-    case 'cn-2-3':
-      return renderPoseContent();
-
-    case 'cn-2-4':
-      return renderEnableDisableContent();
-
-    // ─── MODULE 3: PROMPTS & GENERATION ─────────────────────────────
-    case 'cn-3-1':
-      return renderPromptStructureContent();
-
-    case 'cn-3-2':
       return renderAIPromptContent();
 
-    case 'cn-3-3':
+    case 'cn-2-2':
+      return renderPromptStructureContent();
+
+    case 'cn-2-3':
       return renderLoraTagsContent();
 
-    case 'cn-3-4':
+    case 'cn-2-4':
       return renderTipsContent();
+
+    // ─── MODULE 3: USING CONTROLNET ─────────────────────────────────
+    case 'cn-3-1':
+      return renderControlNetOverview();
+
+    case 'cn-3-2':
+      return renderCannyContent();
+
+    case 'cn-3-3':
+      return renderPoseContent();
+
+    case 'cn-3-4':
+      return renderEnableDisableContent();
 
     default:
       return null;
@@ -1396,44 +1441,44 @@ const renderEliteContent = (lessonId: string, _serviceId: string, _purchaseId: s
     case 'el-1-1':
       return <QuickStartContent serviceId={_serviceId} purchaseId={_purchaseId} />;
 
-    // ─── MODULE 2: USING CONTROLNET ─────────────────────────────────
+    // ─── MODULE 2: PROMPTS & GENERATION ─────────────────────────────
     case 'el-2-1':
-      return renderControlNetOverview();
-
-    case 'el-2-2':
-      return renderCannyContent();
-
-    case 'el-2-3':
-      return renderPoseContent();
-
-    case 'el-2-4':
-      return renderEnableDisableContent();
-
-    // ─── MODULE 3: USING INPAINTING ─────────────────────────────────
-    case 'el-3-1':
-      return renderInpaintingHowItWorks();
-
-    case 'el-3-2':
-      return renderInpaintingMasksContent();
-
-    case 'el-3-3':
-      return renderInpaintingPromptsContent();
-
-    case 'el-3-4':
-      return renderInpaintingTipsContent();
-
-    // ─── MODULE 4: PROMPTS & GENERATION ─────────────────────────────
-    case 'el-4-1':
-      return renderPromptStructureContent();
-
-    case 'el-4-2':
       return renderAIPromptContent();
 
-    case 'el-4-3':
+    case 'el-2-2':
+      return renderPromptStructureContent();
+
+    case 'el-2-3':
       return renderLoraTagsContent();
 
-    case 'el-4-4':
+    case 'el-2-4':
       return renderTipsContent();
+
+    // ─── MODULE 3: USING CONTROLNET ─────────────────────────────────
+    case 'el-3-1':
+      return renderControlNetOverview();
+
+    case 'el-3-2':
+      return renderCannyContent();
+
+    case 'el-3-3':
+      return renderPoseContent();
+
+    case 'el-3-4':
+      return renderEnableDisableContent();
+
+    // ─── MODULE 4: USING INPAINTING ────────────────────────────────
+    case 'el-4-1':
+      return renderInpaintingHowItWorks();
+
+    case 'el-4-2':
+      return renderInpaintingMasksContent();
+
+    case 'el-4-3':
+      return renderInpaintingPromptsContent();
+
+    case 'el-4-4':
+      return renderInpaintingTipsContent();
 
     default:
       return null;
