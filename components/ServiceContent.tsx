@@ -327,8 +327,7 @@ const CONTROLNET_MODULES: Module[] = [
     lessons: [
       { id: 'cn-2-1', title: 'Creating Prompts with Grok', duration: '5 min' },
       { id: 'cn-2-2', title: 'Prompt Structure', duration: '6 min' },
-      { id: 'cn-2-3', title: 'LoRA Tags & Trigger Words', duration: '4 min' },
-      { id: 'cn-2-4', title: 'Tips & Troubleshooting', duration: '3 min' },
+      { id: 'cn-2-3', title: 'Tips & Troubleshooting', duration: '3 min' },
     ]
   },
   {
@@ -420,8 +419,7 @@ const ELITE_MODULES: Module[] = [
     lessons: [
       { id: 'el-2-1', title: 'Creating Prompts with Grok', duration: '5 min' },
       { id: 'el-2-2', title: 'Prompt Structure', duration: '6 min' },
-      { id: 'el-2-3', title: 'LoRA Tags & Trigger Words', duration: '4 min' },
-      { id: 'el-2-4', title: 'Tips & Troubleshooting', duration: '3 min' },
+      { id: 'el-2-3', title: 'Tips & Troubleshooting', duration: '3 min' },
     ]
   },
   {
@@ -910,7 +908,7 @@ const renderPromptStructureContent = (): React.ReactNode => (
       <ol className="space-y-3">
         <li className="flex items-start gap-3 text-sm text-[var(--text-secondary)]">
           <span className="flex-shrink-0 w-6 h-6 bg-reed-red/10 text-reed-red rounded-full flex items-center justify-center text-xs font-bold">1</span>
-          <span><strong className="text-[var(--text-primary)]">Trigger word</strong> — Start with <code className="bg-[var(--bg-primary)] px-1.5 py-0.5 rounded text-xs text-reed-red">@your_model_name</code> to activate LoRA recognition.</span>
+          <span><strong className="text-[var(--text-primary)]">Trigger word</strong> — Start with your model's trigger word (provided by REED) to activate the LoRA.</span>
         </li>
         <li className="flex items-start gap-3 text-sm text-[var(--text-secondary)]">
           <span className="flex-shrink-0 w-6 h-6 bg-reed-red/10 text-reed-red rounded-full flex items-center justify-center text-xs font-bold">2</span>
@@ -920,21 +918,12 @@ const renderPromptStructureContent = (): React.ReactNode => (
           <span className="flex-shrink-0 w-6 h-6 bg-reed-red/10 text-reed-red rounded-full flex items-center justify-center text-xs font-bold">3</span>
           <span><strong className="text-[var(--text-primary)]">Quality tags</strong> — End with quality descriptors like <code className="bg-[var(--bg-primary)] px-1.5 py-0.5 rounded text-xs text-reed-red">ultra-high detail, 8k, realistic skin texture, f/1.8, high-resolution photographic aesthetics</code>.</span>
         </li>
-        <li className="flex items-start gap-3 text-sm text-[var(--text-secondary)]">
-          <span className="flex-shrink-0 w-6 h-6 bg-reed-red/10 text-reed-red rounded-full flex items-center justify-center text-xs font-bold">4</span>
-          <span><strong className="text-[var(--text-primary)]">LoRA activation tags</strong> — After the prompt text, add your LoRA tags on separate lines.</span>
-        </li>
       </ol>
     </div>
 
     <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-3 mt-6">Example Prompt</h3>
 
-    <CodeBlock>{`@your_model_name, A hyperrealistic young woman sitting on the bed, looking directly into the camera lens with striking almond-shaped eyes and well-defined arched eyebrows. Her warm, tanned skin has a realistic texture. Her long, straight brown hair is parted in the middle and falls naturally onto the white pillow. She has a shy, playful smile on her full, soft lips. She has both arms resting on the bed. The background is a minimalist bedroom, completely white, with plain cotton sheets and closed windows. The lighting is soft, with diffuse, uniform artificial light from the front creating a flattering glow without unnatural ring reflections. Unretouched photo quality, ultra-high detail, 8k, realistic skin texture, sharp focus on the eyes and smile, f/1.8, high-resolution photographic aesthetics with a smartphone.
-
-<lora:your_model:1>
-<lora:dmd2_sdxl_4step_lora_fp16:1>`}</CodeBlock>
-
-    <img src="https://res.cloudinary.com/dx30xwfbj/image/upload/f_auto,q_auto,w_850/v1770252779/212121_p5hiyf.jpg" alt="ComfyUI canvas — CLIP Text Encode (Prompt) node showing the positive prompt with the trigger word at the beginning and LoRA tags at the end" className="w-full h-auto rounded-xl border border-[var(--border-color)] my-6" loading="lazy" />
+    <CodeBlock>{`YOUR_TRIGGER_WORD, A hyperrealistic young woman sitting on the bed, looking directly into the camera lens with striking almond-shaped eyes and well-defined arched eyebrows. Her warm, tanned skin has a realistic texture. Her long, straight brown hair is parted in the middle and falls naturally onto the white pillow. She has a shy, playful smile on her full, soft lips. She has both arms resting on the bed. The background is a minimalist bedroom, completely white, with plain cotton sheets and closed windows. The lighting is soft, with diffuse, uniform artificial light from the front creating a flattering glow without unnatural ring reflections. Unretouched photo quality, ultra-high detail, 8k, realistic skin texture, sharp focus on the eyes and smile, f/1.8, high-resolution photographic aesthetics with a smartphone.`}</CodeBlock>
 
     <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-3 mt-6">Negative Prompt</h3>
 
@@ -1382,9 +1371,6 @@ const renderControlNetContent = (lessonId: string, _serviceId: string, _purchase
       return renderPromptStructureContent();
 
     case 'cn-2-3':
-      return renderLoraTagsContent();
-
-    case 'cn-2-4':
       return renderTipsContent();
 
     // ─── MODULE 3: USING CONTROLNET ─────────────────────────────────
@@ -1449,9 +1435,6 @@ const renderEliteContent = (lessonId: string, _serviceId: string, _purchaseId: s
       return renderPromptStructureContent();
 
     case 'el-2-3':
-      return renderLoraTagsContent();
-
-    case 'el-2-4':
       return renderTipsContent();
 
     // ─── MODULE 3: USING CONTROLNET ─────────────────────────────────
