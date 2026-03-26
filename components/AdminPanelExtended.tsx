@@ -497,6 +497,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleDeleteOrder = async (purchaseId: string, serviceName: string) => {
+    if (!confirm(`Are you sure you want to delete the order "${serviceName}"? This cannot be undone.`)) return;
+    const { error } = await supabase
+      .from('service_purchases')
+      .delete()
+      .eq('id', purchaseId);
+
+    if (error) {
+      alert('Failed to delete order: ' + error.message);
+    } else {
+      fetchOrders();
+    }
+  };
+
   const handleLoraStatusChange = async (purchaseId: string, newLoraStatus: string) => {
     const { error } = await supabase
       .from('service_purchases')
@@ -1109,6 +1123,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                     <option value="ready">LoRA Ready</option>
                                   </select>
                                 )}
+
+                                {/* Delete order */}
+                                <button
+                                  onClick={() => handleDeleteOrder(order.id, order.service_name)}
+                                  className="p-2 border border-red-500/30 rounded-lg hover:bg-red-500/10 text-red-500/50 hover:text-red-500 transition-colors"
+                                  title="Delete order"
+                                >
+                                  <X className="w-5 h-5" />
+                                </button>
 
                                 {/* Expand/collapse */}
                                 <button

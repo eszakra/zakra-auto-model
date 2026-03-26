@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import App from '../App';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../services/supabaseClient';
 import { MyPurchases } from './MyPurchases';
 import { ServiceContent } from './ServiceContent';
 import { LoraUploadFlow } from './LoraUploadFlow';
@@ -93,7 +94,22 @@ const LorasStoreView = ({ onBuyService }: { onBuyService: (service: ServiceItem)
 );
 
 // ─── Store View: Workflows ───────────────────────────────────────────────────
-const WorkflowsStoreView = ({ onBuyService }: { onBuyService: (service: ServiceItem) => void }) => (
+const WorkflowsStoreView = ({ onBuyService }: { onBuyService: (service: ServiceItem) => void }) => {
+  const { user } = useAuth();
+  const [ownedServices, setOwnedServices] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('service_purchases')
+      .select('service_id')
+      .eq('user_id', user.id)
+      .then(({ data }) => {
+        if (data) setOwnedServices(data.map((p: any) => p.service_id));
+      });
+  }, [user]);
+
+  return (
   <div className="p-6 lg:p-10 max-w-6xl mx-auto">
     <div className="mb-10">
       <div className="flex items-center gap-3 mb-2">
@@ -113,14 +129,22 @@ const WorkflowsStoreView = ({ onBuyService }: { onBuyService: (service: ServiceI
     </div>
 
     <div className="grid md:grid-cols-3 gap-6">
-      {WORKFLOWS.map((wf) => (
+      {WORKFLOWS.map((wf) => {
+        const owned = ownedServices.includes(wf.id);
+        return (
         <div
           key={wf.id}
           className={`relative bg-white/[0.03] backdrop-blur-sm rounded-2xl p-7 border transition-all duration-300 hover:bg-white/[0.06] hover:-translate-y-1 hover:shadow-2xl hover:shadow-reed-red/5 flex flex-col ${
-            wf.popular ? 'border-reed-red/50' : 'border-white/[0.06]'
+            owned ? 'border-green-500/40' : wf.popular ? 'border-reed-red/50' : 'border-white/[0.06]'
           }`}
         >
-          {wf.popular && (
+          {owned && (
+            <div className="absolute -top-3 right-6 px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full shadow-lg shadow-green-500/30 flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              Owned
+            </div>
+          )}
+          {wf.popular && !owned && (
             <div className="absolute -top-3 left-6 px-3 py-1 bg-reed-red text-white text-xs font-bold rounded-full shadow-lg shadow-reed-red/30">
               Most Popular
             </div>
@@ -147,18 +171,25 @@ const WorkflowsStoreView = ({ onBuyService }: { onBuyService: (service: ServiceI
             ))}
           </ul>
 
-          <button
-            onClick={() => onBuyService(wf)}
-            className={`w-full py-3.5 font-semibold rounded-xl transition-colors mt-auto ${
-              wf.popular
-                ? 'bg-reed-red text-white hover:bg-reed-red-dark shadow-lg shadow-reed-red/20'
-                : 'border border-white/10 text-white hover:border-reed-red hover:text-reed-red'
-            }`}
-          >
-            {wf.popular ? 'Get Started' : 'Buy Now'}
-          </button>
+          {owned ? (
+            <div className="w-full py-3.5 font-semibold rounded-xl text-center bg-green-500/10 text-green-500 border border-green-500/20 mt-auto">
+              Already in your account
+            </div>
+          ) : (
+            <button
+              onClick={() => onBuyService(wf)}
+              className={`w-full py-3.5 font-semibold rounded-xl transition-colors mt-auto ${
+                wf.popular
+                  ? 'bg-reed-red text-white hover:bg-reed-red-dark shadow-lg shadow-reed-red/20'
+                  : 'border border-white/10 text-white hover:border-reed-red hover:text-reed-red'
+              }`}
+            >
+              {wf.popular ? 'Get Started' : 'Buy Now'}
+            </button>
+          )}
         </div>
-      ))}
+        );
+      })}
     </div>
 
     {/* Packages preview */}
@@ -204,7 +235,8 @@ const WorkflowsStoreView = ({ onBuyService }: { onBuyService: (service: ServiceI
       </div>
     </div>
   </div>
-);
+  );
+};
 
 // ─── Credits / Billing View ──────────────────────────────────────────────────
 interface PricingPlan {
