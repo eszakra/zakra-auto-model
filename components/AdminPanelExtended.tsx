@@ -399,6 +399,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]); // Remove data:... prefix
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const adminUpload = async (bucket: string, path: string, file: File): Promise<string> => {
+    const base64 = await fileToBase64(file);
+    const res = await fetch('/.netlify/functions/admin-upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bucket,
+        path,
+        fileBase64: base64,
+        contentType: file.type || 'application/octet-stream',
+        adminToken: user!.id,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    return data.url;
+  };
+
   const handleUploadLora = async (purchaseId: string, files: File[]) => {
     setUploadingLora(purchaseId);
     try {
@@ -407,24 +437,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       const uploadedUrls: string[] = [];
 
       if (isWorkflow && order) {
-        // Workflow purchases: upload to `purchases` bucket using order ID (not user ID to avoid RLS conflicts)
+        // Workflow purchases: upload via serverless function (bypasses RLS)
         for (const file of files) {
-          const path = `orders/${purchaseId}/loras/${file.name}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('purchases')
-            .upload(path, file, { contentType: file.type, upsert: true });
-
-          if (uploadError) {
-            alert(`Upload failed for ${file.name}: ${uploadError.message}`);
-            setUploadingLora(null);
-            return;
-          }
-
-          const { data: urlData } = supabase.storage
-            .from('purchases')
-            .getPublicUrl(path);
-          uploadedUrls.push(urlData.publicUrl);
+          const path = `${order.user_id}/loras/${file.name}`;
+          const url = await adminUpload('purchases', path, file);
+          uploadedUrls.push(url);
         }
 
         const { error: updateError } = await supabase
@@ -443,29 +460,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
           fetchOrders();
         }
       } else {
-        // Regular LoRA/package purchases: upload to `lora-deliveries` bucket
+        // Regular LoRA/package purchases: upload via serverless function
         const file = files[0];
         const ext = file.name.split('.').pop() || 'safetensors';
         const path = `${purchaseId}/lora.${ext}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('lora-deliveries')
-          .upload(path, file, { contentType: file.type, upsert: true });
-
-        if (uploadError) {
-          alert('Upload failed: ' + uploadError.message);
-          setUploadingLora(null);
-          return;
-        }
-
-        const { data: urlData } = supabase.storage
-          .from('lora-deliveries')
-          .getPublicUrl(path);
+        const url = await adminUpload('lora-deliveries', path, file);
 
         const { error: updateError } = await supabase
           .from('service_purchases')
           .update({
-            download_url: urlData.publicUrl,
+            download_url: url,
             status: 'ready',
             updated_at: new Date().toISOString(),
           })

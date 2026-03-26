@@ -58,12 +58,12 @@ export async function downloadPersonalizedWorkflow(
 
   for (const templatePath of templates) {
     const filename = getPersonalizedFilename(templatePath, userFullName);
-    const storagePath = `orders/${purchaseId}/workflows/${filename}`;
+    const storagePath = `${userId}/workflows/${filename}`;
 
     // Check if personalized copy already exists
     const { data: existing } = await supabase.storage
       .from('purchases')
-      .list(`orders/${purchaseId}/workflows`, { search: filename });
+      .list(`${userId}/workflows`, { search: filename });
 
     const alreadyExists = existing && existing.some(f => f.name === filename);
 
