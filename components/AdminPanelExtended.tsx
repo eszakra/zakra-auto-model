@@ -407,9 +407,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       const uploadedUrls: string[] = [];
 
       if (isWorkflow && order) {
-        // Workflow purchases: upload to `purchases` bucket
+        // Workflow purchases: upload to `purchases` bucket using order ID (not user ID to avoid RLS conflicts)
         for (const file of files) {
-          const path = `${order.user_id}/loras/${file.name}`;
+          const path = `orders/${purchaseId}/loras/${file.name}`;
 
           const { error: uploadError } = await supabase.storage
             .from('purchases')
