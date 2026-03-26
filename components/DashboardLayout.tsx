@@ -569,6 +569,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ onBackToLanding }) =>
             collapsed={sidebarCollapsed}
           />
 
+          <div className="h-px bg-white/[0.04] my-3 mx-2" />
+
           <a
             href="https://discord.gg/pqSwuGxrmh"
             target="_blank"
