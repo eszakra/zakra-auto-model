@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Package, Download, Upload, Eye, AlertTriangle, Loader2, Layers, Cpu, Sparkles } from 'lucide-react';
+import { ArrowLeft, Package, Download, Upload, Eye, AlertTriangle, Loader2, Layers, Cpu, Sparkles, Gift, CheckCircle, Clock, ImagePlus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { getServiceById } from '../services/servicesData';
@@ -14,6 +14,8 @@ interface ServicePurchase {
   status: 'processing' | 'ready' | 'delivered';
   photos_uploaded: boolean;
   download_url: string | null;
+  lora_url: string | null;
+  lora_status: string | null;
   created_at: string;
 }
 
@@ -112,6 +114,276 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
     return null;
   };
 
+  const renderWorkflowCard = (purchase: ServicePurchase) => {
+    const serviceData = getServiceById(purchase.service_id);
+    const loraStatus = purchase.lora_status || 'pending_photos';
+
+    return (
+      <div
+        key={purchase.id}
+        className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-5 hover:border-[var(--text-muted)] transition-colors"
+      >
+        {/* Header */}
+        <div className="flex items-start gap-4 mb-4">
+          <div className="w-10 h-10 rounded-lg bg-reed-red/10 flex items-center justify-center text-reed-red flex-shrink-0">
+            {getCategoryIcon(purchase.service_category)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-1">
+              <h3 className="font-semibold text-[var(--text-primary)] truncate">{purchase.service_name}</h3>
+            </div>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-xs text-reed-red font-medium uppercase tracking-wider">
+                {getCategoryLabel(purchase.service_category)}
+              </p>
+              {purchase.order_number && (
+                <>
+                  <span className="text-xs text-[var(--text-muted)]">&middot;</span>
+                  <p className="text-xs text-[var(--text-muted)] font-mono">{purchase.order_number}</p>
+                </>
+              )}
+            </div>
+            <p className="text-sm text-[var(--text-muted)]">
+              Purchased {formatDate(purchase.created_at)} &middot; ${purchase.amount}
+            </p>
+            {serviceData && (
+              <p className="text-sm text-[var(--text-secondary)] mt-2">{serviceData.description}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Workflow File Section */}
+        <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4 mb-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">Workflow File</p>
+                  <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-xs font-semibold rounded-full">Ready</span>
+                </div>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">Your personalized workflow is ready to download</p>
+              </div>
+            </div>
+            {purchase.download_url && (
+              <a
+                href={purchase.download_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors flex-shrink-0"
+              >
+                <Download className="w-4 h-4" />
+                Download Workflow
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* Free LoRA Section */}
+        {(() => {
+          if (loraStatus === 'pending_photos' && !purchase.photos_uploaded) {
+            return (
+              <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4 mb-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                      <Gift className="w-4 h-4 text-blue-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">Free Custom LoRA</p>
+                        <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-xs font-semibold rounded-full">Pending Photos</span>
+                      </div>
+                      <p className="text-xs text-[var(--text-muted)] mt-0.5">Upload your reference photos to start your free LoRA</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onUploadPhotos(purchase.id, purchase.service_id)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors flex-shrink-0"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Upload Photos
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
+          if (loraStatus === 'pending_photos' && purchase.photos_uploaded) {
+            return (
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                    <Gift className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">Free Custom LoRA</p>
+                      <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 text-xs font-semibold rounded-full">Queued</span>
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">Photos received! Our team will start training soon.</p>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (loraStatus === 'training') {
+            return (
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                    <Gift className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">Free Custom LoRA</p>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-500 text-xs font-semibold rounded-full">
+                        <Clock className="w-3 h-3" />
+                        Training
+                      </span>
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">Our team is training your custom LoRA (1-3 business days)</p>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (loraStatus === 'ready') {
+            return (
+              <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4 mb-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                      <Gift className="w-4 h-4 text-green-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">Free Custom LoRA</p>
+                        <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-xs font-semibold rounded-full">Ready</span>
+                      </div>
+                      <p className="text-xs text-[var(--text-muted)] mt-0.5">Your custom LoRA is ready to download!</p>
+                    </div>
+                  </div>
+                  {purchase.lora_url && (
+                    <a
+                      href={purchase.lora_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors flex-shrink-0"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download LoRA
+                    </a>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        })()}
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 mt-4">
+          <button
+            onClick={() => onViewContent(purchase.id, purchase.service_id)}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-medium rounded-lg hover:border-reed-red hover:text-reed-red transition-colors"
+          >
+            <Eye className="w-4 h-4" />
+            View Tutorial
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderStandardCard = (purchase: ServicePurchase) => {
+    const serviceData = getServiceById(purchase.service_id);
+    const needsUpload = (purchase.service_category === 'lora' || purchase.service_category === 'package') && !purchase.photos_uploaded;
+
+    return (
+      <div
+        key={purchase.id}
+        className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-5 hover:border-[var(--text-muted)] transition-colors"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4 flex-1">
+            <div className="w-10 h-10 rounded-lg bg-reed-red/10 flex items-center justify-center text-reed-red flex-shrink-0">
+              {getCategoryIcon(purchase.service_category)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-1">
+                <h3 className="font-semibold text-[var(--text-primary)] truncate">{purchase.service_name}</h3>
+                {getStatusBadge(purchase.status)}
+              </div>
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-xs text-reed-red font-medium uppercase tracking-wider">
+                  {getCategoryLabel(purchase.service_category)}
+                </p>
+                {purchase.order_number && (
+                  <>
+                    <span className="text-xs text-[var(--text-muted)]">&middot;</span>
+                    <p className="text-xs text-[var(--text-muted)] font-mono">{purchase.order_number}</p>
+                  </>
+                )}
+              </div>
+              <p className="text-sm text-[var(--text-muted)]">
+                Purchased {formatDate(purchase.created_at)} &middot; ${purchase.amount}
+              </p>
+              {serviceData && (
+                <p className="text-sm text-[var(--text-secondary)] mt-2">{serviceData.description}</p>
+              )}
+              {(() => {
+                const msg = getLoraStatusMessage(purchase);
+                return msg ? (
+                  <p className={`text-sm mt-2 font-medium ${msg.color}`}>{msg.text}</p>
+                ) : null;
+              })()}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 flex-shrink-0">
+            {needsUpload && (
+              <button
+                onClick={() => onUploadPhotos(purchase.id, purchase.service_id)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                Upload Photos
+              </button>
+            )}
+            <button
+              onClick={() => onViewContent(purchase.id, purchase.service_id)}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-medium rounded-lg hover:border-reed-red hover:text-reed-red transition-colors"
+            >
+              <Eye className="w-4 h-4" />
+              View Content
+            </button>
+            {purchase.download_url && (
+              <a
+                href={purchase.download_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  purchase.status === 'ready'
+                    ? 'bg-green-500 text-white hover:bg-green-600'
+                    : 'border border-green-500/30 text-green-500 hover:bg-green-500/10'
+                }`}
+              >
+                <Download className="w-4 h-4" />
+                Download LoRA
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
       {/* Header */}
@@ -173,86 +445,10 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
         ) : (
           <div className="space-y-4">
             {purchases.map((purchase) => {
-              const serviceData = getServiceById(purchase.service_id);
-              const needsUpload = (purchase.service_category === 'lora' || purchase.service_category === 'package') && !purchase.photos_uploaded;
-
-              return (
-                <div
-                  key={purchase.id}
-                  className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-5 hover:border-[var(--text-muted)] transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="w-10 h-10 rounded-lg bg-reed-red/10 flex items-center justify-center text-reed-red flex-shrink-0">
-                        {getCategoryIcon(purchase.service_category)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="font-semibold text-[var(--text-primary)] truncate">{purchase.service_name}</h3>
-                          {purchase.service_category !== 'workflow' && getStatusBadge(purchase.status)}
-                        </div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="text-xs text-reed-red font-medium uppercase tracking-wider">
-                            {getCategoryLabel(purchase.service_category)}
-                          </p>
-                          {purchase.order_number && (
-                            <>
-                              <span className="text-xs text-[var(--text-muted)]">&middot;</span>
-                              <p className="text-xs text-[var(--text-muted)] font-mono">{purchase.order_number}</p>
-                            </>
-                          )}
-                        </div>
-                        <p className="text-sm text-[var(--text-muted)]">
-                          Purchased {formatDate(purchase.created_at)} &middot; ${purchase.amount}
-                        </p>
-                        {serviceData && (
-                          <p className="text-sm text-[var(--text-secondary)] mt-2">{serviceData.description}</p>
-                        )}
-                        {(() => {
-                          const msg = getLoraStatusMessage(purchase);
-                          return msg ? (
-                            <p className={`text-sm mt-2 font-medium ${msg.color}`}>{msg.text}</p>
-                          ) : null;
-                        })()}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2 flex-shrink-0">
-                      {needsUpload && (
-                        <button
-                          onClick={() => onUploadPhotos(purchase.id, purchase.service_id)}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors"
-                        >
-                          <Upload className="w-4 h-4" />
-                          Upload Photos
-                        </button>
-                      )}
-                      <button
-                        onClick={() => onViewContent(purchase.id, purchase.service_id)}
-                        className="inline-flex items-center gap-2 px-4 py-2 border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-medium rounded-lg hover:border-reed-red hover:text-reed-red transition-colors"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View Content
-                      </button>
-                      {purchase.download_url && (
-                        <a
-                          href={purchase.download_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                            purchase.status === 'ready'
-                              ? 'bg-green-500 text-white hover:bg-green-600'
-                              : 'border border-green-500/30 text-green-500 hover:bg-green-500/10'
-                          }`}
-                        >
-                          <Download className="w-4 h-4" />
-                          Download LoRA
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
+              if (purchase.service_category === 'workflow') {
+                return renderWorkflowCard(purchase);
+              }
+              return renderStandardCard(purchase);
             })}
           </div>
         )}

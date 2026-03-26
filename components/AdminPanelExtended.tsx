@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
+import { WORKFLOWS, LORAS, PACKAGES, ALL_SERVICES, getServiceById } from '../services/servicesData';
 import {
   Users, CreditCard, TrendingUp, Search, Plus, Minus,
   Crown, Shield, X, Loader2, RefreshCw, ToggleLeft, ToggleRight,
   Settings, Zap, Lock, Key, Eye, EyeOff, CheckCircle, AlertTriangle,
-  Image as ImageIcon, Download, Upload, Package, ChevronDown, ChevronUp
+  Image as ImageIcon, Download, Upload, Package, ChevronDown, ChevronUp,
+  UserPlus
 } from 'lucide-react';
 
 interface UserWithProfile {
@@ -62,6 +64,8 @@ interface LoraOrder {
   status: 'processing' | 'ready' | 'delivered';
   photos_uploaded: boolean;
   download_url: string | null;
+  lora_url: string | null;
+  lora_status: string | null;
   created_at: string;
   updated_at: string;
   metadata: any;
@@ -78,7 +82,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { flags, isEnabled, updateFlag, loading: flagsLoading } = useFeatureFlags();
   const [activeTab, setActiveTab] = useState<'users' | 'orders' | 'transactions' | 'stats' | 'features' | 'apikey' | 'generations'>('users');
-  
+
   // Users state
   const [users, setUsers] = useState<UserWithProfile[]>([]);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
@@ -115,13 +119,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   // Orders state
   const [orders, setOrders] = useState<LoraOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
-  const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'processing' | 'ready' | 'delivered'>('all');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
+  const [orderCategoryFilter, setOrderCategoryFilter] = useState<string>('all');
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [orderPhotos, setOrderPhotos] = useState<Record<string, { name: string; url: string }[]>>({});
   const [photosLoading, setPhotosLoading] = useState<string | null>(null);
   const [uploadingLora, setUploadingLora] = useState<string | null>(null);
   const loraFileInputRef = React.useRef<HTMLInputElement>(null);
   const [loraUploadTarget, setLoraUploadTarget] = useState<string | null>(null);
+
+  // Assign Purchase state
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignUserSearch, setAssignUserSearch] = useState('');
+  const [assignSelectedUser, setAssignSelectedUser] = useState<UserWithProfile | null>(null);
+  const [assignServiceId, setAssignServiceId] = useState('');
+  const [assignAmount, setAssignAmount] = useState<number>(0);
+  const [assignLoading, setAssignLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen && user?.is_admin) {
@@ -190,7 +203,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
   const fetchGenerations = async () => {
     setLoading(true);
-    
+
     try {
       // Primero obtener las generaciones
       let query = supabase
@@ -215,7 +228,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       if (genData && genData.length > 0) {
         // Obtener user_ids únicos
         const userIds = [...new Set(genData.map(g => g.user_id))];
-        
+
         // Obtener los perfiles de usuario
         const { data: profilesData } = await supabase
           .from('user_profiles')
@@ -254,14 +267,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     const { data: genData } = await supabase
       .from('user_profiles')
       .select('total_generations');
-    
+
     const totalGenerations = genData?.reduce((sum, u) => sum + (u.total_generations || 0), 0) || 0;
 
     const { data: creditData } = await supabase
       .from('credit_transactions')
       .select('amount')
       .gt('amount', 0);
-    
+
     const totalCreditsIssued = creditData?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
 
     const today = new Date();
@@ -287,7 +300,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       const { data, error } = await supabase
         .from('service_purchases')
         .select('*')
-        .in('service_category', ['lora', 'package'])
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -390,36 +402,75 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const handleUploadLora = async (purchaseId: string, file: File) => {
     setUploadingLora(purchaseId);
     try {
-      const ext = file.name.split('.').pop() || 'safetensors';
-      const path = `${purchaseId}/lora.${ext}`;
+      const order = orders.find(o => o.id === purchaseId);
+      const isWorkflow = order?.service_category === 'workflow';
 
-      const { error: uploadError } = await supabase.storage
-        .from('lora-deliveries')
-        .upload(path, file, { contentType: file.type, upsert: true });
+      if (isWorkflow && order) {
+        // Workflow purchases: upload to `purchases` bucket
+        const ext = file.name.split('.').pop() || 'safetensors';
+        const path = `${order.user_id}/loras/lora.${ext}`;
 
-      if (uploadError) {
-        alert('Upload failed: ' + uploadError.message);
-        setUploadingLora(null);
-        return;
-      }
+        const { error: uploadError } = await supabase.storage
+          .from('purchases')
+          .upload(path, file, { contentType: file.type, upsert: true });
 
-      const { data: urlData } = supabase.storage
-        .from('lora-deliveries')
-        .getPublicUrl(path);
+        if (uploadError) {
+          alert('Upload failed: ' + uploadError.message);
+          setUploadingLora(null);
+          return;
+        }
 
-      const { error: updateError } = await supabase
-        .from('service_purchases')
-        .update({
-          download_url: urlData.publicUrl,
-          status: 'ready',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', purchaseId);
+        const { data: urlData } = supabase.storage
+          .from('purchases')
+          .getPublicUrl(path);
 
-      if (updateError) {
-        alert('LoRA uploaded but failed to update order: ' + updateError.message);
+        const { error: updateError } = await supabase
+          .from('service_purchases')
+          .update({
+            lora_url: urlData.publicUrl,
+            lora_status: 'ready',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', purchaseId);
+
+        if (updateError) {
+          alert('LoRA uploaded but failed to update order: ' + updateError.message);
+        } else {
+          fetchOrders();
+        }
       } else {
-        fetchOrders();
+        // Regular LoRA/package purchases: upload to `lora-deliveries` bucket
+        const ext = file.name.split('.').pop() || 'safetensors';
+        const path = `${purchaseId}/lora.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('lora-deliveries')
+          .upload(path, file, { contentType: file.type, upsert: true });
+
+        if (uploadError) {
+          alert('Upload failed: ' + uploadError.message);
+          setUploadingLora(null);
+          return;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('lora-deliveries')
+          .getPublicUrl(path);
+
+        const { error: updateError } = await supabase
+          .from('service_purchases')
+          .update({
+            download_url: urlData.publicUrl,
+            status: 'ready',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', purchaseId);
+
+        if (updateError) {
+          alert('LoRA uploaded but failed to update order: ' + updateError.message);
+        } else {
+          fetchOrders();
+        }
       }
     } catch (err: any) {
       alert('Error: ' + err.message);
@@ -441,9 +492,87 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const filteredOrders = orders.filter(o =>
-    orderStatusFilter === 'all' ? true : o.status === orderStatusFilter
+  const handleLoraStatusChange = async (purchaseId: string, newLoraStatus: string) => {
+    const { error } = await supabase
+      .from('service_purchases')
+      .update({ lora_status: newLoraStatus, updated_at: new Date().toISOString() })
+      .eq('id', purchaseId);
+
+    if (error) {
+      alert('Failed to update LoRA status: ' + error.message);
+    } else {
+      fetchOrders();
+    }
+  };
+
+  const filteredOrders = orders.filter(o => {
+    const statusMatch = orderStatusFilter === 'all' ? true : o.status === orderStatusFilter;
+    const categoryMatch = orderCategoryFilter === 'all' ? true : o.service_category === orderCategoryFilter;
+    return statusMatch && categoryMatch;
+  });
+
+  // ── Assign Purchase ──────────────────────────────────────────────────────────
+
+  const assignFilteredUsers = users.filter(u =>
+    assignUserSearch.length >= 2 && (
+      u.email.toLowerCase().includes(assignUserSearch.toLowerCase()) ||
+      (u.full_name && u.full_name.toLowerCase().includes(assignUserSearch.toLowerCase()))
+    )
   );
+
+  const handleAssignPurchase = async () => {
+    if (!assignSelectedUser || !assignServiceId) {
+      alert('Please select a user and a service.');
+      return;
+    }
+
+    const service = getServiceById(assignServiceId);
+    if (!service) {
+      alert('Invalid service selected.');
+      return;
+    }
+
+    const finalAmount = assignAmount > 0 ? assignAmount : service.priceValue;
+    const isWorkflow = service.category === 'workflow';
+
+    setAssignLoading(true);
+    try {
+      const insertData: any = {
+        user_id: assignSelectedUser.id,
+        service_id: service.id,
+        service_name: service.name,
+        service_category: service.category,
+        amount: finalAmount,
+        status: isWorkflow ? 'delivered' : 'processing',
+        photos_uploaded: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      if (isWorkflow) {
+        insertData.lora_status = 'pending_photos';
+      }
+
+      const { error } = await supabase
+        .from('service_purchases')
+        .insert(insertData);
+
+      if (error) {
+        alert('Failed to assign purchase: ' + error.message);
+      } else {
+        alert(`Purchase assigned: ${service.name} to ${assignSelectedUser.email}`);
+        setShowAssignModal(false);
+        setAssignUserSearch('');
+        setAssignSelectedUser(null);
+        setAssignServiceId('');
+        setAssignAmount(0);
+        fetchOrders();
+      }
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    }
+    setAssignLoading(false);
+  };
 
   const fetchFeatureFlags = async () => {
     const { data } = await supabase.from('feature_flags').select('*').order('category');
@@ -455,7 +584,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       setApiKeyLoading(true);
       // Use RPC instead of Edge Function
       const { data, error } = await supabase.rpc('get_api_key');
-      
+
       if (error) {
         console.error('Error fetching API key:', error);
         setApiKeyMessage({ type: 'error', text: 'Failed to fetch current API key' });
@@ -605,7 +734,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const filteredUsers = users.filter(u => 
+  const filteredUsers = users.filter(u =>
     u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -615,6 +744,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     acc[flag.category].push(flag);
     return acc;
   }, {} as Record<string, FeatureFlag[]>);
+
+  // Helper to render category badge
+  const renderCategoryBadge = (category: string) => {
+    const colors: Record<string, string> = {
+      workflow: 'bg-purple-500/10 text-purple-500',
+      lora: 'bg-blue-500/10 text-blue-500',
+      package: 'bg-orange-500/10 text-orange-500',
+    };
+    return (
+      <span className={`px-2 py-0.5 text-[10px] font-semibold rounded uppercase ${colors[category] || 'bg-gray-500/10 text-gray-500'}`}>
+        {category}
+      </span>
+    );
+  };
+
+  // Helper to render lora_status badge
+  const renderLoraStatusBadge = (loraStatus: string | null) => {
+    if (!loraStatus) return null;
+    const colors: Record<string, string> = {
+      pending_photos: 'bg-amber-500/10 text-amber-500',
+      training: 'bg-blue-500/10 text-blue-500',
+      ready: 'bg-green-500/10 text-green-500',
+    };
+    const labels: Record<string, string> = {
+      pending_photos: 'LoRA: Pending Photos',
+      training: 'LoRA: Training',
+      ready: 'LoRA: Ready',
+    };
+    return (
+      <span className={`px-2 py-0.5 text-[10px] font-semibold rounded ${colors[loraStatus] || 'bg-gray-500/10 text-gray-500'}`}>
+        {labels[loraStatus] || loraStatus}
+      </span>
+    );
+  };
 
   if (!isOpen) return null;
 
@@ -692,7 +855,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   {tab === 'orders' && <Package className="w-4 h-4 inline mr-1" />}
                   {tab === 'features' && <Settings className="w-4 h-4 inline mr-1" />}
                   {tab === 'apikey' && <Key className="w-4 h-4 inline mr-1" />}
-                  {tab === 'apikey' ? 'API Key' : tab}
+                  {tab === 'orders' ? 'All Orders' : tab === 'apikey' ? 'API Key' : tab}
                 </button>
               ))}
             </div>
@@ -811,7 +974,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
             {activeTab === 'orders' && (
               <div>
                 {/* Filters */}
-                <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center gap-4 mb-6 flex-wrap">
+                  {/* Status filters */}
                   <div className="flex gap-2">
                     {(['all', 'processing', 'ready', 'delivered'] as const).map((status) => (
                       <button
@@ -827,10 +991,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                       </button>
                     ))}
                   </div>
+
+                  {/* Category filters */}
+                  <div className="flex gap-2">
+                    {(['all', 'workflow', 'lora', 'package'] as const).map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setOrderCategoryFilter(cat)}
+                        className={`px-3 py-2 text-xs font-medium rounded-lg capitalize transition-colors ${
+                          orderCategoryFilter === cat
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+
                   <div className="flex-1" />
                   <span className="text-sm text-[var(--text-muted)]">
                     {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''}
                   </span>
+
+                  {/* Assign Purchase button */}
+                  <button
+                    onClick={() => setShowAssignModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Assign Purchase
+                  </button>
+
                   <button
                     onClick={fetchOrders}
                     className="p-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-secondary)]"
@@ -853,6 +1045,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                     {filteredOrders.map((order) => {
                       const isExpanded = expandedOrder === order.id;
                       const photos = orderPhotos[order.id];
+                      const isWorkflow = order.service_category === 'workflow';
 
                       return (
                         <div key={order.id} className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl overflow-hidden">
@@ -860,8 +1053,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                           <div className="p-5">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-3 mb-1">
+                                <div className="flex items-center gap-3 mb-1 flex-wrap">
                                   <h4 className="font-semibold text-[var(--text-primary)] truncate">{order.service_name}</h4>
+                                  {renderCategoryBadge(order.service_category)}
                                   <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                                     order.status === 'processing' ? 'bg-amber-500/10 text-amber-500' :
                                     order.status === 'ready' ? 'bg-green-500/10 text-green-500' :
@@ -869,9 +1063,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                   }`}>
                                     {order.status}
                                   </span>
+                                  {isWorkflow && (
+                                    <span className="px-2 py-0.5 text-[10px] font-medium rounded bg-green-500/10 text-green-500 uppercase">
+                                      Workflow: Ready
+                                    </span>
+                                  )}
                                   {order.photos_uploaded && (
                                     <span className="px-2 py-0.5 text-[10px] font-medium rounded bg-green-500/10 text-green-500 uppercase">Photos uploaded</span>
                                   )}
+                                  {isWorkflow && renderLoraStatusBadge(order.lora_status)}
                                 </div>
                                 <p className="text-sm text-[var(--text-secondary)]">
                                   {order.user_name && <span className="font-medium">{order.user_name} — </span>}
@@ -900,6 +1100,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                   <option value="ready">Ready</option>
                                   <option value="delivered">Delivered</option>
                                 </select>
+
+                                {/* LoRA status dropdown for workflow orders */}
+                                {isWorkflow && (
+                                  <select
+                                    value={order.lora_status || 'pending_photos'}
+                                    onChange={(e) => handleLoraStatusChange(order.id, e.target.value)}
+                                    className="border border-[var(--border-color)] rounded-lg px-3 py-2 text-sm bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                                  >
+                                    <option value="pending_photos">Pending Photos</option>
+                                    <option value="training">Training</option>
+                                    <option value="ready">LoRA Ready</option>
+                                  </select>
+                                )}
 
                                 {/* Expand/collapse */}
                                 <button
@@ -967,50 +1180,102 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                 )}
                               </div>
 
-                              {/* Upload LoRA */}
-                              <div>
-                                <h5 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Upload Finished LoRA</h5>
+                              {/* Upload LoRA — for regular lora/package orders */}
+                              {!isWorkflow && (
+                                <div>
+                                  <h5 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Upload Finished LoRA</h5>
 
-                                {order.download_url ? (
-                                  <div className="flex items-center gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
-                                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-green-500">LoRA file uploaded</p>
-                                      <p className="text-xs text-[var(--text-muted)] truncate">{order.download_url}</p>
+                                  {order.download_url ? (
+                                    <div className="flex items-center gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
+                                      <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-green-500">LoRA file uploaded</p>
+                                        <p className="text-xs text-[var(--text-muted)] truncate">{order.download_url}</p>
+                                      </div>
+                                      <button
+                                        onClick={() => {
+                                          setLoraUploadTarget(order.id);
+                                          loraFileInputRef.current?.click();
+                                        }}
+                                        className="px-3 py-1.5 text-xs font-medium border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-secondary)]"
+                                      >
+                                        Replace
+                                      </button>
                                     </div>
+                                  ) : (
                                     <button
                                       onClick={() => {
                                         setLoraUploadTarget(order.id);
                                         loraFileInputRef.current?.click();
                                       }}
-                                      className="px-3 py-1.5 text-xs font-medium border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-secondary)]"
+                                      disabled={uploadingLora === order.id}
+                                      className="flex items-center gap-2 px-4 py-2.5 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors disabled:opacity-50"
                                     >
-                                      Replace
+                                      {uploadingLora === order.id ? (
+                                        <>
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                          Uploading...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Upload className="w-4 h-4" />
+                                          Upload LoRA File
+                                        </>
+                                      )}
                                     </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => {
-                                      setLoraUploadTarget(order.id);
-                                      loraFileInputRef.current?.click();
-                                    }}
-                                    disabled={uploadingLora === order.id}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors disabled:opacity-50"
-                                  >
-                                    {uploadingLora === order.id ? (
-                                      <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Uploading...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Upload className="w-4 h-4" />
-                                        Upload LoRA File
-                                      </>
-                                    )}
-                                  </button>
-                                )}
-                              </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Upload LoRA — for workflow orders (free LoRA) */}
+                              {isWorkflow && (
+                                <div>
+                                  <h5 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Upload Free LoRA (Workflow Bonus)</h5>
+                                  <p className="text-xs text-[var(--text-muted)] mb-3">
+                                    This LoRA is the free bonus included with the workflow purchase. It uploads to the user's purchases bucket.
+                                  </p>
+
+                                  {order.lora_url ? (
+                                    <div className="flex items-center gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
+                                      <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-green-500">LoRA file uploaded</p>
+                                        <p className="text-xs text-[var(--text-muted)] truncate">{order.lora_url}</p>
+                                      </div>
+                                      <button
+                                        onClick={() => {
+                                          setLoraUploadTarget(order.id);
+                                          loraFileInputRef.current?.click();
+                                        }}
+                                        className="px-3 py-1.5 text-xs font-medium border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-secondary)]"
+                                      >
+                                        Replace
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setLoraUploadTarget(order.id);
+                                        loraFileInputRef.current?.click();
+                                      }}
+                                      disabled={uploadingLora === order.id}
+                                      className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                                    >
+                                      {uploadingLora === order.id ? (
+                                        <>
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                          Uploading...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Upload className="w-4 h-4" />
+                                          Upload LoRA File
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1135,8 +1400,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                       {generations.map((g) => (
                         <div key={g.id} className="bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] overflow-hidden hover:border-reed-red transition-colors group">
                           <div className="aspect-square relative">
-                            <img 
-                              src={g.image_url} 
+                            <img
+                              src={g.image_url}
                               alt={g.model_name}
                               className="w-full h-full object-cover"
                             />
@@ -1205,7 +1470,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
                   <Settings className="w-5 h-5" /> Feature Flags
                 </h3>
-                
+
                 {flagsLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-reed-red" />
@@ -1219,7 +1484,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                         </h4>
                         <div className="grid gap-4">
                           {categoryFlags.map((flag: FeatureFlag) => (
-                            <div 
+                            <div
                               key={flag.id}
                               className="flex items-center justify-between p-4 bg-[var(--bg-secondary)] rounded-lg"
                             >
@@ -1230,7 +1495,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                   Current: {JSON.stringify(flag.value)}
                                 </div>
                               </div>
-                              
+
                               <button
                                 onClick={() => toggleFeature(flag.key, flag.value === true || flag.value === 'true')}
                                 className={`p-2 rounded-lg transition-colors ${
@@ -1304,7 +1569,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                         </>
                       )}
                     </div>
-                    
+
                     {apiKey && !apiKey.includes('...') && (
                       <div className="text-sm text-[var(--text-secondary)] mb-4">
                         Current Key: <code className="bg-[var(--bg-secondary)] px-2 py-1 rounded">{apiKey}</code>
@@ -1334,9 +1599,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                       </div>
                       <p className="text-sm text-gray-500 mt-2">
                         Get your API key from{' '}
-                        <a 
-                          href="https://aistudio.google.com/app/apikey" 
-                          target="_blank" 
+                        <a
+                          href="https://aistudio.google.com/app/apikey"
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="text-reed-red hover:underline"
                         >
@@ -1347,8 +1612,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
                     {apiKeyMessage && (
                       <div className={`p-4 rounded-lg flex items-center gap-2 ${
-                        apiKeyMessage.type === 'success' 
-                          ? 'bg-green-50 text-green-500 border border-green-200' 
+                        apiKeyMessage.type === 'success'
+                          ? 'bg-green-50 text-green-500 border border-green-200'
                           : 'bg-red-50 text-[#a11008] border border-red-200'
                       }`}>
                         {apiKeyMessage.type === 'success' ? (
@@ -1518,6 +1783,167 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 className="w-full py-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Purchase Modal */}
+      {showAssignModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] p-6 rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <UserPlus className="w-5 h-5" />
+                Assign Purchase
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAssignModal(false);
+                  setAssignUserSearch('');
+                  setAssignSelectedUser(null);
+                  setAssignServiceId('');
+                  setAssignAmount(0);
+                }}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* User search */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">User</label>
+                {assignSelectedUser ? (
+                  <div className="flex items-center justify-between p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{assignSelectedUser.full_name || 'N/A'}</p>
+                      <p className="text-xs text-[var(--text-muted)]">{assignSelectedUser.email}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setAssignSelectedUser(null);
+                        setAssignUserSearch('');
+                      }}
+                      className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+                    <input
+                      type="text"
+                      placeholder="Search by email or name..."
+                      value={assignUserSearch}
+                      onChange={(e) => setAssignUserSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm"
+                    />
+                    {assignFilteredUsers.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {assignFilteredUsers.slice(0, 10).map((u) => (
+                          <button
+                            key={u.id}
+                            onClick={() => {
+                              setAssignSelectedUser(u);
+                              setAssignUserSearch('');
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-[var(--hover-bg)] text-sm"
+                          >
+                            <div className="font-medium text-[var(--text-primary)]">{u.full_name || 'N/A'}</div>
+                            <div className="text-xs text-[var(--text-muted)]">{u.email}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Service selection */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Service</label>
+                <select
+                  value={assignServiceId}
+                  onChange={(e) => {
+                    setAssignServiceId(e.target.value);
+                    const svc = getServiceById(e.target.value);
+                    if (svc) setAssignAmount(svc.priceValue);
+                  }}
+                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm"
+                >
+                  <option value="">Select a service...</option>
+                  <optgroup label="Workflows">
+                    {WORKFLOWS.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name} — {s.price}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="LoRAs">
+                    {LORAS.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name} — {s.price}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Packages">
+                    {PACKAGES.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name} — {s.price}</option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Amount ($)</label>
+                <input
+                  type="number"
+                  value={assignAmount}
+                  onChange={(e) => setAssignAmount(parseFloat(e.target.value) || 0)}
+                  className="w-full px-4 py-2 border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-reed-red bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm"
+                  min="0"
+                  step="0.01"
+                />
+                <p className="text-xs text-[var(--text-muted)] mt-1">Defaults to the service price. Set to 0 for a free assignment.</p>
+              </div>
+
+              {/* Info for workflow */}
+              {assignServiceId && getServiceById(assignServiceId)?.category === 'workflow' && (
+                <div className="p-3 bg-purple-500/5 border border-purple-500/20 rounded-lg">
+                  <p className="text-xs text-purple-400">
+                    Workflow purchases include a free LoRA. The order will be created with <strong>lora_status = pending_photos</strong> and <strong>status = delivered</strong> (workflow is instant).
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowAssignModal(false);
+                  setAssignUserSearch('');
+                  setAssignSelectedUser(null);
+                  setAssignServiceId('');
+                  setAssignAmount(0);
+                }}
+                className="flex-1 py-2 border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAssignPurchase}
+                disabled={assignLoading || !assignSelectedUser || !assignServiceId}
+                className="flex-1 py-2 bg-reed-red text-white rounded-lg hover:bg-reed-red-dark disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {assignLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Assigning...
+                  </span>
+                ) : (
+                  'Assign Purchase'
+                )}
               </button>
             </div>
           </div>
