@@ -399,36 +399,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleUploadLora = async (purchaseId: string, file: File) => {
+  const handleUploadLora = async (purchaseId: string, files: File[]) => {
     setUploadingLora(purchaseId);
     try {
       const order = orders.find(o => o.id === purchaseId);
       const isWorkflow = order?.service_category === 'workflow';
+      const uploadedUrls: string[] = [];
 
       if (isWorkflow && order) {
         // Workflow purchases: upload to `purchases` bucket
-        const ext = file.name.split('.').pop() || 'safetensors';
-        const path = `${order.user_id}/loras/lora.${ext}`;
+        for (const file of files) {
+          const path = `${order.user_id}/loras/${file.name}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('purchases')
-          .upload(path, file, { contentType: file.type, upsert: true });
+          const { error: uploadError } = await supabase.storage
+            .from('purchases')
+            .upload(path, file, { contentType: file.type, upsert: true });
 
-        if (uploadError) {
-          alert('Upload failed: ' + uploadError.message);
-          setUploadingLora(null);
-          return;
+          if (uploadError) {
+            alert(`Upload failed for ${file.name}: ${uploadError.message}`);
+            setUploadingLora(null);
+            return;
+          }
+
+          const { data: urlData } = supabase.storage
+            .from('purchases')
+            .getPublicUrl(path);
+          uploadedUrls.push(urlData.publicUrl);
         }
-
-        const { data: urlData } = supabase.storage
-          .from('purchases')
-          .getPublicUrl(path);
 
         const { error: updateError } = await supabase
           .from('service_purchases')
           .update({
-            lora_url: urlData.publicUrl,
+            lora_url: uploadedUrls[0],
             lora_status: 'ready',
+            metadata: { ...(order.metadata || {}), lora_files: uploadedUrls },
             updated_at: new Date().toISOString(),
           })
           .eq('id', purchaseId);
@@ -440,6 +444,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
         }
       } else {
         // Regular LoRA/package purchases: upload to `lora-deliveries` bucket
+        const file = files[0];
         const ext = file.name.split('.').pop() || 'safetensors';
         const path = `${purchaseId}/lora.${ext}`;
 
@@ -1279,11 +1284,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 <input
                   ref={loraFileInputRef}
                   type="file"
+                  multiple
                   className="hidden"
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file && loraUploadTarget) {
-                      handleUploadLora(loraUploadTarget, file);
+                    const files = Array.from(e.target.files || []) as File[];
+                    if (files.length > 0 && loraUploadTarget) {
+                      handleUploadLora(loraUploadTarget, files);
                     }
                     e.target.value = '';
                   }}
