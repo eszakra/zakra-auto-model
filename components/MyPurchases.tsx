@@ -20,6 +20,18 @@ const forceDownload = async (url: string, filename: string) => {
   setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
 };
 
+const downloadAllLoras = async (purchase: ServicePurchase) => {
+  const loraFiles: string[] = (purchase as any).metadata?.lora_files || [];
+  if (loraFiles.length > 0) {
+    for (const url of loraFiles) {
+      await forceDownload(url, url.split('/').pop() || 'lora.safetensors');
+      await new Promise(r => setTimeout(r, 500));
+    }
+  } else if (purchase.lora_url) {
+    await forceDownload(purchase.lora_url, purchase.lora_url.split('/').pop() || 'lora.safetensors');
+  }
+};
+
 interface ServicePurchase {
   id: string;
   order_number: string | null;
@@ -275,8 +287,8 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
                   </div>
                   {purchase.lora_url && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); forceDownload(purchase.lora_url!, purchase.lora_url!.split('/').pop() || 'lora.safetensors'); }}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors flex-shrink-0"
+                      onClick={(e) => { e.stopPropagation(); downloadAllLoras(purchase); }}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors flex-shrink-0 shadow-lg shadow-green-600/20"
                     >
                       <Download className="w-4 h-4" />
                       Download {getLoraLabel(purchase.service_id)}
