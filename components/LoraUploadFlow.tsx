@@ -92,11 +92,12 @@ export const LoraUploadFlow: React.FC<LoraUploadFlowProps> = ({
         }
       }
 
-      // Update the purchase record with model name and photo count
+      // Update the purchase record with model name, photo count, and lora status
       const { error: updateError } = await supabase
         .from('service_purchases')
         .update({
           photos_uploaded: true,
+          lora_status: 'training',
           metadata: { model_name: modelName.trim(), photo_count: files.length },
           updated_at: new Date().toISOString()
         })

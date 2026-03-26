@@ -50,8 +50,9 @@ async function createServicePurchase(userId, metadata, chargeCode) {
         service_category: metadata.service_category,
         amount: parseFloat(metadata.amount) || 0,
         currency: 'USD',
-        status: metadata.service_category === 'workflow' ? 'delivered' : 'processing',
+        status: metadata.service_category === 'workflow' ? 'ready' : 'processing',
         coinbase_charge_code: chargeCode,
+        lora_status: metadata.service_category === 'workflow' ? 'pending_photos' : null,
         metadata: metadata
       })
     });

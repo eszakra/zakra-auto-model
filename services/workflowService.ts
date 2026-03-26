@@ -37,6 +37,15 @@ function triggerDownload(url: string, filename: string) {
   document.body.removeChild(a);
 }
 
+async function fetchAndDownload(url: string, filename: string) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  triggerDownload(blobUrl, filename);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+}
+
 export async function downloadPersonalizedWorkflow(
   userId: string,
   userEmail: string,
@@ -103,5 +112,5 @@ export async function downloadScript(serviceId: string): Promise<void> {
 
   const scriptUrl = `${TEMPLATES_BASE}/${scriptPath}`;
   const filename = scriptPath.split('/').pop()!;
-  triggerDownload(scriptUrl, filename);
+  await fetchAndDownload(scriptUrl, filename);
 }

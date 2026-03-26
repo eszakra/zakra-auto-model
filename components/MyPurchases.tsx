@@ -121,16 +121,18 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
     return (
       <div
         key={purchase.id}
-        className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-5 hover:border-[var(--text-muted)] transition-colors"
+        onClick={() => onViewContent(purchase.id, purchase.service_id)}
+        className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-5 hover:border-reed-red/50 transition-all duration-200 cursor-pointer group"
       >
         {/* Header */}
         <div className="flex items-start gap-4 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-reed-red/10 flex items-center justify-center text-reed-red flex-shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-reed-red/10 flex items-center justify-center text-reed-red flex-shrink-0 group-hover:bg-reed-red/20 transition-colors">
             {getCategoryIcon(purchase.service_category)}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-1">
-              <h3 className="font-semibold text-[var(--text-primary)] truncate">{purchase.service_name}</h3>
+            <div className="flex items-center justify-between gap-3 mb-1">
+              <h3 className="font-semibold text-[var(--text-primary)] truncate group-hover:text-reed-red transition-colors">{purchase.service_name}</h3>
+              <ArrowLeft className="w-4 h-4 text-[var(--text-muted)] rotate-180 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
             </div>
             <div className="flex items-center gap-2 mb-1">
               <p className="text-xs text-reed-red font-medium uppercase tracking-wider">
@@ -154,30 +156,17 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
 
         {/* Workflow File Section */}
         <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4 mb-3">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-[var(--text-primary)]">Workflow File</p>
-                  <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-xs font-semibold rounded-full">Ready</span>
-                </div>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5">Your personalized workflow is ready to download</p>
-              </div>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-4 h-4 text-green-500" />
             </div>
-            {purchase.download_url && (
-              <a
-                href={purchase.download_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors flex-shrink-0"
-              >
-                <Download className="w-4 h-4" />
-                Download Workflow
-              </a>
-            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-[var(--text-primary)]">Workflow File</p>
+                <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-xs font-semibold rounded-full">Ready</span>
+              </div>
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">Download available inside</p>
+            </div>
           </div>
         </div>
 
@@ -200,7 +189,7 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
                     </div>
                   </div>
                   <button
-                    onClick={() => onUploadPhotos(purchase.id, purchase.service_id)}
+                    onClick={(e) => { e.stopPropagation(); onUploadPhotos(purchase.id, purchase.service_id); }}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-reed-red text-white text-sm font-medium rounded-lg hover:bg-reed-red-dark transition-colors flex-shrink-0"
                   >
                     <Upload className="w-4 h-4" />
@@ -273,6 +262,7 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
                       href={purchase.lora_url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors flex-shrink-0"
                     >
                       <Download className="w-4 h-4" />
@@ -286,17 +276,6 @@ export const MyPurchases: React.FC<MyPurchasesProps> = ({
 
           return null;
         })()}
-
-        {/* Actions */}
-        <div className="flex items-center gap-2 mt-4">
-          <button
-            onClick={() => onViewContent(purchase.id, purchase.service_id)}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-medium rounded-lg hover:border-reed-red hover:text-reed-red transition-colors"
-          >
-            <Eye className="w-4 h-4" />
-            View Tutorial
-          </button>
-        </div>
       </div>
     );
   };
