@@ -1114,16 +1114,6 @@ const App: React.FC<AppProps> = ({ onBackToLanding, hideBackButton }) => {
             <span className="hidden sm:inline">History</span>
           </button>
 
-          {/* Admin Button - Only for admins */}
-          {user?.is_admin && (
-            <button
-              onClick={() => setShowAdmin(true)}
-              className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center gap-1 transition-colors"
-            >
-              <Shield className="w-4 h-4" />
-              <span className="hidden sm:inline">Admin</span>
-            </button>
-          )}
         </div>
       </header>
 
@@ -2064,14 +2054,6 @@ const App: React.FC<AppProps> = ({ onBackToLanding, hideBackButton }) => {
         isOpen={showHistory}
         onClose={() => setShowHistory(false)}
       />
-
-      {/* Admin Panel - Only loaded for admin users */}
-      {user?.is_admin && (
-        <AdminPanel
-          isOpen={showAdmin}
-          onClose={() => setShowAdmin(false)}
-        />
-      )}
 
       {/* Onboarding Guide (first-time users only) */}
       <OnboardingGuide
