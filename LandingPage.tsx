@@ -505,7 +505,7 @@ const ThreeWaysSection = ({ onLaunchApp, onViewServices }: { onLaunchApp: () => 
     {
       tag: 'Ready-made templates',
       title: 'ComfyUI Workflows',
-      description: 'Pre-built generation workflows for ComfyUI. Download, load your LoRA, and start producing images immediately. Zero node experience required.',
+      description: 'NSFW-ready generation workflows for ComfyUI. Download, load your LoRA, and start producing uncensored content immediately. Also works for SFW.',
       icon: <GitBranch className="w-6 h-6" />,
       cta: 'View Workflows',
       ctaHref: '#services',
@@ -741,7 +741,7 @@ const HowItWorksSection = () => {
               </div>
               <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3">Ready-To-Use Engine</h3>
               <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                Receive your custom model alongside our exclusive ComfyUI Workflows. Plug it in and generate advanced results instantly — zero node experience required.
+                Receive your custom model alongside our exclusive NSFW ComfyUI Workflows. Plug it in and generate uncensored or SFW content instantly — zero node experience required.
               </p>
             </div>
           </div>
@@ -845,14 +845,24 @@ const ServicesSection = ({ onBuyService }: { onBuyService: (service: ServiceItem
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-full text-xs font-semibold text-[var(--text-secondary)]">
               One-Time Purchase
             </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-500/15 border border-red-500/40 rounded-full text-xs font-bold text-red-400 uppercase tracking-wider">
+              NSFW
+            </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-reed-red/10 border border-reed-red/30 rounded-full text-xs font-semibold text-reed-red">
               <span className="w-1.5 h-1.5 bg-reed-red rounded-full animate-pulse" />
               Launch Sale
             </span>
           </div>
-          <p className="text-[var(--text-secondary)] text-sm mb-8 max-w-2xl">
+          <p className="text-[var(--text-secondary)] text-sm mb-4 max-w-2xl">
             Hand-crafted by our team. Every workflow comes fully ready to use — just import it into ComfyUI, load your LoRA, and generate. No node knowledge required. These are advanced tools built so anyone can use them, regardless of experience.
           </p>
+          <div className="flex items-center gap-2 mb-8 px-4 py-2.5 bg-[var(--bg-secondary)]/60 border border-[var(--border-color)] rounded-xl max-w-2xl">
+            <span className="text-red-400 text-sm font-semibold">18+</span>
+            <span className="w-px h-4 bg-[var(--border-color)]" />
+            <p className="text-[var(--text-muted)] text-xs">
+              Built for <span className="text-[var(--text-secondary)] font-medium">NSFW content creation</span> — fully uncensored, no restrictions. Also produces high-quality SFW content with the same workflows.
+            </p>
+          </div>
 
           <div ref={workflowRef} className="scroll-reveal grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
             {WORKFLOWS.map((wf, i) => (
@@ -1234,7 +1244,7 @@ const FAQSection = () => {
     },
     {
       question: "What are ComfyUI Workflows?",
-      answer: "Ready-to-use templates for ComfyUI. Import the file, load your LoRA, and generate. You don't need to know anything about nodes or ComfyUI — everything comes pre-built."
+      answer: "Ready-to-use NSFW generation templates for ComfyUI. Import the file, load your LoRA, and generate uncensored content instantly — no node knowledge needed. They also work perfectly for SFW content with the same quality."
     },
     {
       question: "Are LoRAs auto-generated?",
